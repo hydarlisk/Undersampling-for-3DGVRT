@@ -16,6 +16,7 @@
 #include "VulkanUtils.h"
 #include "SimpleUtils.h"
 #include "Vulkan3DGRTModel.h"
+#include "GaussianEnclosingPipeline.hpp"
 
 #if SPLIT_BLAS && !RAY_QUERY
 #include "SplitBLAS.hpp"
@@ -54,6 +55,8 @@ public:
 	// For 3DGRT Model
 	AccelerationStructure bottomLevelAS3DGRT{};
 	AccelerationStructure topLevelAS3DGRT{};
+
+	GaussianEnclosingPipeline* gaussianEnclosingPipeline;
 
 #if SPLIT_BLAS && !RAY_QUERY
 	SplitBLAS splitBLAS;
@@ -1512,9 +1515,9 @@ public:
 			setupTimeStampQueries(frame, timeStampCountPerFrame);
 		}
 
-		VK_CHECK_RESULT(vulkanDevice->createBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &gaussianEnclosing.uniformBuffer, sizeof(vks::utils::GaussianEnclosingUniformData), nullptr));
-		VK_CHECK_RESULT(vulkanDevice->createBuffer(VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &gaussianEnclosing.totalCounts, sizeof(unsigned int), 0));
-		updateGaussianEnclosingUniformBuffer();
+		//VK_CHECK_RESULT(vulkanDevice->createBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &gaussianEnclosing.uniformBuffer, sizeof(vks::utils::GaussianEnclosingUniformData), nullptr));
+		//VK_CHECK_RESULT(vulkanDevice->createBuffer(VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &gaussianEnclosing.totalCounts, sizeof(unsigned int), 0));
+		//updateGaussianEnclosingUniformBuffer();
 
 		// allocate device memory for vertex/index buffer
 		gModel.allocateAttributeBuffers(vulkanDevice, graphicsQueue);
@@ -1523,10 +1526,14 @@ public:
 		// particle sph coefficient
 		VK_CHECK_RESULT(vulkanDevice->createBuffer(VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &particleSphCoefficients, sizeof(ParticleSphCoefficient) * gModel.splatSet.size(), nullptr));
 
+		gaussianEnclosingPipeline = new GaussianEnclosingPipeline(*vulkanDevice, graphicsQueue, cmdPool, gModel, DIR_PATH);
+		gaussianEnclosingPipeline->prepare(particleDensities, particleSphCoefficients);
+		gaussianEnclosingPipeline->run();
 		// (1) Gaussian Enclosing pass
-		createGaussianEnclosingDescriptorSets();
-		createGaussianEnclosingPipeline();
-		computeGaussianEnclosingIcosaHedron();
+		//createGaussianEnclosingDescriptorSets();
+		//createGaussianEnclosingPipeline();
+		//computeGaussianEnclosingIcosaHedron();
+
 
 		// Create the acceleration structures used to render the ray traced scene
 #if LOAD_GLTF
