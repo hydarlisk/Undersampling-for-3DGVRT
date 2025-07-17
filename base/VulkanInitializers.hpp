@@ -561,6 +561,14 @@ namespace vks
 			return computePipelineCreateInfo;
 		}
 
+		inline VkPipelineShaderStageCreateInfo pipelineShaderStageCreateInfo(VkShaderStageFlagBits stage) {
+			VkPipelineShaderStageCreateInfo shaderStage{};
+			shaderStage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+			shaderStage.stage = stage;
+			shaderStage.pName = "main";
+			return shaderStage;
+		}
+
 		inline VkPushConstantRange pushConstantRange(
 			VkShaderStageFlags stageFlags,
 			uint32_t size,

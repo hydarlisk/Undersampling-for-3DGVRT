@@ -20,6 +20,9 @@
 #if SPLIT_BLAS && !RAY_QUERY
 #include "SplitBLAS.hpp"
 #endif
+#if UNDERSAMPLING
+#include "USPipeline.hpp"
+#endif
 
 #if EVAL_QUALITY
 #define STB_IMAGE_WRITE_IMPLEMENTATION
@@ -54,6 +57,9 @@ public:
 
 #if SPLIT_BLAS && !RAY_QUERY
 	SplitBLAS splitBLAS;
+#endif
+#if UNDERSAMPLING
+	USPipeline* usPipeline;
 #endif
 
 	vks::Buffer transformBuffer3DGRT;
@@ -1171,9 +1177,18 @@ public:
 			&shaderBindingTables.miss.stridedDeviceAddressRegion,
 			&shaderBindingTables.hit.stridedDeviceAddressRegion,
 			&emptySbtEntry,
+	#if UNDERSAMPLING
+			width / 2,
+			height / 2,
+	#else
 			width,
 			height,
+	#endif
 			1);
+#endif
+
+#if UNDERSAMPLING
+		usPipeline->buildCommandBuffer(frame.commandBuffer, swapChain, frame.imageIndex, width, height);
 #endif
 
 		vks::tools::setImageLayout(
@@ -1543,6 +1558,12 @@ public:
 		createParticleRenderingPipeline();
 #if !RAY_QUERY
 		createShaderBindingTables();
+#endif
+
+#if UNDERSAMPLING
+		usPipeline = new USPipeline(*vulkanDevice, graphicsQueue, swapChain.imageCount, DIR_PATH);
+		usPipeline->createDescriptorSets(swapChain);
+		usPipeline->createPipelines();
 #endif
 
 		prepared = true;

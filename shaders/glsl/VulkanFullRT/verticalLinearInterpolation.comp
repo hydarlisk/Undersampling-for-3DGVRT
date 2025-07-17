@@ -1,0 +1,35 @@
+/*
+ * Abura Soba, 2025
+ * 
+ * Full Ray Tracing
+ *
+ * linearInterpolation.comp
+ *
+ * Compute shader
+ */
+
+#version 460
+
+//#extension GL_KHR_vulkan_glsl : enable
+
+layout(local_size_x = 32, local_size_y = 32) in;
+
+
+
+layout(binding = 0, set = 0, rgba8) uniform image2D image;
+
+//TODO: edge handling
+void main()
+{
+	uvec2 gridId = gl_GlobalInvocationID.xy;
+	gridId.y *= 2;
+	gridId.y += 1;
+	
+	vec4 upColor = imageLoad(image, ivec2(gridId.x, gridId.y-1));
+	vec4 downColor = imageLoad(image, ivec2(gridId.x, gridId.y+1));
+
+	vec4 finalColor = (upColor + downColor) / 2;
+
+	vec4 green = vec4(0.0f, 1.0f, 0.0f, 0.0f);
+    imageStore(image, ivec2(gridId), finalColor);
+}

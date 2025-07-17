@@ -113,13 +113,8 @@ void trace(vec3 rayOri, vec3 rayDir, const float tmin, const float tmax){
 void main()
 {
 	// set ray origin, direction
-#if UNDERSAMPLING
-	const vec2 pixelCenter = vec2(gl_LaunchIDEXT.xy * 2) + vec2(0.5);	// pixel position
-	const vec2 inUV = pixelCenter/vec2(gl_LaunchSizeEXT.xy * 2);	// pixel position in WdC
-#else
 	const vec2 pixelCenter = vec2(gl_LaunchIDEXT.xy) + vec2(0.5);	// pixel position
 	const vec2 inUV = pixelCenter/vec2(gl_LaunchSizeEXT.xy);	// pixel position in WdC
-#endif
 	vec2 d = inUV * 2.0 - 1.0;	// pixel position in NDC
 	vec4 rayOrigin = uboDynamic.viewInverse[3];
 	vec4 target = uboDynamic.projInverse * vec4(d.x, d.y, 1.0f, 1.0f) ;	// (pixel position in EC) / Wc
@@ -185,12 +180,9 @@ void main()
 			}
 		}
 	}
-#if UNDERSAMPLING
-	imageStore(image, ivec2(gl_LaunchIDEXT.xy * 2), rayRadiance);
-#else
+
     imageStore(image, ivec2(gl_LaunchIDEXT.xy), rayRadiance);
 //	imageStore(image, ivec2(gl_LaunchIDEXT.xy), vec4(rayHitDistance / 10.0f, rayHitDistance / 10.0f, rayHitDistance / 10.0f, 1.0f));
-#endif
 
 #if ENABLE_HIT_COUNTS
 	rayHitCounts.cnts[gl_LaunchIDEXT.y * gl_LaunchSizeEXT.x + gl_LaunchIDEXT.x] = hitCnts;
