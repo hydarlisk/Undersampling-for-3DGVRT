@@ -22,6 +22,10 @@ USPipeline::USPipeline(vks::VulkanDevice& device, VkQueue queue, int swapchainIm
 }
 
 USPipeline::~USPipeline() {
+	vkDestroyPipeline(device, horizontalPipeline, nullptr);
+	vkDestroyPipeline(device, verticalPipeline, nullptr);
+	vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
+	vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
 	if (descriptorPool != VK_NULL_HANDLE) {
 		vkDestroyDescriptorPool(device, descriptorPool, nullptr);
 	}
@@ -29,15 +33,6 @@ USPipeline::~USPipeline() {
 	for (auto& shaderModule : shaderModules) {
 		vkDestroyShaderModule(device, shaderModule, nullptr);
 	}
-}
-
-void USPipeline::init(vks::VulkanDevice& device, VkQueue queue, int swapchainImageCnt, string projectPath) {
-	this->vulkanDevice = device;
-	this->device = device.logicalDevice;
-	this->queue = queue;
-	this->swapchainImageCnt = swapchainImageCnt;
-	this->projectPath = projectPath;
-	descriptorSets.resize(swapchainImageCnt);
 }
 
 void USPipeline::createDescriptorSets(VulkanSwapChain& swapChain) {
@@ -75,13 +70,6 @@ void USPipeline::createDescriptorSets(VulkanSwapChain& swapChain) {
 			//vks::initializers::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, &inputStorageImageDescriptor),
 		};
 		vkUpdateDescriptorSets(device, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, VK_NULL_HANDLE);
-	}
-}
-
-//TODO
-void USPipeline::handleResize() {
-	for (int i = 0; i < swapchainImageCnt; i++) {
-//		createStorageImage
 	}
 }
 

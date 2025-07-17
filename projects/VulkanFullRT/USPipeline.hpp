@@ -13,16 +13,8 @@
 
 using namespace std;
 
-struct StorageImage {
-	VkDeviceMemory memory = VK_NULL_HANDLE;
-	VkImage image = VK_NULL_HANDLE;
-	VkImageView view = VK_NULL_HANDLE;
-	VkFormat format;
-};
-
 class USPipeline {
 	vector<VkDescriptorSet> descriptorSets;
-	vector<StorageImage> storageImages;
 
 	VkPipelineLayout pipelineLayout{ VK_NULL_HANDLE };
 	vector<VkShaderModule> shaderModules;
@@ -45,10 +37,7 @@ class USPipeline {
 public:
 	USPipeline(vks::VulkanDevice& device, VkQueue queue, int swapchainImageCnt, string projectPath);
 	~USPipeline();
-	void init(vks::VulkanDevice& device, VkQueue queue, int swapchainImageCnt, string projectPath);
 	void createDescriptorSets(VulkanSwapChain& swapChain);
 	void createPipelines();
 	void buildCommandBuffer(VkCommandBuffer commandBuffer, VulkanSwapChain& swapChain, uint32_t imageIndex, uint32_t width, uint32_t height);
-
-	void handleResize();
 };
