@@ -18,17 +18,34 @@ layout(local_size_x = 32, local_size_y = 32) in;
 
 layout(binding = 0, set = 0, rgba8) uniform image2D image;
 
+shared vec4 sharedData[32][32];
+
+
 //TODO: edge handling
 void main()
 {
-	uvec2 gridId = gl_GlobalInvocationID.xy * 2;
-	gridId.x += 1;
+
+	uvec2 target = gl_GlobalInvocationID.xy * 2;
 	
-	vec4 leftColor = imageLoad(image, ivec2(gridId.x - 1, gridId.y));
-	vec4 rightColor = imageLoad(image, ivec2(gridId.x + 1, gridId.y));
+
+//	// GM
+//	target.x += 1;
+//	vec4 leftColor = imageLoad(image, ivec2(target.x - 1, tagret.y));
+//	vec4 rightColor = imageLoad(image, ivec2(target.x + 1, target.y));
+
+	// SM
+	uvec2 localId = gl_LocalInvocationID.xy;
+	sharedData[localId.y][localId.x] = imageLoad(image, ivec2(target));
+	memoryBarrierShared();
+	barrier();
+
+	vec4 leftColor = sharedData[localId.y][localId.x];
+	vec4 rightColor = sharedData[localId.y][localId.x];
 
 	vec4 finalColor = (leftColor + rightColor) / 2;
 
-	vec4 red = vec4(1.0f, 0.0f, 0.0f, 0.0f);
-    imageStore(image, ivec2(gridId), finalColor);
+	target.x += 1;
+
+	//vec4 red = vec4(1.0f, 0.0f, 0.0f, 0.0f);
+    imageStore(image, ivec2(target), finalColor);
 }

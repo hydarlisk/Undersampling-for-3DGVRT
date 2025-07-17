@@ -8,6 +8,7 @@
 #include "Define.h"
 
 #include <vector>
+#include <algorithm>
 
 using namespace std;
 
@@ -15,6 +16,9 @@ USPipeline::USPipeline(vks::VulkanDevice& device, VkQueue queue, int swapchainIm
 	this->swapchainImageCnt = swapchainImageCnt;
 	this->projectPath = projectPath;
 	descriptorSets.resize(swapchainImageCnt);
+
+	uint32_t sharedDataSize = min((uint32_t)1024, (uint32_t)(vulkanDevice.properties.limits.maxComputeSharedMemorySize / sizeof(glm::vec4)));
+	assert(sharedDataSize >= 1024);
 }
 
 USPipeline::~USPipeline() {
@@ -93,6 +97,7 @@ void USPipeline::createHorizontalPipeline() {
 	shaderStage.module = vks::tools::loadShader(shaderPath.c_str(), device);
 	assert(shaderStage.module != VK_NULL_HANDLE);
 	computePipelineCreateInfo.stage = shaderStage;
+
 	VK_CHECK_RESULT(vkCreateComputePipelines(device, nullptr, 1, &computePipelineCreateInfo, nullptr, &horizontalPipeline));
 }
 
@@ -108,6 +113,7 @@ void USPipeline::createVerticalPipeline() {
 	shaderStage.module = vks::tools::loadShader(shaderPath.c_str(), device);
 	assert(shaderStage.module != VK_NULL_HANDLE);
 	computePipelineCreateInfo.stage = shaderStage;
+
 	VK_CHECK_RESULT(vkCreateComputePipelines(device, nullptr, 1, &computePipelineCreateInfo, nullptr, &verticalPipeline));
 }
 
