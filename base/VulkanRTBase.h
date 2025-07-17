@@ -93,10 +93,6 @@ struct BaseFrameObject
 	std::vector<uint64_t> timeStamps;
 	vks::Buffer vertexBuffer;
 	vks::Buffer indexBuffer;
-
-	/* 3DGRT */
-	vks::Buffer uniformBufferParams;
-	// hmm..
 };
 
 class VulkanRTBase

@@ -56,36 +56,7 @@ float particleResponse(float grayDist) {
     }
 }
 
-#if BUFFER_REFERENCE
-void fetchParticleDensity(
-    const uint particleIdx,
-    const uint64_t densityBufferDeviceAddress,
-    out vec3 particlePosition,
-    out vec3 particleScale,
-    out mat3 particleRotation,
-    out float particleDensity) {
-    const ParticleDensity particleData = Densities[nonuniformEXT(densityBufferDeviceAddress)].d[nonuniformEXT(particleIdx)];
 
-    particlePosition = particleData.position;
-    particleScale = particleData.scale;
-    particleRotation = quaternionWXYZToMatrix(particleData.quaternion);
-    particleDensity = particleData.density;
-}
-
-void fetchParticleSphCoefficients(
-    const uint particleIdx,
-    //const float sphCoefficientBufferDeviceAddress,
-    out vec3 sphCoefficients[]) {
-    const uint particleOffset = particleIdx * SPH_MAX_NUM_COEFFS * 3;
-    for (unsigned int i = 0; i < SPH_MAX_NUM_COEFFS; i++) {
-        const int offset = i * 3;
-        sphCoefficients[i] = vec3(
-            particlesSphCoefficients[nonuniformEXT(particleOffset + offset + 0)],
-            particlesSphCoefficients[nonuniformEXT(particleOffset + offset + 1)],
-            particlesSphCoefficients[nonuniformEXT(particleOffset + offset + 2]);
-    }
-}
-#else
 void fetchParticleDensity(
     const uint particleIdx,
     out vec3 particlePosition,
@@ -113,7 +84,6 @@ void fetchParticleSphCoefficients(
             particleSphCoefficients.c[nonuniformEXT(particleOffset + offset + 2)]);
     }
 }
-#endif
 
 // calc spherical harmonics with coefficients
 // not a special algorithm
@@ -154,10 +124,6 @@ bool processHit(
 	vec3 rayOrigin,
 	vec3 rayDirection,
 	uint particleIdx,
-#if BUFFER_REFERENCE
-	const uint64_t densityBufferDeviceAddress,
-	const uint64_t sphCoefficientBufferDeviceAddress,
-#endif
 	float minParticleKernelDensity,
 	float minParticleAlpha,
 	uint sphEvalDegree,
@@ -175,9 +141,6 @@ bool processHit(
 	
 	fetchParticleDensity(
         particleIdx,
-#if BUFFER_REFERENCE
-        densityBufferDeviceAddress,
-#endif
         particlePosition,
         particleScale,
         particleRotation,
@@ -208,9 +171,6 @@ bool processHit(
 		vec3 sphCoefficients[SPH_MAX_NUM_COEFFS];
 		fetchParticleSphCoefficients(
 			particleIdx,
-//#if BUFFER_REFERENCE
-//			sphCoefficientBufferDeviceAddress,
-//#endif
 			sphCoefficients);
 		const vec3 grad = radianceFromSpH(sphEvalDegree, sphCoefficients, rayDirection, true);
 

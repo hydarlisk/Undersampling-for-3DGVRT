@@ -54,10 +54,6 @@ namespace vks {
 			alignas(16) float minTransmittance = 0.001f; // to be separated to Config.h?
 			alignas(4) float hitMinGaussianResponse = 0.0113f;	// particle kernel min response. to be separated to Config.h?
 			alignas(4) unsigned int sphEvalDegree = 3;	// n active features. to be separated to Config.h?
-#if BUFFER_REFERENCE
-			uint64_t densityBufferDeviceAddress;
-			uint64_t sphCoefficientBufferDeviceAddress;
-#endif
 		};
 
 		struct GaussianEnclosingUniformData {

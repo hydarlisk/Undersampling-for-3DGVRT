@@ -24,13 +24,10 @@
 #define PARTICLE_KERNEL_DEGREE 4 // "configs/render/3dgrt.yaml - particle_kernel_degree" : 4
 #define SURFEL_PRIMITIVE false // "configs/render/3dgrt.yaml - primitive_type" : instances -> false
 
-#define BUFFER_REFERENCE false	// This macro should be managed with Define.h
-
 #define INVALID_PARTICLE_ID 0xFFFFFFFF
 #define INFINITE_DISTANCE 1e20f
 
 #extension GL_EXT_scalar_block_layout : require
-//#extension GL_EXT_buffer_reference2 : require
 
 /* spherical harmonics coefficients */
 const float SH_C0 = 0.28209479177387814f;	// sqrt(1 / (4 * pi))
@@ -71,8 +68,3 @@ struct RayHit {
 struct RayPayload {
 	RayHit hits[MAX_HIT_PER_TRACE];
 };
-
-#if BUFFER_REFERENCE
-layout(buffer_reference, scalar) buffer Densities { ParticleDensity d[]; };
-layout(buffer_reference, scalar) buffer SphCoefficients { float sc[]; };
-#endif
