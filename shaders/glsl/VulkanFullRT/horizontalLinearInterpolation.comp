@@ -10,42 +10,47 @@
 
 #version 460
 
+#include "../base/underSampling.glsl"
 //#extension GL_KHR_vulkan_glsl : enable
 
-layout(local_size_x = 32, local_size_y = 32) in;
+layout(local_size_x = LOCAL_SIZE_X, local_size_y = LOCAL_SIZE_Y) in;
 
 
 
 layout(binding = 0, set = 0, rgba8) uniform image2D image;
 
-shared vec4 sharedData[32][32];
+#if SHARED_MEMORY
+shared vec4 sharedData[LOCAL_SIZE_Y][LOCAL_SIZE_X];
+#endif
 
 
 //TODO: edge handling
 void main()
 {
-
 	uvec2 target = gl_GlobalInvocationID.xy * 2;
 	
-
-//	// GM
-//	target.x += 1;
-//	vec4 leftColor = imageLoad(image, ivec2(target.x - 1, tagret.y));
-//	vec4 rightColor = imageLoad(image, ivec2(target.x + 1, target.y));
-
-	// SM
+#if SHARED_MEMORY
+// SM
 	uvec2 localId = gl_LocalInvocationID.xy;
 	sharedData[localId.y][localId.x] = imageLoad(image, ivec2(target));
 	memoryBarrierShared();
 	barrier();
 
 	vec4 leftColor = sharedData[localId.y][localId.x];
-	vec4 rightColor = sharedData[localId.y][localId.x];
-
-	vec4 finalColor = (leftColor + rightColor) / 2;
+	vec4 rightColor;
+	if(localId.x == LOCAL_SIZE_X - 1)
+		rightColor = imageLoad(image, ivec2(target.x + 2, target.y));
+	else
+		rightColor = sharedData[localId.y][localId.x+1];
 
 	target.x += 1;
+#else
+	// GM
+	target.x += 1;
+	vec4 leftColor = imageLoad(image, ivec2(target.x - 1, tagret.y));
+	vec4 rightColor = imageLoad(image, ivec2(target.x + 1, target.y));
+#endif
 
-	//vec4 red = vec4(1.0f, 0.0f, 0.0f, 0.0f);
+	vec4 finalColor = (leftColor + rightColor) / 2;
     imageStore(image, ivec2(target), finalColor);
 }

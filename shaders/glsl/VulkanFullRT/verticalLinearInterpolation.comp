@@ -10,6 +10,7 @@
 
 #version 460
 
+#include "../base/underSampling.glsl"
 //#extension GL_KHR_vulkan_glsl : enable
 
 layout(local_size_x = 32, local_size_y = 32) in;
@@ -18,18 +19,39 @@ layout(local_size_x = 32, local_size_y = 32) in;
 
 layout(binding = 0, set = 0, rgba8) uniform image2D image;
 
+#if SHARED_MEMORY
+shared vec4 sharedData[LOCAL_SIZE_Y][LOCAL_SIZE_X];
+#endif
+
 //TODO: edge handling
 void main()
 {
-	uvec2 gridId = gl_GlobalInvocationID.xy;
-	gridId.y *= 2;
-	gridId.y += 1;
+	uvec2 target = gl_GlobalInvocationID.xy;
 	
-	vec4 upColor = imageLoad(image, ivec2(gridId.x, gridId.y-1));
-	vec4 downColor = imageLoad(image, ivec2(gridId.x, gridId.y+1));
+#if SHARED_MEMORY	//SM
+	uvec2 localId = gl_LocalInvocationID.xy;
+	target.y *= 2;
+	sharedData[localId.y][localId.x] = imageLoad(image, ivec2(target));
+	
+	memoryBarrierShared();
+	barrier();
+
+	vec4 upColor = sharedData[localId.y][localId.x];
+	vec4 downColor;
+	if(localId.y == LOCAL_SIZE_Y - 1)
+		downColor = imageLoad(image, ivec2(target.x, target.y + 2));
+	else
+		downColor = sharedData[localId.y + 1][localId.x];
+	target.y += 1;
+#else				//GM
+	target.y = target.y * 2 + 1;
+	
+	vec4 upColor = imageLoad(image, ivec2(target.x, target.y-1));
+	vec4 downColor = imageLoad(image, ivec2(target.x, target.y+1));
+#endif
 
 	vec4 finalColor = (upColor + downColor) / 2;
 
 	vec4 green = vec4(0.0f, 1.0f, 0.0f, 0.0f);
-    imageStore(image, ivec2(gridId), finalColor);
+    imageStore(image, ivec2(target), finalColor);
 }
