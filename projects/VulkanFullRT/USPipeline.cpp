@@ -12,6 +12,7 @@
 
 using namespace std;
 
+// value 1024 should change if local group size change
 USPipeline::USPipeline(vks::VulkanDevice& device, VkQueue queue, int swapchainImageCnt, string projectPath) : vulkanDevice(device), device(device.logicalDevice), queue(queue){
 	this->swapchainImageCnt = swapchainImageCnt;
 	this->projectPath = projectPath;
@@ -110,6 +111,7 @@ void USPipeline::createPipelines() {
 	createVerticalPipeline();
 }
 
+//value groupSize should change if local group size change
 void USPipeline::buildCommandBuffer(VkCommandBuffer commandBuffer, VulkanSwapChain& swapChain, uint32_t imageIndex, uint32_t width, uint32_t height) {
 	const uint32_t groupSizeX = 32;
 	const uint32_t groupSizeY = 32;
