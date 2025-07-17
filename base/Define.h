@@ -128,3 +128,5 @@
 #define NUM_OF_GAUSSIANS 1024	// This macro should be managed with 3dgs.glsl
 #define MAX_N_FEATURES 3
 #define SPECULAR_DIMENSION 3 * ((MAX_N_FEATURES + 1) * (MAX_N_FEATURES + 1) - 1)
+#define KERNEL_DEGREE 4
+#define KERNEL_MIN_RESPONSE 0.0113

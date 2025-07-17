@@ -137,10 +137,10 @@ protected:
 	std::chrono::steady_clock::time_point startTime;
 #else
 #if defined(VK_USE_PLATFORM_WIN32_KHR)
-	int measureFrame = 2000;
+	int measureFrame = MEASURE_FRAME;
 #endif
 #if defined(VK_USE_PLATFORM_ANDROID_KHR)
-	int measureFrame = 500;
+	int measureFrame = MEASURE_FRAME;
 #endif
 	int startFrame = 0;
 #endif

@@ -949,7 +949,7 @@ public:
 			vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_RAYGEN_BIT_KHR, 4),
 			// Binding 5: Storage buffer - Particle Sph Coefficients
 			vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_RAYGEN_BIT_KHR, 5),
-#if SPLIT_BLAS && !RAY_QUERY
+	#if SPLIT_BLAS && !RAY_QUERY
 			// Binding 6: Storage buffer - primitive Id
 			vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_ANY_HIT_BIT_KHR, 6),
 	#endif
@@ -1298,9 +1298,9 @@ public:
 	void updateGaussianEnclosingUniformBuffer()
 	{
 		gaussianEnclosingUniformData.numOfGaussians = gModel.splatSet.size();
-		gaussianEnclosingUniformData.kernelMinResponse = 0.0113f;	// these values should be managed as config val
+		gaussianEnclosingUniformData.kernelMinResponse = KERNEL_MIN_RESPONSE;	// these values should be managed as config val
 		gaussianEnclosingUniformData.opts = vks::utils::MOGRenderNone;
-		gaussianEnclosingUniformData.degree = 4;
+		gaussianEnclosingUniformData.degree = KERNEL_DEGREE;
 
 		// mapping
 		vks::Buffer stagingBuffer;
