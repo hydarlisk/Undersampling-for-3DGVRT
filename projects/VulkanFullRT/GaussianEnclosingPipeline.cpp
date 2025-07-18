@@ -18,6 +18,7 @@ GaussianEnclosingPipeline::GaussianEnclosingPipeline(vks::VulkanDevice& device, 
 }
 
 GaussianEnclosingPipeline::~GaussianEnclosingPipeline() {
+	uniformBuffer.destroy();
 	vkDestroyPipeline(device, pipeline, nullptr);
 	vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
 	vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
