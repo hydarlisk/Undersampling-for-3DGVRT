@@ -8,12 +8,21 @@
 
 #include "vulkan/vulkan.h"
 #include "VulkanUtils.h"
+#include "ExclusiveScan.hpp"
 
 #include <vector>
 
 using namespace std;
 
 class USPipeline {
+	/* exclusive scan test */
+	vector<vks::Buffer> testInput;
+	vector<vks::Buffer> testOutput;
+
+	ExclusiveScan* exclusiveScan;
+	vector<vks::Buffer> rtMaskBuffers;
+	vector<vks::Buffer> rtMaskScanBuffers;
+
 	vector<VkDescriptorSet> descriptorSets;
 
 	VkPipelineLayout pipelineLayout{ VK_NULL_HANDLE };
@@ -31,13 +40,15 @@ class USPipeline {
 	VkDescriptorPool descriptorPool{ VK_NULL_HANDLE };
 	VkDescriptorSetLayout descriptorSetLayout{ VK_NULL_HANDLE };
 
-	//void createStorageImage(StorageImage& storageImage, VkFormat format, VkExtent3D extent);
 	void createHorizontalPipeline();
 	void createVerticalPipeline();
 public:
-	USPipeline(vks::VulkanDevice& device, VkQueue queue, int swapchainImageCnt, string projectPath);
+	USPipeline(vks::VulkanDevice& device, VkQueue& queue, int swapchainImageCnt, string projectPath);
 	~USPipeline();
+
 	void createDescriptorSets(VulkanSwapChain& swapChain);
 	void createPipelines();
 	void buildCommandBuffer(VkCommandBuffer commandBuffer, VulkanSwapChain& swapChain, uint32_t imageIndex, uint32_t width, uint32_t height);
+
+	void debugExclusiveScan(VkCommandBuffer commandBuffer, VulkanSwapChain& swapChain, uint32_t imageIndex);
 };

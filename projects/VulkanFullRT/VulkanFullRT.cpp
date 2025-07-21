@@ -1389,6 +1389,7 @@ public:
 		usPipeline = new USPipeline(*vulkanDevice, graphicsQueue, swapChain.imageCount, DIR_PATH);
 		usPipeline->createDescriptorSets(swapChain);
 		usPipeline->createPipelines();
+		usPipeline->debugExclusiveScan(frameObjects[0].commandBuffer, swapChain, frameObjects[0].imageIndex);
 #endif
 
 		prepared = true;
