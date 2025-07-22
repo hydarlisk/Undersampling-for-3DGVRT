@@ -195,7 +195,7 @@ void ExclusiveScan::buildCommandBuffer(VkCommandBuffer commandBuffer, VulkanSwap
 		createPartialSumBuffers(bufferSize);
 	}*/
 
-	const uint32_t groupSizeX = 64;
+	const uint32_t groupSizeX = 1024;
 	uint32_t groupCntX;
 
 	VkMemoryBarrier barrier = vks::initializers::memoryBarrier();

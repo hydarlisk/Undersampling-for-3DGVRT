@@ -7,7 +7,7 @@
     add partial scan result
 */
 
-layout (local_size_x = 64) in;
+layout (local_size_x = 1024) in;
 
 //layout(push_constant) uniform Consts
 //{
@@ -29,12 +29,17 @@ shared uint sum;
 void main()
 {
   //if (gl_WorkGroupID.x > 0 && gl_GlobalInvocationID.x < consts.n)
-//  if (gl_WorkGroupID.x > 0)
-//  {
-//    sum = 0;
+  if (gl_WorkGroupID.x > 0)
+  {
+    sum = 0;
 //    if(gl_WorkGroupID.x > 0)
-//        sum = i.value[gl_WorkGroupID.x - 1];
-//
-//    o.value[gl_GlobalInvocationID.x] += sum;
-//  }
+    if(gl_LocalInvocationID.x == 0)
+        sum = i.value[gl_WorkGroupID.x - 1];
+
+    memoryBarrierShared();
+    barrier();
+
+
+    o.value[gl_GlobalInvocationID.x] += sum;
+  }
 }

@@ -41,7 +41,7 @@ USPipeline::~USPipeline() {
 }
 
 void USPipeline::debugExclusiveScan(VkCommandBuffer commandBuffer, VulkanSwapChain& swapChain, uint32_t imageIndex) {
-	int size = 1024;
+	int size = 4096;
 	vector<uint32_t> input(size);
 	for (int i = 0; i < input.size(); i++) {
 		input[i] = 1;
