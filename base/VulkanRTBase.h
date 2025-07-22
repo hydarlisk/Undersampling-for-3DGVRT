@@ -278,6 +278,7 @@ public:
 	bool evalQualFlag = false;
 	vks::Buffer currentFrameImg;
 	unsigned int evalCameraIdx;
+	void* currentImg;
 #endif
 
 	/** @brief State of gamepad input (only used on Android) */

@@ -1425,7 +1425,10 @@ public:
 #if !RAY_QUERY
 		createShaderBindingTables();
 #endif
-
+#if EVAL_QUALITY
+		currentImg = (void*)malloc(width * height * 4);
+		VK_CHECK_RESULT(vulkanDevice->createBuffer(VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &currentFrameImg, width * height * 4, nullptr));
+#endif
 		prepared = true;
 	}
 
@@ -1453,21 +1456,17 @@ public:
 
 			vkQueueWaitIdle(graphicsQueue);
 
-			VK_CHECK_RESULT(vulkanDevice->createBuffer(VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &currentFrameImg, width * height * 4, nullptr));
-
 			vulkanDevice->copyImageToBuffer(swapChain.images[currentFrame.imageIndex], currentFrameImg, graphicsQueue, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, width, height);
 
-			VK_CHECK_RESULT(vkMapMemory(device, currentFrameImg.memory, 0, currentFrameImg.size, 0, &currentFrameImg.mapped));
-
+			currentFrameImg.map();
+			memcpy(currentImg, currentFrameImg.mapped, width * height * 4);
+			currentFrameImg.unmap();
 			int stride = width * 4;
 			std::string fileName = "../results/evaluations/output/r_" + std::to_string(evalCameraIdx) + ".png";
-			stbi_write_png(fileName.c_str(), width, height, 4, currentFrameImg.mapped, stride);
+			stbi_write_png(fileName.c_str(), width, height, 4, currentImg, stride);
 
 			std::cout << "\t- Camera index " << evalCameraIdx << " is completed.\n";
 			evalCameraIdx++;
-
-			vkUnmapMemory(device, currentFrameImg.memory);
-			vkFreeMemory(device, currentFrameImg.memory, nullptr);
 
 #if QUATERNION_CAMERA
 			quaternionCamera.setDatasetCamera(quaternionCamera.dataType, evalCameraIdx, (float)width / height, false);
