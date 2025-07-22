@@ -804,8 +804,12 @@ public:
 
 		VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = vks::initializers::pipelineLayoutCreateInfo(&descriptorSetLayout, 1);
 
-		// For transfer push constants
-		VkPushConstantRange pushConstantRange = vks::initializers::pushConstantRange(VK_SHADER_STAGE_RAYGEN_BIT_KHR, sizeof(pushConstants), 0);
+		//// For transfer push constants
+		//VkPushConstantRange pushConstantRange = vks::initializers::pushConstantRange(VK_SHADER_STAGE_RAYGEN_BIT_KHR, sizeof(pushConstants), 0);
+		//pipelineLayoutCreateInfo.pushConstantRangeCount = 1;
+		//pipelineLayoutCreateInfo.pPushConstantRanges = &pushConstantRange;
+		// undersampling flag
+		VkPushConstantRange pushConstantRange = vks::initializers::pushConstantRange(VK_SHADER_STAGE_RAYGEN_BIT_KHR, sizeof(bool), 0);
 		pipelineLayoutCreateInfo.pushConstantRangeCount = 1;
 		pipelineLayoutCreateInfo.pPushConstantRanges = &pushConstantRange;
 
@@ -883,7 +887,11 @@ public:
 			vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR, 1 * swapChain.imageCount),
 			vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1 * swapChain.imageCount),
 			vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 2 * swapChain.imageCount),
+#if UNDERSAMPLING
+			vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 3 * swapChain.imageCount),
+#else
 			vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 2 * swapChain.imageCount),
+#endif
 #if SPLIT_BLAS && !RAY_QUERY
 			vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1 * swapChain.imageCount),
 #endif 
@@ -930,6 +938,9 @@ public:
 	#if ENABLE_HIT_COUNTS
 			// Binding 7: Storage buffer - Ray Hit Count for debugging
 			vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_RAYGEN_BIT_KHR, 7),
+	#endif
+	#if UNDERSAMPLING
+			vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_RAYGEN_BIT_KHR, 8),
 	#endif
 #endif
 		};
@@ -1011,6 +1022,10 @@ public:
 		{
 			handleResize();
 		}
+#if UNDERSAMPLING
+		bool additionalRT = false;
+#endif
+		
 		vkResetCommandBuffer(frame.commandBuffer, 0);
 		VkCommandBufferBeginInfo cmdBufInfo = vks::initializers::commandBufferBeginInfo();
 
@@ -1027,7 +1042,11 @@ public:
 #else
 		vkCmdBindPipeline(frame.commandBuffer, VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR, pipeline);
 		vkCmdBindDescriptorSets(frame.commandBuffer, VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR, pipelineLayout, 0, 1, &frame.descriptorSet, 0, 0);
+	#if UNDERSAMPLING
+		vkCmdPushConstants(frame.commandBuffer, pipelineLayout, VK_SHADER_STAGE_RAYGEN_BIT_KHR, 0, sizeof(bool), &additionalRT);
+	#else
 		vkCmdPushConstants(frame.commandBuffer, pipelineLayout, VK_SHADER_STAGE_RAYGEN_BIT_KHR, 0, sizeof(pushConstants), &pushConstants);
+	#endif
 #endif
 
 		vks::tools::setImageLayout(
@@ -1059,6 +1078,24 @@ public:
 
 #if UNDERSAMPLING
 		usPipeline->buildCommandBuffer(frame.commandBuffer, swapChain, frame.imageIndex, width, height);
+		VkMemoryBarrier barrier = vks::initializers::memoryBarrier();
+		barrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
+		barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+		vkCmdPipelineBarrier(frame.commandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_KHR,
+			VK_FLAGS_NONE, 1, &barrier, 0, nullptr, 0, nullptr);
+		additionalRT = true;
+		vkCmdBindPipeline(frame.commandBuffer, VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR, pipeline);
+		vkCmdBindDescriptorSets(frame.commandBuffer, VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR, pipelineLayout, 0, 1, &frame.descriptorSet, 0, 0);
+		vkCmdPushConstants(frame.commandBuffer, pipelineLayout, VK_SHADER_STAGE_RAYGEN_BIT_KHR, 0, sizeof(bool), &additionalRT);
+		vkCmdTraceRaysKHR(
+			frame.commandBuffer,
+			&shaderBindingTables.raygen.stridedDeviceAddressRegion,
+			&shaderBindingTables.miss.stridedDeviceAddressRegion,
+			&shaderBindingTables.hit.stridedDeviceAddressRegion,
+			&emptySbtEntry,
+			width,
+			height,
+			1);
 #endif
 
 		vks::tools::setImageLayout(
@@ -1378,17 +1415,15 @@ public:
 		printASBuildInfo();
 #endif
 
+#if UNDERSAMPLING
+		usPipeline = new USPipeline(*vulkanDevice, graphicsQueue, swapChain.imageCount, DIR_PATH);
+		usPipeline->prepare(swapChain, width, height);
+#endif
 		// (2) Particle Rendering pass
 		createDescriptorSets();
 		createParticleRenderingPipeline();
 #if !RAY_QUERY
 		createShaderBindingTables();
-#endif
-
-#if UNDERSAMPLING
-		usPipeline = new USPipeline(*vulkanDevice, graphicsQueue, swapChain.imageCount, DIR_PATH);
-		usPipeline->createDescriptorSets(swapChain);
-		usPipeline->createPipelines();
 #endif
 
 		prepared = true;
@@ -1402,6 +1437,10 @@ public:
 		VkDescriptorImageInfo storageImageDescriptor{ VK_NULL_HANDLE, swapChain.buffers[currentFrame.imageIndex].view, VK_IMAGE_LAYOUT_GENERAL };
 		VkWriteDescriptorSet resultImageWrite = vks::initializers::writeDescriptorSet(currentFrame.descriptorSet, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, &storageImageDescriptor);
 		vkUpdateDescriptorSets(device, 1, &resultImageWrite, 0, VK_NULL_HANDLE);
+#if UNDERSAMPLING
+		VkWriteDescriptorSet rtMaskWrite = vks::initializers::writeDescriptorSet(currentFrame.descriptorSet, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 8, &usPipeline->rtMaskBuffers[currentFrame.imageIndex].descriptor);
+		vkUpdateDescriptorSets(device, 1, &rtMaskWrite, 0, VK_NULL_HANDLE);
+#endif
 
 		buildCommandBuffer(currentFrame);
 		VulkanRTBase::submitFrame(currentFrame);

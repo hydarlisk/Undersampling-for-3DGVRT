@@ -16,8 +16,17 @@
 layout(local_size_x = LOCAL_SIZE_X, local_size_y = LOCAL_SIZE_Y) in;
 
 
-
 layout(binding = 0, set = 0, rgba8) uniform image2D image;
+
+//TODO: change type to bool
+layout(binding = 1, set = 0) buffer rtMaskBuffer{
+	uint rtMask[];
+};
+
+layout(push_constant, std430) uniform pushConstant{
+	uint width;
+	uint height;
+};
 
 #if SHARED_MEMORY
 shared vec4 sharedData[LOCAL_SIZE_Y][LOCAL_SIZE_X];
@@ -28,6 +37,9 @@ shared vec4 sharedData[LOCAL_SIZE_Y][LOCAL_SIZE_X];
 void main()
 {
 	uvec2 target = gl_GlobalInvocationID.xy * 2;
+	
+	if(target.y < 0 || target.y >= height) return;
+	if(target.x < 0 || target.x >= width - 1) return;
 	
 #if SHARED_MEMORY
 // SM
@@ -50,7 +62,8 @@ void main()
 	vec4 leftColor = imageLoad(image, ivec2(target.x - 1, tagret.y));
 	vec4 rightColor = imageLoad(image, ivec2(target.x + 1, target.y));
 #endif
-
-	vec4 finalColor = (leftColor + rightColor) / 2;
+	vec4 finalColor = vec4(0.0, 0.0, 0.0, 0.0);
+	rtMask[target.y * width + target.x] = 1;
+//	vec4 finalColor = (leftColor + rightColor) / 2;
     imageStore(image, ivec2(target), finalColor);
 }

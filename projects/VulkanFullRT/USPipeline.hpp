@@ -14,12 +14,25 @@
 using namespace std;
 
 class USPipeline {
-	vector<VkDescriptorSet> descriptorSets;
+	struct AccelerationStructure {
+		VkAccelerationStructureKHR handle;
+		uint64_t deviceAddress = 0;
+		VkDeviceMemory memory;
+		VkBuffer buffer;
+	};
 
-	VkPipelineLayout pipelineLayout{ VK_NULL_HANDLE };
+	vector<VkDescriptorSet> interpolationDescriptorSets;
+	vector<VkDescriptorSet> additionalRTDescriptorSets;
+
+	VkPushConstantRange pushConstantRange;
 	vector<VkShaderModule> shaderModules;
+
+	VkPipelineLayout interpolationPipelineLayout{ VK_NULL_HANDLE };
 	VkPipeline horizontalPipeline{ VK_NULL_HANDLE };
 	VkPipeline verticalPipeline{ VK_NULL_HANDLE };
+
+	VkPipelineLayout additionalRTPipelineLayout{};
+	VkPipeline additionalRTPipeline{ VK_NULL_HANDLE };
 
 
 	string projectPath;
@@ -28,16 +41,25 @@ class USPipeline {
 	VkQueue& queue;
 	int swapchainImageCnt;
 
-	VkDescriptorPool descriptorPool{ VK_NULL_HANDLE };
-	VkDescriptorSetLayout descriptorSetLayout{ VK_NULL_HANDLE };
+	VkDescriptorPool interpolationDescriptorPool{ VK_NULL_HANDLE };
+	VkDescriptorSetLayout interpolationDescriptorSetLayout{ VK_NULL_HANDLE };
+	VkDescriptorPool additionalRTDescriptorPool{ VK_NULL_HANDLE };
+	VkDescriptorSetLayout additionalRTDescriptorSetLayout{ VK_NULL_HANDLE };
 
-	//void createStorageImage(StorageImage& storageImage, VkFormat format, VkExtent3D extent);
+	void createMaskBuffers(uint32_t width, uint32_t height);
+	void createInterpolationDescriptorSets(VulkanSwapChain& swapChain);
 	void createHorizontalPipeline();
 	void createVerticalPipeline();
-public:
-	USPipeline(vks::VulkanDevice& device, VkQueue queue, int swapchainImageCnt, string projectPath);
-	~USPipeline();
-	void createDescriptorSets(VulkanSwapChain& swapChain);
+	void createRTDescriptorSets(VulkanSwapChain& swapChain, AccelerationStructure topLevelAS3DGRT);
+	void createPipelineLayouts();
+	void createRTPipeline();
 	void createPipelines();
+public:
+	vector<vks::Buffer> rtMaskBuffers;
+
+	USPipeline(vks::VulkanDevice& device, VkQueue& queue, int swapchainImageCnt, string projectPath);
+	~USPipeline();
+	
+	void prepare(VulkanSwapChain& swapChain, uint32_t width, uint32_t height);
 	void buildCommandBuffer(VkCommandBuffer commandBuffer, VulkanSwapChain& swapChain, uint32_t imageIndex, uint32_t width, uint32_t height);
 };

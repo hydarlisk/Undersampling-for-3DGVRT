@@ -29,7 +29,7 @@ struct LightAttVar {
 	float gamma;
 };
 
-layout(push_constant, std430) uniform PushConstants {
-	RayOption rayOption;
-	LightAttVar lightAtt;
-} pushConstants;
+//layout(push_constant, std430) uniform PushConstants {
+//	RayOption rayOption;
+//	LightAttVar lightAtt;
+//} pushConstants;

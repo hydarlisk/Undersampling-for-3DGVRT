@@ -19,6 +19,15 @@ layout(local_size_x = 32, local_size_y = 32) in;
 
 layout(binding = 0, set = 0, rgba8) uniform image2D image;
 
+layout(binding = 1, set = 0) buffer rtMaskBuffer{
+	uint rtMask[];
+};
+
+layout(push_constant, std430) uniform pushConstant{
+	uint width;
+	uint height;
+};
+
 #if SHARED_MEMORY
 shared vec4 sharedData[LOCAL_SIZE_Y][LOCAL_SIZE_X];
 #endif
@@ -27,6 +36,9 @@ shared vec4 sharedData[LOCAL_SIZE_Y][LOCAL_SIZE_X];
 void main()
 {
 	uvec2 target = gl_GlobalInvocationID.xy;
+		
+	if(target.y < 0 || target.y * 2 + 1 >= height) return;
+	if(target.x < 0 || target.x >= width) return;
 	
 #if SHARED_MEMORY	//SM
 	uvec2 localId = gl_LocalInvocationID.xy;
@@ -49,9 +61,11 @@ void main()
 	vec4 upColor = imageLoad(image, ivec2(target.x, target.y-1));
 	vec4 downColor = imageLoad(image, ivec2(target.x, target.y+1));
 #endif
-
-	vec4 finalColor = (upColor + downColor) / 2;
-
+	vec4 finalColor = vec4(0.0, 0.0, 0.0, 0.0);
+	//vec4 finalColor = (upColor + downColor) / 2;
+	rtMask[target.y * width + target.x] = 1;
 	vec4 green = vec4(0.0f, 1.0f, 0.0f, 0.0f);
+//	vec4 finalColor = green;
+	
     imageStore(image, ivec2(target), finalColor);
 }
