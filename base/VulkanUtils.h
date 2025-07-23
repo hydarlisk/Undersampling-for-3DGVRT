@@ -66,5 +66,6 @@ namespace vks {
 		void updateLightStaticInfo(UniformDataStatic& uniformDataStaticLight, BaseFrameObject& currentFrame, vkglTF::Model &scene, vks::VulkanDevice *vulkanDevice, VkQueue graphicsQueue);
 		void updateLightDynamicInfo(UniformDataDynamic& uniformData, vkglTF::Model& scene, float timer);
 		void updateUniformBufferStatic(UniformDataStatic& params, BaseFrameObject& currentFrame, vks::VulkanDevice* vulkanDevice, VkQueue queue);
+		VkPipelineShaderStageCreateInfo createShaderStageCI(VkDevice& device, std::string fileName, VkShaderStageFlagBits stage);
 	}
 }

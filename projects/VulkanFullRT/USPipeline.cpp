@@ -37,6 +37,10 @@ USPipeline::~USPipeline() {
 	}
 }
 
+string USPipeline::getShaderPath(string shaderName) {
+	return "./../shaders/glsl/" + projectPath + shaderName;
+}
+
 void USPipeline::createMaskBuffers(uint32_t width, uint32_t height) {
 	for (int i = 0; i < swapchainImageCnt; i++) {
 		VK_CHECK_RESULT(vulkanDevice.createBuffer(
@@ -95,13 +99,11 @@ void USPipeline::createPipelineLayouts() {
 void USPipeline::createHorizontalPipeline() {
 	VkComputePipelineCreateInfo computePipelineCreateInfo = vks::initializers::computePipelineCreateInfo(interpolationPipelineLayout);
 	
-	//load shader
-	VkPipelineShaderStageCreateInfo shaderStage = vks::initializers::pipelineShaderStageCreateInfo(VK_SHADER_STAGE_COMPUTE_BIT);
-	string shaderPath = "./../shaders/glsl/" + projectPath + "horizontalLinearInterpolation.comp.spv";
-	shaderStage.module = vks::tools::loadShader(shaderPath.c_str(), device);
-	assert(shaderStage.module != VK_NULL_HANDLE);
+	//load shader	
+	string shaderPath = getShaderPath("horizontalLinearInterpolation.comp.spv");
+	VkPipelineShaderStageCreateInfo shaderStage = vks::utils::createShaderStageCI(device, shaderPath, VK_SHADER_STAGE_COMPUTE_BIT);
+	shaderModules.push_back(shaderStage.module);
 	computePipelineCreateInfo.stage = shaderStage;
-
 	VK_CHECK_RESULT(vkCreateComputePipelines(device, nullptr, 1, &computePipelineCreateInfo, nullptr, &horizontalPipeline));
 }
 
@@ -109,12 +111,10 @@ void USPipeline::createVerticalPipeline() {
 	VkComputePipelineCreateInfo computePipelineCreateInfo = vks::initializers::computePipelineCreateInfo(interpolationPipelineLayout);
 
 	//load shader
-	VkPipelineShaderStageCreateInfo shaderStage = vks::initializers::pipelineShaderStageCreateInfo(VK_SHADER_STAGE_COMPUTE_BIT);
-	string shaderPath = "./../shaders/glsl/" + projectPath + "verticalLinearInterpolation.comp.spv";
-	shaderStage.module = vks::tools::loadShader(shaderPath.c_str(), device);
-	assert(shaderStage.module != VK_NULL_HANDLE);
+	string shaderPath = getShaderPath("verticalLinearInterpolation.comp.spv");
+	VkPipelineShaderStageCreateInfo shaderStage = vks::utils::createShaderStageCI(device, shaderPath, VK_SHADER_STAGE_COMPUTE_BIT);
+	shaderModules.push_back(shaderStage.module);
 	computePipelineCreateInfo.stage = shaderStage;
-
 	VK_CHECK_RESULT(vkCreateComputePipelines(device, nullptr, 1, &computePipelineCreateInfo, nullptr, &verticalPipeline));
 }
 
@@ -133,7 +133,7 @@ void USPipeline::prepare(VulkanSwapChain& swapChain, uint32_t width, uint32_t he
 
 
 //value groupSize should change if local group size change
-void USPipeline::recordHorizontalPipeline(VkCommandBuffer commandBuffer, VulkanSwapChain& swapChain, uint32_t imageIndex, uint32_t width, uint32_t height) {
+void USPipeline::recordHorizontalPipeline(VkCommandBuffer& commandBuffer, VulkanSwapChain& swapChain, uint32_t imageIndex, uint32_t width, uint32_t height) {
 	const uint32_t groupSizeX = 32;
 	const uint32_t groupSizeY = 32;
 	uint32_t groupCntX;
@@ -163,7 +163,7 @@ void USPipeline::recordHorizontalPipeline(VkCommandBuffer commandBuffer, VulkanS
 		VK_FLAGS_NONE, 1, &barrier, 0, nullptr, 0, nullptr);
 }
 
-void USPipeline::recordVerticalPipeline(VkCommandBuffer commandBuffer, VulkanSwapChain& swapChain, uint32_t imageIndex, uint32_t width, uint32_t height) {
+void USPipeline::recordVerticalPipeline(VkCommandBuffer& commandBuffer, VulkanSwapChain& swapChain, uint32_t imageIndex, uint32_t width, uint32_t height) {
 	const uint32_t groupSizeX = 32;
 	const uint32_t groupSizeY = 32;
 	uint32_t groupCntX;
@@ -183,7 +183,7 @@ void USPipeline::recordVerticalPipeline(VkCommandBuffer commandBuffer, VulkanSwa
 }
 
 //value groupSize should change if local group size change
-void USPipeline::buildCommandBuffer(VkCommandBuffer commandBuffer, VulkanSwapChain& swapChain, uint32_t imageIndex, uint32_t width, uint32_t height) {
+void USPipeline::buildCommandBuffer(VkCommandBuffer& commandBuffer, VulkanSwapChain& swapChain, uint32_t imageIndex, uint32_t width, uint32_t height) {
 	const uint32_t groupSizeX = 32;
 	const uint32_t groupSizeY = 32;
 	uint32_t groupCntX;
