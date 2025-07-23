@@ -3,8 +3,10 @@ import cv2
 import numpy as np
 from skimage.metrics import structural_similarity as ssim
 
-gt_dir = 'ground_truth'
-test_dirs = ['3dgvrt', 'vk3dgs', '3dgrt']
+import math
+
+gt_dir = 'GT_test'
+test_dirs = ['FRT', 'US', 'FLI']
 
 def calculate_psnr(img1, img2):
     mse = np.mean((img1.astype(np.float32) - img2.astype(np.float32)) ** 2)
