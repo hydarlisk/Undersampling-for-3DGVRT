@@ -63,7 +63,7 @@ void main()
 	vec4 rightColor = imageLoad(image, ivec2(target.x + 1, target.y));
 #endif
 	vec4 finalColor = vec4(0.0, 0.0, 0.0, 0.0);
-	rtMask[target.y * width + target.x] = 1;
-//	vec4 finalColor = (leftColor + rightColor) / 2;
+//	rtMask[target.y * width + target.x] = 1;
+	finalColor = (leftColor + rightColor) / 2;
     imageStore(image, ivec2(target), finalColor);
 }

@@ -17,13 +17,15 @@
 #define MEASURE_FRAME 2000
 #endif
 
+#define EVAL_QUALITY 1
+
 #define UNDERSAMPLING 1		// This macro should be managed with 3dgs.glsl
 
 #define USE_TIME_BASED_FPS true
-/* cameras */
 
-#define QUATERNION_CAMERA false
-#define LOAD_NERF_CAMERA false
+/* cameras */
+#define QUATERNION_CAMERA true
+#define LOAD_NERF_CAMERA true
 #define DYNAMIC_CAMERA false
 
 #if DYNAMIC_CAMERA
@@ -31,7 +33,7 @@
 #define QUATERNION_CAMERA false
 #endif
 
-#define CAMERA_FILE "transforms_val.json"
+#define CAMERA_FILE "transforms_test.json"
 #define FOV_Y 39.6f
 #define NEAR_PLANE 0.005f
 #define FAR_PLANE 20.00f
@@ -58,7 +60,6 @@
 #define TIMER_CORRECTION 1
 #define TEXTURE_COMPRESSION 0
 #define ENABLE_HIT_COUNTS 0	// Should be managed with 3dgs.glsl. Only use when the RAY_QUERY is 0.
-#define EVAL_QUALITY 0
 
 #define USE_ANIMATION 0 // 0 is Default
 

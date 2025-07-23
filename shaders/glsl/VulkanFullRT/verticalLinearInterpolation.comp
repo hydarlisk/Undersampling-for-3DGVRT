@@ -62,10 +62,14 @@ void main()
 	vec4 downColor = imageLoad(image, ivec2(target.x, target.y+1));
 #endif
 	vec4 finalColor = vec4(0.0, 0.0, 0.0, 0.0);
-	//vec4 finalColor = (upColor + downColor) / 2;
-	rtMask[target.y * width + target.x] = 1;
-	vec4 green = vec4(0.0f, 1.0f, 0.0f, 0.0f);
-//	vec4 finalColor = green;
-	
-    imageStore(image, ivec2(target), finalColor);
+	float psnr = calculatePSNR(upColor.xyz, downColor.xyz);
+	if(psnr > 40){
+		finalColor = (upColor + downColor) / 2;
+		imageStore(image, ivec2(target), finalColor);
+	}
+	else{
+		rtMask[target.y * width + target.x] = 1;
+	}
+//	finalColor = (upColor + downColor) / 2;
+//		imageStore(image, ivec2(target), finalColor);
 }

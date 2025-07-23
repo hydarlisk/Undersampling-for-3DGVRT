@@ -200,10 +200,12 @@ void main()
 	}
 #if UNDERSAMPLING
 	vec4 green = vec4(0.0, 1.0, 0.0, 0.0);
-	if(!additionalRT)
+	if(!additionalRT){
 		imageStore(image, ivec2(gl_LaunchIDEXT.xy * 2), rayRadiance);
-	else
+	}
+	else{
 		imageStore(image, ivec2(gl_LaunchIDEXT.xy), rayRadiance);
+	}
 #else
     imageStore(image, ivec2(gl_LaunchIDEXT.xy), rayRadiance);
 #endif
