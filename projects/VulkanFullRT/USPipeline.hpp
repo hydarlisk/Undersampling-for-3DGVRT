@@ -50,9 +50,9 @@ class USPipeline {
 	void createInterpolationDescriptorSets(VulkanSwapChain& swapChain);
 	void createHorizontalPipeline();
 	void createVerticalPipeline();
-	void createRTDescriptorSets(VulkanSwapChain& swapChain, AccelerationStructure topLevelAS3DGRT);
+	//void createRTDescriptorSets(VulkanSwapChain& swapChain, AccelerationStructure topLevelAS3DGRT);
+	//void createRTPipeline();
 	void createPipelineLayouts();
-	void createRTPipeline();
 	void createPipelines();
 public:
 	vector<vks::Buffer> rtMaskBuffers;
@@ -61,5 +61,7 @@ public:
 	~USPipeline();
 	
 	void prepare(VulkanSwapChain& swapChain, uint32_t width, uint32_t height);
+	void recordHorizontalPipeline(VkCommandBuffer, VulkanSwapChain& swapChain, uint32_t imageIndex, uint32_t width, uint32_t height);
+	void recordVerticalPipeline(VkCommandBuffer, VulkanSwapChain& swapChain, uint32_t imageIndex, uint32_t width, uint32_t height);
 	void buildCommandBuffer(VkCommandBuffer commandBuffer, VulkanSwapChain& swapChain, uint32_t imageIndex, uint32_t width, uint32_t height);
 };

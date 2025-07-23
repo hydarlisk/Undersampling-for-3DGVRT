@@ -10,6 +10,8 @@
 
 #define SHARED_MEMORY 1
 
+#define PSNR_THRESHOLD 40
+
 
 float calculatePSNR(vec3 color1, vec3 color2) {
     // RGB 값은 0.0 ~ 1.0 범위라고 가정 (GLSL에서는 보통 이렇게 표현)
@@ -25,4 +27,11 @@ float calculatePSNR(vec3 color1, vec3 color2) {
 
     // PSNR 계산
     return 10.0 * log(maxVal * maxVal / mse) / log(10.0); // log base 10
+}
+
+bool similarityCheck(vec3 color1, vec3 color2) {
+    float psnr = calculatePSNR(color1, color2);
+    if (psnr > PSNR_THRESHOLD)
+        return true;
+    return false;
 }

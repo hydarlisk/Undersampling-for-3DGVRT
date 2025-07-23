@@ -17,16 +17,16 @@
 #define MEASURE_FRAME 2000
 #endif
 
-#define EVAL_QUALITY 1
+#define EVAL_QUALITY 0
 
 #define UNDERSAMPLING 1		// This macro should be managed with 3dgs.glsl
 
 #define USE_TIME_BASED_FPS true
 
 /* cameras */
-#define QUATERNION_CAMERA true
-#define LOAD_NERF_CAMERA true
-#define DYNAMIC_CAMERA false
+#define QUATERNION_CAMERA false
+#define LOAD_NERF_CAMERA false
+#define DYNAMIC_CAMERA true
 
 #if DYNAMIC_CAMERA
 #undef QUATERNION_CAMERA

@@ -130,6 +130,7 @@ void main()
 	}
 	else{
 		if(rtMask[gl_LaunchIDEXT.y * gl_LaunchSizeEXT.x + gl_LaunchIDEXT.x] != 1) return;
+		rtMask[gl_LaunchIDEXT.y * gl_LaunchSizeEXT.x + gl_LaunchIDEXT.x] = 0;
 		pixelCenter = vec2(gl_LaunchIDEXT.xy) + vec2(0.5);	// pixel position
 		inUV = pixelCenter/vec2(gl_LaunchSizeEXT.xy);	// pixel position in WdC
 	}

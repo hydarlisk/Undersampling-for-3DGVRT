@@ -62,8 +62,8 @@ void main()
 	vec4 downColor = imageLoad(image, ivec2(target.x, target.y+1));
 #endif
 	vec4 finalColor = vec4(0.0, 0.0, 0.0, 0.0);
-	float psnr = calculatePSNR(upColor.xyz, downColor.xyz);
-	if(psnr > 40){
+	bool similar = similarityCheck(upColor.xyz, downColor.xyz);
+	if(similar){
 		finalColor = (upColor + downColor) / 2;
 		imageStore(image, ivec2(target), finalColor);
 	}
