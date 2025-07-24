@@ -20,6 +20,8 @@
 #include "../base/utils.glsl"
 #include "../base/define.glsl"
 
+#include "../base/underSampling.glsl"
+
 /*** playground style ***/
 //struct RayData{
 //	vec3 radiance;
@@ -84,7 +86,7 @@ layout(std430, binding = 8, set = 0) buffer RTMask{
 };
 
 layout(push_constant, std430) uniform pushConstant{
-	bool additionalRT;
+	uint additionalRT;
 };
 #endif
 
@@ -124,20 +126,51 @@ void main()
 #if UNDERSAMPLING
 	vec2 pixelCenter;
 	vec2 inUV;
-	if(!additionalRT){
-		pixelCenter = vec2(gl_LaunchIDEXT.xy * 2) + vec2(0.5);	// pixel position
+	uvec2 targetPixel;
+	if(additionalRT == 0){
+		targetPixel = gl_LaunchIDEXT.xy * 2;
+		pixelCenter = vec2(targetPixel) + vec2(0.5);	// pixel position
 		inUV = pixelCenter/vec2(gl_LaunchSizeEXT.xy * 2);	// pixel position in WdC
 	}
-	else{
-		if(rtMask[gl_LaunchIDEXT.y * gl_LaunchSizeEXT.x + gl_LaunchIDEXT.x] != 1) return;
-		rtMask[gl_LaunchIDEXT.y * gl_LaunchSizeEXT.x + gl_LaunchIDEXT.x] = 0;
-		pixelCenter = vec2(gl_LaunchIDEXT.xy) + vec2(0.5);	// pixel position
-		inUV = pixelCenter/vec2(gl_LaunchSizeEXT.xy);	// pixel position in WdC
+	else if(additionalRT == 1){
+		targetPixel = gl_LaunchIDEXT.xy * 2 + ivec2(1,0);
+		pixelCenter = vec2(targetPixel) + vec2(0.5);
+		inUV = pixelCenter/vec2(gl_LaunchSizeEXT.xy * 2);	// pixel position in WdC
+
+		vec4 leftColor = imageLoad(image, ivec2(targetPixel.x - 1, targetPixel.y));
+		vec4 rightColor = imageLoad(image, ivec2(targetPixel.x + 1, targetPixel.y));
+
+		vec4 finalColor = vec4(0.0, 0.0, 0.0, 0.0);
+		bool similar = similarityCheck(leftColor.xyz, rightColor.xyz);
+		if(similar){
+			finalColor = (leftColor + rightColor) / 2;
+			imageStore(image, ivec2(targetPixel), finalColor);
+			return;
+		}
+	}
+	else{	//additionalRT == 2
+//		if(rtMask[gl_LaunchIDEXT.y * gl_LaunchSizeEXT.x + gl_LaunchIDEXT.x] != 1) return;
+//		rtMask[gl_LaunchIDEXT.y * gl_LaunchSizeEXT.x + gl_LaunchIDEXT.x] = 0;
+		targetPixel = gl_LaunchIDEXT.xy;
+		targetPixel.y = targetPixel.y * 2 + 1;
+		pixelCenter = vec2(targetPixel) + vec2(0.5);	// pixel position
+		inUV = pixelCenter/vec2(gl_LaunchSizeEXT.x, gl_LaunchSizeEXT.y * 2);	// pixel position in WdC
+
+		vec4 upColor = imageLoad(image, ivec2(targetPixel.x, targetPixel.y-1));
+		vec4 downColor = imageLoad(image, ivec2(targetPixel.x, targetPixel.y+1));
+		vec4 finalColor = vec4(0.0, 0.0, 0.0, 0.0);
+		bool similar = similarityCheck(upColor.xyz, downColor.xyz);
+		if(similar){
+			finalColor = (upColor + downColor) / 2;
+			imageStore(image, ivec2(targetPixel), finalColor);
+			return;
+		}
 	}
 #else
 	const vec2 pixelCenter = vec2(gl_LaunchIDEXT.xy) + vec2(0.5);	// pixel position
 	const vec2 inUV = pixelCenter/vec2(gl_LaunchSizeEXT.xy);	// pixel position in WdC
 #endif
+	//inUV = pixelCenter / vec2(1920, 1080);
 	vec2 d = inUV * 2.0 - 1.0;	// pixel position in NDC
 	vec4 rayOrigin = uboDynamic.viewInverse[3];
 	vec4 target = uboDynamic.projInverse * vec4(d.x, d.y, 1.0f, 1.0f) ;	// (pixel position in EC) / Wc
@@ -201,12 +234,21 @@ void main()
 	}
 #if UNDERSAMPLING
 	vec4 green = vec4(0.0, 1.0, 0.0, 0.0);
-	if(!additionalRT){
-		imageStore(image, ivec2(gl_LaunchIDEXT.xy * 2), rayRadiance);
-	}
-	else{
-		imageStore(image, ivec2(gl_LaunchIDEXT.xy), rayRadiance);
-	}
+//	if(!additionalRT){
+//		imageStore(image, ivec2(gl_LaunchIDEXT.xy * 2), rayRadiance);
+//	}
+	imageStore(image, ivec2(targetPixel), rayRadiance);
+//	if(additionalRT == 0){
+//		imageStore(image, ivec2(gl_LaunchIDEXT.xy * 2), rayRadiance);
+//	}
+//	else if(additionalRT == 1){
+//		imageStore(image, ivec2(gl_LaunchIDEXT.x * 2+ 1, gl_LaunchIDEXT.y * 2), rayRadiance);
+//	}
+//	else{
+//		imageStore(image, ivec2(gl_LaunchIDEXT.xy), rayRadiance);
+//	}
+	//if(additionalRT == 2)
+//		imageStore(image, ivec2(targetPixel), green);
 #else
     imageStore(image, ivec2(gl_LaunchIDEXT.xy), rayRadiance);
 #endif

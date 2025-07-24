@@ -809,7 +809,7 @@ public:
 		//pipelineLayoutCreateInfo.pushConstantRangeCount = 1;
 		//pipelineLayoutCreateInfo.pPushConstantRanges = &pushConstantRange;
 		// undersampling flag
-		VkPushConstantRange pushConstantRange = vks::initializers::pushConstantRange(VK_SHADER_STAGE_RAYGEN_BIT_KHR, sizeof(bool), 0);
+		VkPushConstantRange pushConstantRange = vks::initializers::pushConstantRange(VK_SHADER_STAGE_RAYGEN_BIT_KHR, sizeof(int), 0);
 		pipelineLayoutCreateInfo.pushConstantRangeCount = 1;
 		pipelineLayoutCreateInfo.pPushConstantRanges = &pushConstantRange;
 
@@ -1013,26 +1013,34 @@ public:
 		resized = false;
 	}
 
-	void recordRTPipeline(FrameObject& frame, bool additionalRT) {
+	void recordRTPipeline(FrameObject& frame, int additionalRT) {
 		VkStridedDeviceAddressRegionKHR emptySbtEntry = {};
 		// additional RT pipeline
 		VkMemoryBarrier barrier = vks::initializers::memoryBarrier();
 		barrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
 		barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
-		vkCmdPipelineBarrier(frame.commandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_KHR,
+		vkCmdPipelineBarrier(frame.commandBuffer, VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_KHR, VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_KHR,
 			VK_FLAGS_NONE, 1, &barrier, 0, nullptr, 0, nullptr);
-		additionalRT = true;
 		vkCmdBindPipeline(frame.commandBuffer, VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR, pipeline);
 		vkCmdBindDescriptorSets(frame.commandBuffer, VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR, pipelineLayout, 0, 1, &frame.descriptorSet, 0, 0);
-		vkCmdPushConstants(frame.commandBuffer, pipelineLayout, VK_SHADER_STAGE_RAYGEN_BIT_KHR, 0, sizeof(bool), &additionalRT);
+		vkCmdPushConstants(frame.commandBuffer, pipelineLayout, VK_SHADER_STAGE_RAYGEN_BIT_KHR, 0, sizeof(int), &additionalRT);
+		uint32_t localWidth, localHeight;
+		if (additionalRT < 2) {
+			localWidth = width / 2;
+			localHeight = height / 2;
+		}
+		else {
+			localWidth = width;
+			localHeight = height / 2;
+		}
 		vkCmdTraceRaysKHR(
 			frame.commandBuffer,
 			&shaderBindingTables.raygen.stridedDeviceAddressRegion,
 			&shaderBindingTables.miss.stridedDeviceAddressRegion,
 			&shaderBindingTables.hit.stridedDeviceAddressRegion,
 			&emptySbtEntry,
-			width,
-			height,
+			localWidth,
+			localHeight,
 			1);
 	}
 
@@ -1100,11 +1108,11 @@ public:
 #endif
 
 #if UNDERSAMPLING
-		usPipeline->buildCommandBuffer(frame.commandBuffer, swapChain, frame.imageIndex, width, height);
-		usPipeline->recordHorizontalPipeline(frame.commandBuffer, swapChain, frame.imageIndex, width, height);
-		recordRTPipeline(frame, true);
-		usPipeline->recordVerticalPipeline(frame.commandBuffer, swapChain, frame.imageIndex, width, height);
-		recordRTPipeline(frame, true);
+		//usPipeline->buildCommandBuffer(frame.commandBuffer, swapChain, frame.imageIndex, width, height);
+		//usPipeline->recordHorizontalPipeline(frame.commandBuffer, swapChain, frame.imageIndex, width, height);
+		recordRTPipeline(frame, 1);
+		//usPipeline->recordVerticalPipeline(frame.commandBuffer, swapChain, frame.imageIndex, width, height);
+		recordRTPipeline(frame, 2);
 #endif
 
 		vks::tools::setImageLayout(
