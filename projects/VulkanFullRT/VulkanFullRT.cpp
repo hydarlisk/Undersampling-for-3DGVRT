@@ -1021,9 +1021,10 @@ public:
 		barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
 		vkCmdPipelineBarrier(frame.commandBuffer, VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_KHR, VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_KHR,
 			VK_FLAGS_NONE, 1, &barrier, 0, nullptr, 0, nullptr);
+
+		vkCmdPushConstants(frame.commandBuffer, pipelineLayout, VK_SHADER_STAGE_RAYGEN_BIT_KHR, 0, sizeof(int), &additionalRT);
 		vkCmdBindPipeline(frame.commandBuffer, VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR, pipeline);
 		vkCmdBindDescriptorSets(frame.commandBuffer, VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR, pipelineLayout, 0, 1, &frame.descriptorSet, 0, 0);
-		vkCmdPushConstants(frame.commandBuffer, pipelineLayout, VK_SHADER_STAGE_RAYGEN_BIT_KHR, 0, sizeof(int), &additionalRT);
 		uint32_t localWidth, localHeight;
 		if (additionalRT < 2) {
 			localWidth = width / 2;
@@ -1054,7 +1055,7 @@ public:
 			handleResize();
 		}
 #if UNDERSAMPLING
-		bool additionalRT = false;
+		/*bool additionalRT = false;*/
 #endif
 		
 		vkResetCommandBuffer(frame.commandBuffer, 0);
@@ -1074,7 +1075,8 @@ public:
 		vkCmdBindPipeline(frame.commandBuffer, VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR, pipeline);
 		vkCmdBindDescriptorSets(frame.commandBuffer, VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR, pipelineLayout, 0, 1, &frame.descriptorSet, 0, 0);
 	#if UNDERSAMPLING
-		vkCmdPushConstants(frame.commandBuffer, pipelineLayout, VK_SHADER_STAGE_RAYGEN_BIT_KHR, 0, sizeof(bool), &additionalRT);
+		uint32_t flag = 0;
+		vkCmdPushConstants(frame.commandBuffer, pipelineLayout, VK_SHADER_STAGE_RAYGEN_BIT_KHR, 0, sizeof(uint32_t), &flag);
 	#else
 		vkCmdPushConstants(frame.commandBuffer, pipelineLayout, VK_SHADER_STAGE_RAYGEN_BIT_KHR, 0, sizeof(pushConstants), &pushConstants);
 	#endif
@@ -1433,8 +1435,8 @@ public:
 #endif
 
 #if UNDERSAMPLING
-		usPipeline = new USPipeline(*vulkanDevice, graphicsQueue, swapChain.imageCount, DIR_PATH);
-		usPipeline->prepare(swapChain, width, height);
+		//usPipeline = new USPipeline(*vulkanDevice, graphicsQueue, swapChain.imageCount, DIR_PATH);
+		//usPipeline->prepare(swapChain, width, height);
 #endif
 		// (2) Particle Rendering pass
 		createDescriptorSets();
@@ -1458,8 +1460,8 @@ public:
 		VkWriteDescriptorSet resultImageWrite = vks::initializers::writeDescriptorSet(currentFrame.descriptorSet, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, &storageImageDescriptor);
 		vkUpdateDescriptorSets(device, 1, &resultImageWrite, 0, VK_NULL_HANDLE);
 #if UNDERSAMPLING
-		VkWriteDescriptorSet rtMaskWrite = vks::initializers::writeDescriptorSet(currentFrame.descriptorSet, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 8, &usPipeline->rtMaskBuffers[currentFrame.imageIndex].descriptor);
-		vkUpdateDescriptorSets(device, 1, &rtMaskWrite, 0, VK_NULL_HANDLE);
+		/*VkWriteDescriptorSet rtMaskWrite = vks::initializers::writeDescriptorSet(currentFrame.descriptorSet, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 8, &usPipeline->rtMaskBuffers[currentFrame.imageIndex].descriptor);
+		vkUpdateDescriptorSets(device, 1, &rtMaskWrite, 0, VK_NULL_HANDLE);*/
 #endif
 
 		buildCommandBuffer(currentFrame);

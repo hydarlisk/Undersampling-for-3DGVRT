@@ -126,8 +126,8 @@ void USPipeline::createPipelines() {
 void USPipeline::prepare(VulkanSwapChain& swapChain, uint32_t width, uint32_t height) {
 	createMaskBuffers(width, height);
 	createInterpolationDescriptorSets(swapChain);
+	pushConstantRange = vks::initializers::pushConstantRange(VK_SHADER_STAGE_COMPUTE_BIT, 0, 4);
 	createPipelineLayouts();
-	pushConstantRange = vks::initializers::pushConstantRange(VK_SHADER_STAGE_COMPUTE_BIT, 8, 0);
 	createPipelines();
 }
 
