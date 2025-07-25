@@ -26,7 +26,7 @@
 /* cameras */
 #define QUATERNION_CAMERA false
 #define LOAD_NERF_CAMERA false
-#define DYNAMIC_CAMERA true
+#define DYNAMIC_CAMERA false
 
 #if DYNAMIC_CAMERA
 #undef QUATERNION_CAMERA

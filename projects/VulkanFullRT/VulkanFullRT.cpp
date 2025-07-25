@@ -16,7 +16,9 @@
 #include "VulkanUtils.h"
 #include "SimpleUtils.h"
 #include "Vulkan3DGRTModel.h"
+
 #include "GaussianEnclosingPipeline.hpp"
+#include "RTpipeline.hpp"
 
 #if SPLIT_BLAS && !RAY_QUERY
 #include "SplitBLAS.hpp"
@@ -57,6 +59,7 @@ public:
 	AccelerationStructure topLevelAS3DGRT{};
 
 	GaussianEnclosingPipeline* gaussianEnclosingPipeline;
+	RTPipeline* rtPipeline;
 
 #if SPLIT_BLAS && !RAY_QUERY
 	SplitBLAS splitBLAS;
@@ -736,14 +739,14 @@ public:
 			| Closest Hit(Basic)                    |
 			\---------------------------------------/
 	*/
-	void createShaderBindingTables() {
+	void createShaderBindingTables(RTPipeline& rtPipeline) {
 		const uint32_t handleSize = rayTracingPipelineProperties.shaderGroupHandleSize;
 		const uint32_t handleSizeAligned = vks::tools::alignedSize(rayTracingPipelineProperties.shaderGroupHandleSize, rayTracingPipelineProperties.shaderGroupHandleAlignment);
-		const uint32_t groupCount = static_cast<uint32_t>(shaderGroups.size());
+		const uint32_t groupCount = static_cast<uint32_t>(rtPipeline.shaderGroups.size());
 		const uint32_t sbtSize = groupCount * handleSizeAligned;
 
 		std::vector<uint8_t> shaderHandleStorage(sbtSize);
-		VK_CHECK_RESULT(vkGetRayTracingShaderGroupHandlesKHR(device, pipeline, 0, groupCount, sbtSize, shaderHandleStorage.data()));
+		VK_CHECK_RESULT(vkGetRayTracingShaderGroupHandlesKHR(device, rtPipeline.pipeline, 0, groupCount, sbtSize, shaderHandleStorage.data()));
 
 		createShaderBindingTable(shaderBindingTables.raygen, 1);
 		createShaderBindingTable(shaderBindingTables.miss, 1);
@@ -1058,48 +1061,68 @@ public:
 
 		vkCmdResetQueryPool(frame.commandBuffer, frame.timeStampQueryPool, 0, static_cast<uint32_t>(frame.timeStamps.size()));
 
-#if RAY_QUERY
-		vkCmdBindPipeline(frame.commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, pipeline);
-		vkCmdBindDescriptorSets(frame.commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, pipelineLayout, 0, 1, &frame.descriptorSet, 0, 0);
-		vkCmdPushConstants(frame.commandBuffer, pipelineLayout, VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(pushConstants), &pushConstants);
-#else
-		vkCmdBindPipeline(frame.commandBuffer, VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR, pipeline);
-		vkCmdBindDescriptorSets(frame.commandBuffer, VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR, pipelineLayout, 0, 1, &frame.descriptorSet, 0, 0);
-	#if UNDERSAMPLING
-		vkCmdPushConstants(frame.commandBuffer, pipelineLayout, VK_SHADER_STAGE_RAYGEN_BIT_KHR, 0, sizeof(bool), &additionalRT);
-	#else
-		vkCmdPushConstants(frame.commandBuffer, pipelineLayout, VK_SHADER_STAGE_RAYGEN_BIT_KHR, 0, sizeof(pushConstants), &pushConstants);
-	#endif
-#endif
-
 		vks::tools::setImageLayout(
 			frame.commandBuffer,
 			swapChain.images[frame.imageIndex],
 			VK_IMAGE_LAYOUT_UNDEFINED,
 			VK_IMAGE_LAYOUT_GENERAL,
 			subresourceRange);
+//#if RAY_QUERY
+//		vkCmdBindPipeline(frame.commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, pipeline);
+//		vkCmdBindDescriptorSets(frame.commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, pipelineLayout, 0, 1, &frame.descriptorSet, 0, 0);
+//		vkCmdPushConstants(frame.commandBuffer, pipelineLayout, VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(pushConstants), &pushConstants);
+//#else
+//		vkCmdBindPipeline(frame.commandBuffer, VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR, pipeline);
+//		vkCmdBindDescriptorSets(frame.commandBuffer, VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR, pipelineLayout, 0, 1, &frame.descriptorSet, 0, 0);
+//	#if UNDERSAMPLING
+//		vkCmdPushConstants(frame.commandBuffer, pipelineLayout, VK_SHADER_STAGE_RAYGEN_BIT_KHR, 0, sizeof(bool), &additionalRT);
+//	#else
+//		vkCmdPushConstants(frame.commandBuffer, pipelineLayout, VK_SHADER_STAGE_RAYGEN_BIT_KHR, 0, sizeof(pushConstants), &pushConstants);
+//	#endif
+//#endif
+//
+//#if RAY_QUERY
+//		vkCmdDispatch(frame.commandBuffer, (width + TB_SIZE_X - 1) / TB_SIZE_X, (height + TB_SIZE_Y - 1) / TB_SIZE_Y, 1);
+//#else
+//		VkStridedDeviceAddressRegionKHR emptySbtEntry = {};
+//		vkCmdTraceRaysKHR(
+//			frame.commandBuffer,
+//			&shaderBindingTables.raygen.stridedDeviceAddressRegion,
+//			&shaderBindingTables.miss.stridedDeviceAddressRegion,
+//			&shaderBindingTables.hit.stridedDeviceAddressRegion,
+//			&emptySbtEntry,
+//	#if UNDERSAMPLING
+//			width / 2,
+//			height / 2,
+//	#else
+//			width,
+//			height,
+//	#endif
+//			1);
+//#endif
 
-#if RAY_QUERY
-		vkCmdDispatch(frame.commandBuffer, (width + TB_SIZE_X - 1) / TB_SIZE_X, (height + TB_SIZE_Y - 1) / TB_SIZE_Y, 1);
-#else
-		VkStridedDeviceAddressRegionKHR emptySbtEntry = {};
-		vkCmdTraceRaysKHR(
+		rtPipeline->record(
 			frame.commandBuffer,
-			&shaderBindingTables.raygen.stridedDeviceAddressRegion,
-			&shaderBindingTables.miss.stridedDeviceAddressRegion,
-			&shaderBindingTables.hit.stridedDeviceAddressRegion,
-			&emptySbtEntry,
-	#if UNDERSAMPLING
-			width / 2,
-			height / 2,
-	#else
+			shaderBindingTables.raygen.stridedDeviceAddressRegion,
+			shaderBindingTables.miss.stridedDeviceAddressRegion,
+			shaderBindingTables.hit.stridedDeviceAddressRegion,
+			frame.imageIndex,
 			width,
 			height,
-	#endif
-			1);
-#endif
+			false
+		);
 
 #if UNDERSAMPLING
+		rtPipeline->record(
+			frame.commandBuffer,
+			shaderBindingTables.raygen.stridedDeviceAddressRegion,
+			shaderBindingTables.miss.stridedDeviceAddressRegion,
+			shaderBindingTables.hit.stridedDeviceAddressRegion,
+			frame.imageIndex,
+			width/2,
+			height/2,
+			false
+		);
 		usPipeline->buildCommandBuffer(frame.commandBuffer, swapChain, frame.imageIndex, width, height);
 		usPipeline->recordHorizontalPipeline(frame.commandBuffer, swapChain, frame.imageIndex, width, height);
 		recordRTPipeline(frame, true);
@@ -1429,10 +1452,23 @@ public:
 		usPipeline->prepare(swapChain, width, height);
 #endif
 		// (2) Particle Rendering pass
-		createDescriptorSets();
-		createParticleRenderingPipeline();
+		rtPipeline = new RTPipeline(*vulkanDevice, graphicsQueue, swapChain.imageCount, DIR_PATH);
+		rtPipeline->prepare(width, height);
+		for (int i = 0; i < swapChain.imageCount; i++) {
+			rtPipeline->initDescriptorSet(
+				i,
+				swapChain,
+				topLevelAS3DGRT.handle,
+				frameObjects[i].uniformBuffer,
+				frameObjects[i].uniformBufferStatic,
+				particleDensities,
+				particleSphCoefficients
+			);
+		}
+//		createDescriptorSets();
+//		createParticleRenderingPipeline();
 #if !RAY_QUERY
-		createShaderBindingTables();
+		createShaderBindingTables(*rtPipeline);
 #endif
 #if EVAL_QUALITY
 		currentImg = (void*)malloc(width * height * 4);
@@ -1446,9 +1482,9 @@ public:
 		FrameObject currentFrame = frameObjects[getCurrentFrameIndex()];
 		VulkanRTBase::prepareFrame(currentFrame);
 		updateUniformBuffer();
-		VkDescriptorImageInfo storageImageDescriptor{ VK_NULL_HANDLE, swapChain.buffers[currentFrame.imageIndex].view, VK_IMAGE_LAYOUT_GENERAL };
+		/*VkDescriptorImageInfo storageImageDescriptor{ VK_NULL_HANDLE, swapChain.buffers[currentFrame.imageIndex].view, VK_IMAGE_LAYOUT_GENERAL };
 		VkWriteDescriptorSet resultImageWrite = vks::initializers::writeDescriptorSet(currentFrame.descriptorSet, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, &storageImageDescriptor);
-		vkUpdateDescriptorSets(device, 1, &resultImageWrite, 0, VK_NULL_HANDLE);
+		vkUpdateDescriptorSets(device, 1, &resultImageWrite, 0, VK_NULL_HANDLE);*/
 #if UNDERSAMPLING
 		VkWriteDescriptorSet rtMaskWrite = vks::initializers::writeDescriptorSet(currentFrame.descriptorSet, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 8, &usPipeline->rtMaskBuffers[currentFrame.imageIndex].descriptor);
 		vkUpdateDescriptorSets(device, 1, &rtMaskWrite, 0, VK_NULL_HANDLE);

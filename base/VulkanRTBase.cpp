@@ -1294,7 +1294,7 @@ VulkanRTBase::~VulkanRTBase()
 	vkDestroyImage(device, depthStencil.image, nullptr);
 	vkFreeMemory(device, depthStencil.memory, nullptr);
 
-	cubeMap.destroy();
+	if(cubeMap.image != NULL) cubeMap.destroy();
 
 	vkDestroyPipelineCache(device, pipelineCache, nullptr);
 
