@@ -46,6 +46,7 @@ class USPipeline {
 	VkDescriptorPool additionalRTDescriptorPool{ VK_NULL_HANDLE };
 	VkDescriptorSetLayout additionalRTDescriptorSetLayout{ VK_NULL_HANDLE };
 
+	string getShaderPath(string shaderName);
 	void createMaskBuffers(uint32_t width, uint32_t height);
 	void createInterpolationDescriptorSets(VulkanSwapChain& swapChain);
 	void createHorizontalPipeline();
@@ -61,7 +62,7 @@ public:
 	~USPipeline();
 	
 	void prepare(VulkanSwapChain& swapChain, uint32_t width, uint32_t height);
-	void recordHorizontalPipeline(VkCommandBuffer, VulkanSwapChain& swapChain, uint32_t imageIndex, uint32_t width, uint32_t height);
-	void recordVerticalPipeline(VkCommandBuffer, VulkanSwapChain& swapChain, uint32_t imageIndex, uint32_t width, uint32_t height);
-	void buildCommandBuffer(VkCommandBuffer commandBuffer, VulkanSwapChain& swapChain, uint32_t imageIndex, uint32_t width, uint32_t height);
+	void recordHorizontalPipeline(VkCommandBuffer& commandBuffer, VulkanSwapChain& swapChain, uint32_t imageIndex, uint32_t width, uint32_t height);
+	void recordVerticalPipeline(VkCommandBuffer& commandBuffer, VulkanSwapChain& swapChain, uint32_t imageIndex, uint32_t width, uint32_t height);
+	void buildCommandBuffer(VkCommandBuffer& commandBuffer, VulkanSwapChain& swapChain, uint32_t imageIndex, uint32_t width, uint32_t height);
 };
