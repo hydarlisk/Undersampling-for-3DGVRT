@@ -1067,6 +1067,13 @@ public:
 
 		vkCmdResetQueryPool(frame.commandBuffer, frame.timeStampQueryPool, 0, static_cast<uint32_t>(frame.timeStamps.size()));
 
+		vks::tools::setImageLayout(
+			frame.commandBuffer,
+			swapChain.images[frame.imageIndex],
+			VK_IMAGE_LAYOUT_UNDEFINED,
+			VK_IMAGE_LAYOUT_GENERAL,
+			subresourceRange);
+#if! UNDERSAMPLING
 #if RAY_QUERY
 		vkCmdBindPipeline(frame.commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, pipeline);
 		vkCmdBindDescriptorSets(frame.commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, pipelineLayout, 0, 1, &frame.descriptorSet, 0, 0);
@@ -1081,13 +1088,6 @@ public:
 		/*vkCmdPushConstants(frame.commandBuffer, pipelineLayout, VK_SHADER_STAGE_RAYGEN_BIT_KHR, 0, sizeof(pushConstants), &pushConstants);*/
 	#endif
 #endif
-
-		vks::tools::setImageLayout(
-			frame.commandBuffer,
-			swapChain.images[frame.imageIndex],
-			VK_IMAGE_LAYOUT_UNDEFINED,
-			VK_IMAGE_LAYOUT_GENERAL,
-			subresourceRange);
 
 #if RAY_QUERY
 		vkCmdDispatch(frame.commandBuffer, (width + TB_SIZE_X - 1) / TB_SIZE_X, (height + TB_SIZE_Y - 1) / TB_SIZE_Y, 1);
@@ -1108,8 +1108,9 @@ public:
 	#endif
 			1);
 #endif
-
+#endif
 #if UNDERSAMPLING
+		recordRTPipeline(frame, 0);
 		//usPipeline->buildCommandBuffer(frame.commandBuffer, swapChain, frame.imageIndex, width, height);
 		//usPipeline->recordHorizontalPipeline(frame.commandBuffer, swapChain, frame.imageIndex, width, height);
 		recordRTPipeline(frame, 1);
