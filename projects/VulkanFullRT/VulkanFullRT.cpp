@@ -759,6 +759,12 @@ public:
 		memcpy(shaderBindingTables.miss.mapped, shaderHandleStorage.data() + handleSizeAligned, handleSize);
 		// Global[2], Group Local[0]: Hit group
 		memcpy(shaderBindingTables.hit.mapped, shaderHandleStorage.data() + handleSizeAligned * 2, handleSize);
+
+		rtPipeline.initShaderBindingTable(
+			&shaderBindingTables.raygen.stridedDeviceAddressRegion,
+			&shaderBindingTables.miss.stridedDeviceAddressRegion,
+			&shaderBindingTables.hit.stridedDeviceAddressRegion
+		);
 	}
 #endif
 
@@ -1016,38 +1022,6 @@ public:
 		resized = false;
 	}
 
-	void recordRTPipeline(FrameObject& frame, int additionalRT) {
-		VkStridedDeviceAddressRegionKHR emptySbtEntry = {};
-		// additional RT pipeline
-		VkMemoryBarrier barrier = vks::initializers::memoryBarrier();
-		barrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
-		barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
-		vkCmdPipelineBarrier(frame.commandBuffer, VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_KHR, VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_KHR,
-			VK_FLAGS_NONE, 1, &barrier, 0, nullptr, 0, nullptr);
-
-		vkCmdPushConstants(frame.commandBuffer, pipelineLayout, VK_SHADER_STAGE_RAYGEN_BIT_KHR, 0, sizeof(int), &additionalRT);
-		vkCmdBindPipeline(frame.commandBuffer, VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR, pipeline);
-		vkCmdBindDescriptorSets(frame.commandBuffer, VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR, pipelineLayout, 0, 1, &frame.descriptorSet, 0, 0);
-		uint32_t localWidth, localHeight;
-		if (additionalRT < 2) {
-			localWidth = width / 2;
-			localHeight = height / 2;
-		}
-		else {
-			localWidth = width;
-			localHeight = height / 2;
-		}
-		vkCmdTraceRaysKHR(
-			frame.commandBuffer,
-			&shaderBindingTables.raygen.stridedDeviceAddressRegion,
-			&shaderBindingTables.miss.stridedDeviceAddressRegion,
-			&shaderBindingTables.hit.stridedDeviceAddressRegion,
-			&emptySbtEntry,
-			localWidth,
-			localHeight,
-			1);
-	}
-
 	/*
 		Command buffer record
 	*/
@@ -1057,9 +1031,6 @@ public:
 		{
 			handleResize();
 		}
-#if UNDERSAMPLING
-		/*bool additionalRT = false;*/
-#endif
 		
 		vkResetCommandBuffer(frame.commandBuffer, 0);
 		VkCommandBufferBeginInfo cmdBufInfo = vks::initializers::commandBufferBeginInfo();
@@ -1076,85 +1047,25 @@ public:
 			VK_IMAGE_LAYOUT_UNDEFINED,
 			VK_IMAGE_LAYOUT_GENERAL,
 			subresourceRange);
-// #if! UNDERSAMPLING
-//#if RAY_QUERY
-//		vkCmdBindPipeline(frame.commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, pipeline);
-//		vkCmdBindDescriptorSets(frame.commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, pipelineLayout, 0, 1, &frame.descriptorSet, 0, 0);
-//		vkCmdPushConstants(frame.commandBuffer, pipelineLayout, VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(pushConstants), &pushConstants);
-//#else
-//		vkCmdBindPipeline(frame.commandBuffer, VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR, pipeline);
-//		vkCmdBindDescriptorSets(frame.commandBuffer, VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR, pipelineLayout, 0, 1, &frame.descriptorSet, 0, 0);
-//	#if UNDERSAMPLING
-//		vkCmdPushConstants(frame.commandBuffer, pipelineLayout, VK_SHADER_STAGE_RAYGEN_BIT_KHR, 0, sizeof(bool), &additionalRT);
-//	#else
-//		vkCmdPushConstants(frame.commandBuffer, pipelineLayout, VK_SHADER_STAGE_RAYGEN_BIT_KHR, 0, sizeof(pushConstants), &pushConstants);
-//	#endif
-//#endif
-//
-//#if RAY_QUERY
-//		vkCmdDispatch(frame.commandBuffer, (width + TB_SIZE_X - 1) / TB_SIZE_X, (height + TB_SIZE_Y - 1) / TB_SIZE_Y, 1);
-//#else
-//		VkStridedDeviceAddressRegionKHR emptySbtEntry = {};
-//		vkCmdTraceRaysKHR(
-//			frame.commandBuffer,
-//			&shaderBindingTables.raygen.stridedDeviceAddressRegion,
-//			&shaderBindingTables.miss.stridedDeviceAddressRegion,
-//			&shaderBindingTables.hit.stridedDeviceAddressRegion,
-//			&emptySbtEntry,
-//	#if UNDERSAMPLING
-//			width / 2,
-//			height / 2,
-//	#else
-//			width,
-//			height,
-//	#endif
-//			1);
-//#endif
-//#endif
+		
+
+#if RAY_QUERY
+		vkCmdBindPipeline(frame.commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, pipeline);
+		vkCmdBindDescriptorSets(frame.commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, pipelineLayout, 0, 1, &frame.descriptorSet, 0, 0);
+		vkCmdPushConstants(frame.commandBuffer, pipelineLayout, VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(pushConstants), &pushConstants);
+		vkCmdDispatch(frame.commandBuffer, (width + TB_SIZE_X - 1) / TB_SIZE_X, (height + TB_SIZE_Y - 1) / TB_SIZE_Y, 1);
+#endif
+		//original push constant for rt pipeline
+		/*vkCmdPushConstants(frame.commandBuffer, pipelineLayout, VK_SHADER_STAGE_RAYGEN_BIT_KHR, 0, sizeof(pushConstants), &pushConstants);*/
 
 #if UNDERSAMPLING
-		rtPipeline->record(
-			frame.commandBuffer,
-			shaderBindingTables.raygen.stridedDeviceAddressRegion,
-			shaderBindingTables.miss.stridedDeviceAddressRegion,
-			shaderBindingTables.hit.stridedDeviceAddressRegion,
-			frame.imageIndex,
-			width / 2,
-			height / 2,
-			0
-		);
+		rtPipeline->record(frame.commandBuffer, frame.imageIndex, 0);
 		//usPipeline->recordHorizontalPipeline(frame.commandBuffer, swapChain, frame.imageIndex, width, height);
-		rtPipeline->record(
-			frame.commandBuffer,
-			shaderBindingTables.raygen.stridedDeviceAddressRegion,
-			shaderBindingTables.miss.stridedDeviceAddressRegion,
-			shaderBindingTables.hit.stridedDeviceAddressRegion,
-			frame.imageIndex,
-			width / 2,
-			height / 2,
-			1
-		);
+		rtPipeline->record(frame.commandBuffer, frame.imageIndex, 1);
 		//usPipeline->recordVerticalPipeline(frame.commandBuffer, swapChain, frame.imageIndex, width, height);
-		rtPipeline->record(
-			frame.commandBuffer,
-			shaderBindingTables.raygen.stridedDeviceAddressRegion,
-			shaderBindingTables.miss.stridedDeviceAddressRegion,
-			shaderBindingTables.hit.stridedDeviceAddressRegion,
-			frame.imageIndex,
-			width,
-			height / 2,
-			2
-		);
+		rtPipeline->record(frame.commandBuffer, frame.imageIndex, 2);
 #else
-		rtPipeline->record(
-			frame.commandBuffer,
-			shaderBindingTables.raygen.stridedDeviceAddressRegion,
-			shaderBindingTables.miss.stridedDeviceAddressRegion,
-			shaderBindingTables.hit.stridedDeviceAddressRegion,
-			frame.imageIndex,
-			width,
-			height,
-			0);
+		rtPipeline->record(frame.commandBuffer, frame.imageIndex, 0);
 #endif
 
 		vks::tools::setImageLayout(
@@ -1509,14 +1420,6 @@ public:
 		FrameObject currentFrame = frameObjects[getCurrentFrameIndex()];
 		VulkanRTBase::prepareFrame(currentFrame);
 		updateUniformBuffer();
-		/*VkDescriptorImageInfo storageImageDescriptor{ VK_NULL_HANDLE, swapChain.buffers[currentFrame.imageIndex].view, VK_IMAGE_LAYOUT_GENERAL };
-		VkWriteDescriptorSet resultImageWrite = vks::initializers::writeDescriptorSet(currentFrame.descriptorSet, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, &storageImageDescriptor);
-		vkUpdateDescriptorSets(device, 1, &resultImageWrite, 0, VK_NULL_HANDLE);*/
-#if UNDERSAMPLING
-		/*VkWriteDescriptorSet rtMaskWrite = vks::initializers::writeDescriptorSet(currentFrame.descriptorSet, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 8, &usPipeline->rtMaskBuffers[currentFrame.imageIndex].descriptor);
-		vkUpdateDescriptorSets(device, 1, &rtMaskWrite, 0, VK_NULL_HANDLE);*/
-#endif
-
 		buildCommandBuffer(currentFrame);
 		VulkanRTBase::submitFrame(currentFrame);
 

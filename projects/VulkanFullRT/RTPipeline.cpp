@@ -92,61 +92,9 @@ void RTPipeline::createDescriptorSets() {
 	}
 }
 
-// init descriptor set of frameIdx
-// need to init each frame seperately
-void RTPipeline::initDescriptorSet(int frameIdx, VulkanSwapChain& swapChain, VkAccelerationStructureKHR& tlasHandle, vks::Buffer& uniformBuffer, vks::Buffer& uniformBufferStatic, vks::Buffer& particleDensities, vks::Buffer& particleSphCoefficients) {
-	VkDescriptorSet& descriptorSet = descriptorSets[frameIdx];
-	// WriteDescriptorSet for TLAS (binding0)
-	VkWriteDescriptorSetAccelerationStructureKHR descriptorAccelerationStructureInfo = vks::initializers::writeDescriptorSetAccelerationStructureKHR();
-	descriptorAccelerationStructureInfo.accelerationStructureCount = 1;
-#if SPLIT_BLAS && !RAY_QUERY
-	descriptorAccelerationStructureInfo.pAccelerationStructures = &splitBLAS.splittedTLAS.handle;
-#else
-	descriptorAccelerationStructureInfo.pAccelerationStructures = &tlasHandle;
-#endif
-
-	VkWriteDescriptorSet accelerationStructureWrite{};
-	accelerationStructureWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-	// The specialized acceleration structure descriptor has to be chained
-	accelerationStructureWrite.pNext = &descriptorAccelerationStructureInfo;
-	accelerationStructureWrite.dstSet = descriptorSet;
-	accelerationStructureWrite.dstBinding = 0;
-	accelerationStructureWrite.descriptorCount = 1;
-	accelerationStructureWrite.descriptorType = VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR;
-
-	VkDescriptorImageInfo storageImageDescriptor = { VK_NULL_HANDLE, swapChain.buffers[frameIdx].view, VK_IMAGE_LAYOUT_GENERAL };
-
-	std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
-		// Binding 0: Top level acceleration structure
-		accelerationStructureWrite,
-		// Binding 1: Ray tracing result image
-		vks::initializers::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, &storageImageDescriptor),
-		// Binding 2: Uniform data Dynamic
-		vks::initializers::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 2, &uniformBuffer.descriptor),
-		// Binding 3: Uniform data Static
-		vks::initializers::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 3, &uniformBufferStatic.descriptor),
-		vks::initializers::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 4, &particleDensities.descriptor),
-		vks::initializers::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 5, &particleSphCoefficients.descriptor),
-#if SPLIT_BLAS && !RAY_QUERY
-				vks::initializers::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 6, &splitBLAS.d_splittedPrimitiveIdsDeviceAddress.descriptor),
-#endif
-#if ENABLE_HIT_COUNTS && !RAY_QUERY
-				vks::initializers::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 7, &frame.hitCountsbuffer.descriptor),
-#endif
-	};
-
-	vkUpdateDescriptorSets(device, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, VK_NULL_HANDLE);
-}
-
-//void RTPipeline::updateDescriptorSet(VulkanSwapChain swapChain) {
-//	VkDescriptorImageInfo storageImageDescriptor{ VK_NULL_HANDLE, swapChain.buffers[currentFrame.imageIndex].view, VK_IMAGE_LAYOUT_GENERAL };
-//	VkWriteDescriptorSet resultImageWrite = vks::initializers::writeDescriptorSet(currentFrame.descriptorSet, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, &storageImageDescriptor);
-//	vkUpdateDescriptorSets(device, 1, &resultImageWrite, 0, VK_NULL_HANDLE);
-//}
-
 void RTPipeline::createPipelineLayout() {
 	VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = vks::initializers::pipelineLayoutCreateInfo(&descriptorSetLayout, 1);
-	//// For transfer push constants
+	// original push constant
 	//VkPushConstantRange pushConstantRange = vks::initializers::pushConstantRange(VK_SHADER_STAGE_RAYGEN_BIT_KHR, sizeof(pushConstants), 0);
 	//pipelineLayoutCreateInfo.pushConstantRangeCount = 1;
 	//pipelineLayoutCreateInfo.pPushConstantRanges = &pushConstantRange;
@@ -237,14 +185,68 @@ void RTPipeline::createPipeline() {
 }
 
 void RTPipeline::prepare(uint32_t width, uint32_t height) {
+	this->width = width;
+	this->height = height;
 	createDescriptorSets();
 	createPipelineLayout();
 	pushConstantRange = vks::initializers::pushConstantRange(VK_SHADER_STAGE_COMPUTE_BIT, 8, 0);
 	createPipeline();
 }
 
+// init descriptor set of frameIdx
+// need to init each frame seperately
+void RTPipeline::initDescriptorSet(int frameIdx, VulkanSwapChain& swapChain, VkAccelerationStructureKHR& tlasHandle, vks::Buffer& uniformBuffer, vks::Buffer& uniformBufferStatic, vks::Buffer& particleDensities, vks::Buffer& particleSphCoefficients) {
+	VkDescriptorSet& descriptorSet = descriptorSets[frameIdx];
+	// WriteDescriptorSet for TLAS (binding0)
+	VkWriteDescriptorSetAccelerationStructureKHR descriptorAccelerationStructureInfo = vks::initializers::writeDescriptorSetAccelerationStructureKHR();
+	descriptorAccelerationStructureInfo.accelerationStructureCount = 1;
+#if SPLIT_BLAS && !RAY_QUERY
+	descriptorAccelerationStructureInfo.pAccelerationStructures = &splitBLAS.splittedTLAS.handle;
+#else
+	descriptorAccelerationStructureInfo.pAccelerationStructures = &tlasHandle;
+#endif
+
+	VkWriteDescriptorSet accelerationStructureWrite{};
+	accelerationStructureWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+	// The specialized acceleration structure descriptor has to be chained
+	accelerationStructureWrite.pNext = &descriptorAccelerationStructureInfo;
+	accelerationStructureWrite.dstSet = descriptorSet;
+	accelerationStructureWrite.dstBinding = 0;
+	accelerationStructureWrite.descriptorCount = 1;
+	accelerationStructureWrite.descriptorType = VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR;
+
+	VkDescriptorImageInfo storageImageDescriptor = { VK_NULL_HANDLE, swapChain.buffers[frameIdx].view, VK_IMAGE_LAYOUT_GENERAL };
+
+	std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
+		// Binding 0: Top level acceleration structure
+		accelerationStructureWrite,
+		// Binding 1: Ray tracing result image
+		vks::initializers::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, &storageImageDescriptor),
+		// Binding 2: Uniform data Dynamic
+		vks::initializers::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 2, &uniformBuffer.descriptor),
+		// Binding 3: Uniform data Static
+		vks::initializers::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 3, &uniformBufferStatic.descriptor),
+		vks::initializers::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 4, &particleDensities.descriptor),
+		vks::initializers::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 5, &particleSphCoefficients.descriptor),
+#if SPLIT_BLAS && !RAY_QUERY
+				vks::initializers::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 6, &splitBLAS.d_splittedPrimitiveIdsDeviceAddress.descriptor),
+#endif
+#if ENABLE_HIT_COUNTS && !RAY_QUERY
+				vks::initializers::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 7, &frame.hitCountsbuffer.descriptor),
+#endif
+	};
+
+	vkUpdateDescriptorSets(device, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, VK_NULL_HANDLE);
+}
+
+void RTPipeline::initShaderBindingTable(VkStridedDeviceAddressRegionKHR* raygen, VkStridedDeviceAddressRegionKHR* miss, VkStridedDeviceAddressRegionKHR* hit) {
+	this->raygen = raygen;
+	this->miss = miss;
+	this->hit = hit;
+}
+
 //value groupSize should change if local group size change
-void RTPipeline::record(VkCommandBuffer& commandBuffer, VkStridedDeviceAddressRegionKHR& raygen, VkStridedDeviceAddressRegionKHR& miss, VkStridedDeviceAddressRegionKHR& hit, uint32_t imageIndex, uint32_t width, uint32_t height, uint32_t additionalRTFlag) {
+void RTPipeline::record(VkCommandBuffer& commandBuffer, uint32_t imageIndex, uint32_t additionalRTFlag) {
 	if (additionalRTFlag) {
 		VkMemoryBarrier barrier = vks::initializers::memoryBarrier();
 		barrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
@@ -253,17 +255,28 @@ void RTPipeline::record(VkCommandBuffer& commandBuffer, VkStridedDeviceAddressRe
 			VK_FLAGS_NONE, 1, &barrier, 0, nullptr, 0, nullptr);
 	}
 
+	uint32_t localWidth;
+	uint32_t localHeight;
+	if (additionalRTFlag < 2) {
+		localWidth = width / 2;
+		localHeight = height / 2;
+	}
+	else {
+		localWidth = width;
+		localHeight = height / 2;
+	}
+
 	vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR, pipeline);
 	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR, pipelineLayout, 0, 1, &descriptorSets[imageIndex], 0, 0);
 	vkCmdPushConstants(commandBuffer, pipelineLayout, VK_SHADER_STAGE_RAYGEN_BIT_KHR, 0, sizeof(uint32_t), &additionalRTFlag);
 	VkStridedDeviceAddressRegionKHR emptySbtEntry{};
 	vkCmdTraceRaysKHR(
 		commandBuffer,
-		&raygen,
-		&miss,
-		&hit,
+		raygen,
+		miss,
+		hit,
 		&emptySbtEntry,
-		width,
-		height,
+		localWidth,
+		localHeight,
 		1);
 }
