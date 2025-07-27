@@ -800,11 +800,12 @@ void VulkanRTBase::updateOverlay(std::vector<BaseFrameObject*>& frameObjects)
 
 	ImGui::Separator();
 	ImGui::Text("Resolution : %d x %d", width, height);
+#if UNDERSAMPLING
 	ImGui::Separator();
 	ImGui::Text("Parameters");
 	ImGui::Text("- Color Threshold");
 	ImGui::SliderFloat(" ", &colorThreshold, 0.0f, 1.0f);
-#if UNDERSAMPLING && STATISTICS
+	#if STATISTICS
 	ImGui::Separator();
 	ImGui::Text("Statistics");
 	ImGui::Text("- Total pixels : %u", width * height);
@@ -814,6 +815,7 @@ void VulkanRTBase::updateOverlay(std::vector<BaseFrameObject*>& frameObjects)
 	//ImGui::Text("- Total Ray tracing : %u", rtCnt);
 	ImGui::Text("- Interpolation Ratio : %.1f", (float)interpolationCnt / (width * height) * 100);
 	ImGui::Text("- RT Ratio : %f", (float)rtCnt / (width * height) * 100);
+	#endif
 #endif
 
 

@@ -268,6 +268,7 @@ void RTPipeline::record(VkCommandBuffer& commandBuffer, uint32_t imageIndex, uin
 
 	uint32_t localWidth;
 	uint32_t localHeight;
+#if UNDERSAMPLING
 	if (additionalRTFlag < 2) {
 		localWidth = pushConstants.width / 2;
 		localHeight = pushConstants.height / 2;
@@ -276,6 +277,10 @@ void RTPipeline::record(VkCommandBuffer& commandBuffer, uint32_t imageIndex, uin
 		localWidth = pushConstants.width;
 		localHeight = pushConstants.height / 2;
 	}
+#else
+	localWidth = pushConstants.width;
+	localHeight = pushConstants.height;
+#endif
 
 	vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR, pipeline);
 	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR, pipelineLayout, 0, 1, &descriptorSets[imageIndex], 0, 0);
