@@ -19,13 +19,13 @@
 
 #define EVAL_QUALITY 0
 
-#define UNDERSAMPLING 1		// This macro should be managed with 3dgs.glsl
+#define UNDERSAMPLING 0		// This macro should be managed with 3dgs.glsl
 #define STATISTICS 0		// This macro should be managed with undersampling.glsl
 
 #define USE_TIME_BASED_FPS true
 
 /* cameras */
-#define QUATERNION_CAMERA false
+#define QUATERNION_CAMERA true
 #define LOAD_NERF_CAMERA false
 #define DYNAMIC_CAMERA false
 
@@ -34,6 +34,9 @@
 #define QUATERNION_CAMERA false
 #endif
 
+#define ASSET 4
+#define LOAD_GLTF 0
+
 #define CAMERA_FILE "transforms_test.json"
 #define FOV_Y 39.6f
 #define NEAR_PLANE 0.005f
@@ -41,10 +44,6 @@
 // quaternion camera
 #define CAM_MOVE_SPEED 0.15f
 #define CAM_ROTATION_SPEED 0.5f
-
-
-#define ASSET 3
-#define LOAD_GLTF 0
 
  // ---------- split blas ---------- //
 #define SPLIT_BLAS 0		// This macro should be managed with 3dgs.glsl
@@ -74,8 +73,7 @@
 #elif ASSET == 1
 #define ASSET_PATH "3DGRTModels/bonsai/"
 #define PLY_FILE "bonsai.ply"
-#undef LOAD_NERF_CAMERA
-#define LOAD_NERF_CAMERA false
+#define NO_CAM_DATA
 
 #elif ASSET == 2
 #define ASSET_PATH "3DGRTModels/chair/"
@@ -86,8 +84,13 @@
 #define PLY_FILE "hotdog_3dgrt.ply"
 
 #elif ASSET == 4
-#define ASSET_PATH "3DGRTModels/flowers/"
-#define PLY_FILE "flowers.ply"
+#define ASSET_PATH "3DGRTModels/bicycle/"
+#define PLY_FILE "bicycle.ply"
+#endif
+
+#ifdef NO_CAM_DATA
+#undef LOAD_NERF_CAMERA
+#define LOAD_NERF_CAMERA false
 #endif
 
 #if TEXTURE_COMPRESSION

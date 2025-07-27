@@ -174,7 +174,7 @@ bool processHit(
 			sphCoefficients);
 		const vec3 grad = radianceFromSpH(sphEvalDegree, sphCoefficients, rayDirection, true);
 
-		radiance += vec4(grad * weight, 1.0f);
+		radiance += vec4(grad * weight, 0.0f);
 		transmittance *= (1 - galpha);
 		depth += hitT * weight;
 
