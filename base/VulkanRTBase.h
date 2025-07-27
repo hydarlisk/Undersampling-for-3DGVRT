@@ -93,6 +93,10 @@ struct BaseFrameObject
 	std::vector<uint64_t> timeStamps;
 	vks::Buffer vertexBuffer;
 	vks::Buffer indexBuffer;
+//TODO: refactoring?
+#if UNDERSAMPLING && STATISTICS
+	vks::Buffer rtMaskBuffer;
+#endif
 };
 
 class VulkanRTBase
@@ -235,6 +239,15 @@ public:
 	float frameTimer = 1.0f;
 	std::vector<uint64_t> timeRecords;
 	const uint32_t fpsUnit = 5;
+
+#if UNDERSAMPLING
+	float colorThreshold = 0.15;
+	#if STATISTICS
+	vector<uint32_t> curRTMask;
+	uint32_t interpolationCnt = 0;
+	uint32_t rtCnt = 0;
+	#endif
+#endif
 
 	struct LightAttVar {
 		alignas(4) float alpha = 0.6f;

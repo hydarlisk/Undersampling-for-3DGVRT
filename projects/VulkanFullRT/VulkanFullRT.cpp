@@ -1146,9 +1146,13 @@ public:
 		printASBuildInfo();
 #endif
 
-#if UNDERSAMPLING
+#if UNDERSAMPLING && STATISTICS
 		//usPipeline = new USPipeline(*vulkanDevice, graphicsQueue, swapChain.imageCount, DIR_PATH);
 		//usPipeline->prepare(swapChain, width, height);
+		curRTMask.resize(width * height);
+		for (auto& frame : frameObjects) {
+			VK_CHECK_RESULT(vulkanDevice->createBuffer(VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &frame.rtMaskBuffer, width * height * 4));
+		}
 #endif
 		// (2) Particle Rendering pass
 		rtPipeline = new RTPipeline(*vulkanDevice, graphicsQueue, swapChain.imageCount, DIR_PATH);
@@ -1162,6 +1166,9 @@ public:
 				frameObjects[i].uniformBufferStatic,
 				particleDensities,
 				particleSphCoefficients
+#if UNDERSAMPLING && STATISTICS
+				,frameObjects[i].rtMaskBuffer
+#endif
 			);
 		}
 
@@ -1180,6 +1187,9 @@ public:
 		FrameObject currentFrame = frameObjects[getCurrentFrameIndex()];
 		VulkanRTBase::prepareFrame(currentFrame);
 		updateUniformBuffer();
+#if UNDERSAMPLING
+		rtPipeline->updateColorThreshold(colorThreshold);
+#endif 
 		buildCommandBuffer(currentFrame);
 		VulkanRTBase::submitFrame(currentFrame);
 

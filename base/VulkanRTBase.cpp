@@ -798,6 +798,26 @@ void VulkanRTBase::updateOverlay(std::vector<BaseFrameObject*>& frameObjects)
 		setCamera(2);
 	}
 
+	ImGui::Separator();
+	ImGui::Text("Resolution : %d x %d", width, height);
+	ImGui::Separator();
+	ImGui::Text("Parameters");
+	ImGui::Text("- Color Threshold");
+	ImGui::SliderFloat(" ", &colorThreshold, 0.0f, 1.0f);
+#if UNDERSAMPLING && STATISTICS
+	ImGui::Separator();
+	ImGui::Text("Statistics");
+	ImGui::Text("- Total pixels : %u", width * height);
+	//ImGui::Text("Horizontal LinearInterpolation : ");
+	//ImGui::Text("Vertical LinearInterpolation : ");
+	//ImGui::Text("- Total LinearInterpolation : %u", interpolationCnt);
+	//ImGui::Text("- Total Ray tracing : %u", rtCnt);
+	ImGui::Text("- Interpolation Ratio : %.1f", (float)interpolationCnt / (width * height) * 100);
+	ImGui::Text("- RT Ratio : %f", (float)rtCnt / (width * height) * 100);
+#endif
+
+
+
 	//ImGui::Separator();
 	//ImGui::Text("Light Attenuation Factor");
 	//ImGui::SliderFloat("_alpha", &pushConstants.lightAttVar.alpha, 0.001f, 1.0f);
@@ -985,6 +1005,15 @@ void VulkanRTBase::prepareFrame(BaseFrameObject& frame)
 	// Ensure command buffer execution has finished
 	//VK_CHECK_RESULT(vkWaitForFences(device, 1, &frame.renderCompleteFence, VK_TRUE, UINT64_MAX));
 	VkResult res = vkWaitForFences(device, 1, &frame.renderCompleteFence, VK_TRUE, UINT64_MAX);
+
+#if UNDERSAMPLING && STATISTICS
+	frame.rtMaskBuffer.map();
+	memcpy(curRTMask.data(), frame.rtMaskBuffer.mapped, sizeof(uint32_t) * width * height);
+	memset(frame.rtMaskBuffer.mapped, 0, sizeof(uint32_t) * width * height);
+	frame.rtMaskBuffer.unmap();
+	rtCnt = accumulate(curRTMask.begin(), curRTMask.end(), 0);
+	interpolationCnt = width * height - rtCnt;
+#endif
 
 #if !USE_TIME_BASED_FPS
 	calculateFPS(frame);

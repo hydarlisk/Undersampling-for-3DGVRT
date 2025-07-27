@@ -8,6 +8,7 @@
 #define NUM_OF_GAUSSIANS 1024 // This macro should be managed with Define.h
 
 #define UNDERSAMPLING 1			// This macro should be managed with Define.h
+#define STATISTICS 0            // This macro should be managed with Define.h
 
 #define SPLIT_BLAS 0 // This macro should be managed with Define.h
 

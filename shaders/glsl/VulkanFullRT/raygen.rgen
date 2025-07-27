@@ -20,8 +20,6 @@
 #include "../base/utils.glsl"
 #include "../base/define.glsl"
 
-#include "../base/underSampling.glsl"
-
 /*** playground style ***/
 //struct RayData{
 //	vec3 radiance;
@@ -86,11 +84,15 @@ layout(std430, binding = 8, set = 0) buffer RTMask{
 };
 
 layout(push_constant, std430) uniform pushConstant{
+	uint width;
+	uint height;
 	uint additionalRT;
+	float colorThreshold;
 };
 #endif
 
 #include "../base/gaussianfunctions.glsl"
+#include "../base/underSampling.glsl"
 
 /***** 3DGS Functions *****/
 //void traceVolumetricGS(vec3 rayOrigin, vec3 rayDirection, float tmin, float tmax){
@@ -127,6 +129,7 @@ void main()
 	vec2 pixelCenter;
 	vec2 inUV;
 	uvec2 targetPixel;
+	//TODO: handle edge condition
 	if(additionalRT == 0){
 		targetPixel = gl_LaunchIDEXT.xy * 2;
 		pixelCenter = vec2(targetPixel) + vec2(0.5);	// pixel position
@@ -148,9 +151,7 @@ void main()
 			return;
 		}
 	}
-	else{	//additionalRT == 2
-//		if(rtMask[gl_LaunchIDEXT.y * gl_LaunchSizeEXT.x + gl_LaunchIDEXT.x] != 1) return;
-//		rtMask[gl_LaunchIDEXT.y * gl_LaunchSizeEXT.x + gl_LaunchIDEXT.x] = 0;
+	else{
 		targetPixel = gl_LaunchIDEXT.xy;
 		targetPixel.y = targetPixel.y * 2 + 1;
 		pixelCenter = vec2(targetPixel) + vec2(0.5);	// pixel position
@@ -170,7 +171,6 @@ void main()
 	const vec2 pixelCenter = vec2(gl_LaunchIDEXT.xy) + vec2(0.5);	// pixel position
 	const vec2 inUV = pixelCenter/vec2(gl_LaunchSizeEXT.xy);	// pixel position in WdC
 #endif
-	//inUV = pixelCenter / vec2(1920, 1080);
 	vec2 d = inUV * 2.0 - 1.0;	// pixel position in NDC
 	vec4 rayOrigin = uboDynamic.viewInverse[3];
 	vec4 target = uboDynamic.projInverse * vec4(d.x, d.y, 1.0f, 1.0f) ;	// (pixel position in EC) / Wc
@@ -234,21 +234,11 @@ void main()
 	}
 #if UNDERSAMPLING
 	vec4 green = vec4(0.0, 1.0, 0.0, 0.0);
-//	if(!additionalRT){
-//		imageStore(image, ivec2(gl_LaunchIDEXT.xy * 2), rayRadiance);
-//	}
 	imageStore(image, ivec2(targetPixel), rayRadiance);
-//	if(additionalRT == 0){
-//		imageStore(image, ivec2(gl_LaunchIDEXT.xy * 2), rayRadiance);
-//	}
-//	else if(additionalRT == 1){
-//		imageStore(image, ivec2(gl_LaunchIDEXT.x * 2+ 1, gl_LaunchIDEXT.y * 2), rayRadiance);
-//	}
-//	else{
-//		imageStore(image, ivec2(gl_LaunchIDEXT.xy), rayRadiance);
-//	}
-	//if(additionalRT == 2)
-//		imageStore(image, ivec2(targetPixel), green);
+	#if STATISTICS
+	rtMask[targetPixel.y * width + targetPixel.x] = 1;
+	#endif
+	
 #else
     imageStore(image, ivec2(gl_LaunchIDEXT.xy), rayRadiance);
 #endif

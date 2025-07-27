@@ -20,6 +20,7 @@
 #define EVAL_QUALITY 0
 
 #define UNDERSAMPLING 1		// This macro should be managed with 3dgs.glsl
+#define STATISTICS 0		// This macro should be managed with undersampling.glsl
 
 #define USE_TIME_BASED_FPS true
 

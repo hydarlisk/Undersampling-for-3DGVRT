@@ -10,9 +10,18 @@
 
 #define SHARED_MEMORY 1
 
-#define PSNR_THRESHOLD 40
+#define COLOR_SIMILARITY 1      //0 : Simple, 1 : PSNR
 
+#define PSNR_THRESHOLD 30
 
+#if COLOR_SIMILARITY == 0
+bool similarityCheck(vec3 color1, vec3 color2) {
+    if (distance(color1, color2) < colorThreshold) {
+        return true;
+    }
+    return false;
+}
+#elif COLOR_SIMILARITY == 1
 float calculatePSNR(vec3 color1, vec3 color2) {
     // RGB 값은 0.0 ~ 1.0 범위라고 가정 (GLSL에서는 보통 이렇게 표현)
     float maxVal = 1.0;
@@ -35,3 +44,4 @@ bool similarityCheck(vec3 color1, vec3 color2) {
         return true;
     return false;
 }
+#endif

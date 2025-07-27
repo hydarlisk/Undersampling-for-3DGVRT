@@ -21,7 +21,12 @@ class RTPipeline {
 		VkBuffer buffer;
 	};
 
-	uint32_t width, height;
+	struct PushConstants {
+		uint32_t width;
+		uint32_t height;
+		uint32_t additionalRT;
+		float colorThreshold;
+	}pushConstants;
 
 	vector<VkDescriptorSet> descriptorSets;
 
@@ -46,7 +51,7 @@ class RTPipeline {
 	VkStridedDeviceAddressRegionKHR* miss;
 	VkStridedDeviceAddressRegionKHR* hit;
 
-	string getShaderPath(string shaderName);
+	inline string getShaderPath(string shaderName);
 	void createDescriptorSets();
 	void createPipelineLayout();
 	void createPipeline();
@@ -59,8 +64,12 @@ public:
 	~RTPipeline();
 	
 	void prepare(uint32_t width, uint32_t height);
-	void initDescriptorSet(int frameIdx, VulkanSwapChain& swapChain, VkAccelerationStructureKHR& tlasHandle, vks::Buffer& uniformBuffer, vks::Buffer& uniformBufferStatic, vks::Buffer& particleDensities, vks::Buffer& particleSphCoefficients);
+	void initDescriptorSet(int frameIdx, VulkanSwapChain& swapChain, VkAccelerationStructureKHR& tlasHandle, vks::Buffer& uniformBuffer, vks::Buffer& uniformBufferStatic, vks::Buffer& particleDensities, vks::Buffer& particleSphCoefficients
+#if UNDERSAMPLING && STATISTICS
+		, vks::Buffer& rtMaskBuffer
+#endif
+	);
 	void initShaderBindingTable(VkStridedDeviceAddressRegionKHR* raygen, VkStridedDeviceAddressRegionKHR* miss, VkStridedDeviceAddressRegionKHR* hit);
 	void record(VkCommandBuffer& commandBuffer, uint32_t imageIndex, uint32_t additionalRTFlag);
-	//void buildCommandBuffer(VkCommandBuffer commandBuffer, VulkanSwapChain& swapChain, uint32_t imageIndex, uint32_t width, uint32_t height);
+	void updateColorThreshold(float threshold);
 };
