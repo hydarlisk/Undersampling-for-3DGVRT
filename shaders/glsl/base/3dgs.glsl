@@ -9,8 +9,14 @@
 
 #define UNDERSAMPLING 1			// Should be managed with Define.h
 #define STATISTICS 1            // Should be managed with Define.h
-#define REMOVE_DUMMY_PARTICLE 0
 #define ENABLE_HIT_COUNTS 1		// Should be managed with Define.h
+
+#if ENABLE_HIT_COUNTS
+#undef UNDERSAMPLING
+#define UNDERSAMPLING 0
+#endif
+
+#define REMOVE_DUMMY_PARTICLE 0
 
 #define SPLIT_BLAS 0 // This macro should be managed with Define.h
 

@@ -79,9 +79,11 @@ layout(std430, binding = 7, set = 0) buffer RayHitCounts {
 #endif
 
 #if UNDERSAMPLING
+#if STATISTICS
 layout(std430, binding = 8, set = 0) buffer RTMask{
 	uint rtMask[];
 };
+#endif
 
 layout(push_constant, std430) uniform pushConstant{
 	uint width;
@@ -92,7 +94,9 @@ layout(push_constant, std430) uniform pushConstant{
 #endif
 
 #include "../base/gaussianfunctions.glsl"
+#if UNDERSAMPLING
 #include "../base/underSampling.glsl"
+#endif
 
 /***** 3DGS Functions *****/
 //void traceVolumetricGS(vec3 rayOrigin, vec3 rayDirection, float tmin, float tmax){
@@ -238,12 +242,13 @@ void main()
 	#if STATISTICS
 	rtMask[targetPixel.y * width + targetPixel.x] = 1;
 	#endif
-	
+	#if ENABLE_HIT_COUNTS
+	rayHitCounts.cnts[targetPixel.y * width + targetPixel.x] = hitCnts;
+	#endif
 #else
     imageStore(image, ivec2(gl_LaunchIDEXT.xy), rayRadiance);
-#endif
-
-#if ENABLE_HIT_COUNTS
+	#if ENABLE_HIT_COUNTS
 	rayHitCounts.cnts[gl_LaunchIDEXT.y * gl_LaunchSizeEXT.x + gl_LaunchIDEXT.x] = hitCnts;
+	#endif
 #endif
 }

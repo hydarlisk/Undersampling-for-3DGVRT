@@ -46,11 +46,14 @@ void RTPipeline::createDescriptorSets() {
 		vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR, 1 * swapchainImageCnt),
 		vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1 * swapchainImageCnt),
 		vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 2 * swapchainImageCnt),
-		vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 3 * swapchainImageCnt),
+		vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 2 * swapchainImageCnt),
 #if SPLIT_BLAS && !RAY_QUERY
 		vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1 * swapchainImageCnt),
 #endif 
 #if ENABLE_HIT_COUNTS && !RAY_QUERY
+		vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1 * swapchainImageCnt),
+#endif
+#if UNDERSAMPLING && STATISTICS
 		vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1 * swapchainImageCnt),
 #endif
 	};
@@ -194,7 +197,7 @@ void RTPipeline::prepare(uint32_t width, uint32_t height) {
 	pushConstants.height = height;
 	createDescriptorSets();
 	createPipelineLayout();
-	pushConstantRange = vks::initializers::pushConstantRange(VK_SHADER_STAGE_COMPUTE_BIT, 8, 0);
+	pushConstantRange = vks::initializers::pushConstantRange(VK_SHADER_STAGE_COMPUTE_BIT, sizeof(PushConstants), 0);
 	createPipeline();
 }
 

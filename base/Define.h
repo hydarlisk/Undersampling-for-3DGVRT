@@ -24,6 +24,10 @@
 #define ENABLE_HIT_COUNTS 1	// Should be managed with 3dgs.glsl. Only use when the RAY_QUERY is 0.
 #define HIT_CNT_IMAGE_PATH "../results/texts/"
 #define HIT_CNT_IMAGE_NAME "hitCnt.png"
+#if ENABLE_HIT_COUNTS
+#undef UNDERSAMPLING
+#define UNDERSAMPLING 0
+#endif
 
 #define USE_TIME_BASED_FPS true
 
@@ -37,7 +41,7 @@
 #define QUATERNION_CAMERA false
 #endif
 
-#define ASSET 3
+#define ASSET 4
 #define LOAD_GLTF 0
 
 #define CAMERA_FILE "transforms_test.json"
@@ -88,6 +92,7 @@
 #elif ASSET == 4
 #define ASSET_PATH "3DGRTModels/bicycle/"
 #define PLY_FILE "bicycle.ply"
+#define NO_CAM_DATA
 #endif
 
 #ifdef NO_CAM_DATA
