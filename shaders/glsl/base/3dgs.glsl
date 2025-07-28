@@ -7,9 +7,10 @@
 
 #define NUM_OF_GAUSSIANS 1024 // This macro should be managed with Define.h
 
-#define UNDERSAMPLING 1			// This macro should be managed with Define.h
-#define STATISTICS 0            // This macro should be managed with Define.h
+#define UNDERSAMPLING 1			// Should be managed with Define.h
+#define STATISTICS 1            // Should be managed with Define.h
 #define REMOVE_DUMMY_PARTICLE 0
+#define ENABLE_HIT_COUNTS 1		// Should be managed with Define.h
 
 #define SPLIT_BLAS 0 // This macro should be managed with Define.h
 
@@ -22,7 +23,6 @@
 #define MAX_SPH_DEGREE 3 // "configs/render/3dgrt.yaml - particle_radiance_sph_degree"
 #define SPH_MAX_NUM_COEFFS 16	// x = MAX_SPH_DEGREE (x+1) * (x+1)
 #define ENABLE_NORMALS false	// just for training
-#define ENABLE_HIT_COUNTS 0		// Should be managed with Define.h
 #define PARTICLE_KERNEL_DEGREE 4 // "configs/render/3dgrt.yaml - particle_kernel_degree" : 4
 #define SURFEL_PRIMITIVE false // "configs/render/3dgrt.yaml - primitive_type" : instances -> false
 

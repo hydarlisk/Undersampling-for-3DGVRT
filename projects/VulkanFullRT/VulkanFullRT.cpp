@@ -27,7 +27,7 @@
 #include "USPipeline.hpp"
 #endif
 
-#if EVAL_QUALITY
+#if EVAL_QUALITY || ENABLE_HIT_COUNTS
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "stb_image_write.h"
 #endif
@@ -1103,7 +1103,7 @@ public:
 
 			// For debugging, write hit counts
 #if ENABLE_HIT_COUNTS && !RAY_QUERY
-			VK_CHECK_RESULT(vulkanDevice->createAndMapBuffer(VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &frame.hitCountsbuffer, sizeof(unsigned int) * width * height, nullptr));
+			VK_CHECK_RESULT(vulkanDevice->createBuffer(VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &frame.hitCountsbuffer, sizeof(unsigned int) * width * height, nullptr));
 #endif
 
 			// Time Stamp for measuring performance.
@@ -1166,6 +1166,9 @@ public:
 				frameObjects[i].uniformBufferStatic,
 				particleDensities,
 				particleSphCoefficients
+#if ENABLE_HIT_COUNTS && !RAY_QUERY
+				, frameObjects[i].hitCountsbuffer
+#endif
 #if UNDERSAMPLING && STATISTICS
 				,frameObjects[i].rtMaskBuffer
 #endif
@@ -1225,38 +1228,52 @@ public:
 			}
 		}
 #endif
-
-#if ENABLE_HIT_COUNTS && !RAY_QUERY
-		static unsigned int frame = 0;
-		static bool flag = true;
-		if (frame == 100 && flag) {
-			vkQueueWaitIdle(graphicsQueue);
-			printRayHitCounts(currentFrame);
-
-			std::cout << "\n*** Ray hit counts END ***\n";
-			flag = false;
-		}
-		else if (frame < 100) {
-			frame++;
-		}
-#endif
 	}
 
 #if ENABLE_HIT_COUNTS && !RAY_QUERY
 	// Print the ray hit count of each pixel of last frame to the txt file.
-	void printRayHitCounts(FrameObject currentFrame) {
-		uint32_t* uintData = static_cast<uint32_t*>(currentFrame.hitCountsbuffer.mapped);
-
+	void printRayHitCounts(FrameObject prevFrame) {
+		vector<uint32_t> hitCnts(width * height);
+		prevFrame.hitCountsbuffer.map();
+		memcpy(hitCnts.data(), prevFrame.hitCountsbuffer.mapped, sizeof(uint32_t) * width * height);
+		prevFrame.hitCountsbuffer.unmap();
+		
 		FILE* fp = fopen("../results/texts/rayHitCountsOutput.txt", "w");
 		if (fp) {
 			for (size_t i = 0; i < height; ++i) {
 				for (size_t j = 0; j < width; ++j) {
-					fprintf(fp, "%u ", uintData[i * width + j]);
+					fprintf(fp, "%u ", hitCnts[i * width + j]);
 				}
 				fprintf(fp, "\n");
 			}
 			fclose(fp);
 		}
+	}
+
+	void saveGrayScaleImage(const std::vector<uint32_t>& data) {
+		std::vector<uint8_t> grayscaleData(width * height);
+		
+		for (int i = 0; i < width * height; ++i) {
+			grayscaleData[i] = static_cast<uint8_t>(data[i] & 0xFF);
+		}
+		string filename = string(HIT_CNT_IMAGE_PATH) + string(HIT_CNT_IMAGE_NAME);
+		stbi_write_png(filename.c_str(), width, height, 1, grayscaleData.data(), width);
+	}
+
+	void captureHitCnt() {
+		FrameObject& prevFrame = frameObjects[getPrevFrameIndex()];
+		static unsigned int frame = 0;
+		vkQueueWaitIdle(graphicsQueue);
+		//printRayHitCounts(prevFrame);
+		vector<uint32_t> hitCnts(width * height);
+		prevFrame.hitCountsbuffer.map();
+		memcpy(hitCnts.data(), prevFrame.hitCountsbuffer.mapped, sizeof(uint32_t) * width * height);
+		prevFrame.hitCountsbuffer.unmap();
+		auto result = std::max_element(hitCnts.begin(), hitCnts.end());
+		std::cout << "max hit : " << *result << "\n";
+		saveGrayScaleImage(hitCnts);
+		printRayHitCounts(prevFrame);
+		std::cout << "*** Ray hit counts END ***\n";
 	}
 #endif
 
@@ -1266,6 +1283,12 @@ public:
 			return;
 
 		draw();
+#if ENABLE_HIT_COUNTS && !RAY_QUERY
+		if (captureHitCntFlag) {
+			captureHitCnt();
+			captureHitCntFlag = false;
+		}
+#endif
 	}
 };
 

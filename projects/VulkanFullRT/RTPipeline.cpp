@@ -75,12 +75,14 @@ void RTPipeline::createDescriptorSets() {
 		// Binding 6: Storage buffer - primitive Id
 		vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_ANY_HIT_BIT_KHR, 6),
 #endif
-#if ENABLE_HIT_COUNTS
+#if ENABLE_HIT_COUNTS && !RAY_QUERY
 		// Binding 7: Storage buffer - Ray Hit Count for debugging
 		vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_RAYGEN_BIT_KHR, 7),
 #endif
+#if UNDERSAMPLING && STATISTICS
 		// Binding 8: Storage buffer - RT mask
 		vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_RAYGEN_BIT_KHR, 8),
+#endif
 	};
 
 	VkDescriptorSetLayoutCreateInfo descriptorSetLayoutCI = vks::initializers::descriptorSetLayoutCreateInfo(setLayoutBindings);
@@ -199,6 +201,9 @@ void RTPipeline::prepare(uint32_t width, uint32_t height) {
 // init descriptor set of frameIdx
 // need to init each frame seperately
 void RTPipeline::initDescriptorSet(int frameIdx, VulkanSwapChain& swapChain, VkAccelerationStructureKHR& tlasHandle, vks::Buffer& uniformBuffer, vks::Buffer& uniformBufferStatic, vks::Buffer& particleDensities, vks::Buffer& particleSphCoefficients
+#if ENABLE_HIT_COUNTS && !RAY_QUERY
+	, vks::Buffer& hitCountsbuffer
+#endif
 #if UNDERSAMPLING && STATISTICS
 	,vks::Buffer& rtMaskBuffer
 #endif
@@ -236,10 +241,10 @@ void RTPipeline::initDescriptorSet(int frameIdx, VulkanSwapChain& swapChain, VkA
 		vks::initializers::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 4, &particleDensities.descriptor),
 		vks::initializers::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 5, &particleSphCoefficients.descriptor),
 #if SPLIT_BLAS && !RAY_QUERY
-				vks::initializers::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 6, &splitBLAS.d_splittedPrimitiveIdsDeviceAddress.descriptor),
+		vks::initializers::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 6, &splitBLAS.d_splittedPrimitiveIdsDeviceAddress.descriptor),
 #endif
 #if ENABLE_HIT_COUNTS && !RAY_QUERY
-				vks::initializers::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 7, &frame.hitCountsbuffer.descriptor),
+		vks::initializers::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 7, &hitCountsbuffer.descriptor),
 #endif
 #if UNDERSAMPLING && STATISTICS
 		vks::initializers::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 8, &rtMaskBuffer.descriptor)

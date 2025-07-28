@@ -293,6 +293,9 @@ public:
 	unsigned int evalCameraIdx;
 	void* currentImg;
 #endif
+#if ENABLE_HIT_COUNTS && !RAY_QUERY
+	bool captureHitCntFlag = false;
+#endif
 
 	/** @brief State of gamepad input (only used on Android) */
 	struct {
@@ -533,6 +536,7 @@ public:
 	void submitFrameCustomSignal(BaseFrameObject& frame, VkCommandBuffer& commandBuffer, std::vector<VkSemaphore> signalSemaphores, VkPipelineStageFlags waitStages = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT);
 
 	uint32_t getCurrentFrameIndex();
+	uint32_t getPrevFrameIndex();
 
 	void setupTimeStampQueries(BaseFrameObject& frame, const uint32_t timeStampCountPerFrame);
 

@@ -63,6 +63,17 @@ It's still being prepared. 😘 <br/>
     |lookat|
 <br/>
 
+## Other Key Map
+
+- 
+    |Key|Action|
+    |:---:|:---:|
+    |F1|Toggle UI|
+    |Esc|Terminate|
+    |T|Print current camera|
+    |C|Capture hit count|
+
+
 ## 🌷 Experiments
 - 3DGS &ensp; vs &ensp; 3DGVRT
 - 3DGRT &ensp; vs &ensp; 3DGVRT

@@ -10,7 +10,7 @@
 
 #define SHARED_MEMORY 1
 
-#define COLOR_SIMILARITY 1      //0 : Simple, 1 : PSNR
+#define COLOR_SIMILARITY 0      //0 : Simple, 1 : PSNR
 
 #define PSNR_THRESHOLD 30
 

@@ -813,8 +813,8 @@ void VulkanRTBase::updateOverlay(std::vector<BaseFrameObject*>& frameObjects)
 	//ImGui::Text("Vertical LinearInterpolation : ");
 	//ImGui::Text("- Total LinearInterpolation : %u", interpolationCnt);
 	//ImGui::Text("- Total Ray tracing : %u", rtCnt);
-	ImGui::Text("- Interpolation Ratio : %.1f", (float)interpolationCnt / (width * height) * 100);
-	ImGui::Text("- RT Ratio : %f", (float)rtCnt / (width * height) * 100);
+	ImGui::Text("- Interpolation Ratio : %.2f", (float)interpolationCnt / (width * height) * 100);
+	ImGui::Text("- RT Ratio : %.2f", (float)rtCnt / (width * height) * 100);
 	#endif
 #endif
 
@@ -1165,6 +1165,11 @@ void VulkanRTBase::submitFrameCustomSignal(BaseFrameObject& frame, VkCommandBuff
 uint32_t VulkanRTBase::getCurrentFrameIndex()
 {
 	return frameIndex;
+}
+
+uint32_t VulkanRTBase::getPrevFrameIndex()
+{
+	return (frameIndex + swapChain.imageCount - 1) % swapChain.imageCount;
 }
 
 void VulkanRTBase::setupTimeStampQueries(BaseFrameObject& frame, const uint32_t timeStampCountPerFrame) {
@@ -1781,7 +1786,7 @@ void VulkanRTBase::handleMessages(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lP
 				camera.keys.right = true;
 				break;
 #endif
-			case KEY_P:
+			case KEY_T:
 #if QUATERNION_CAMERA
 				printf("quaternionCamera.setTranslation(glm::vec3(%f, %f, %f));\n", quaternionCamera.position.x, quaternionCamera.position.y, quaternionCamera.position.z);
 				printf("quaternionCamera.setRotation(glm::quat(%f, %f, %f, %f));\n", quaternionCamera.rotation.w, quaternionCamera.rotation.x, quaternionCamera.rotation.y, quaternionCamera.rotation.z);
@@ -1793,7 +1798,12 @@ void VulkanRTBase::handleMessages(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lP
 			case KEY_R:
 				camera.setRotation(glm::vec3(-3.199999, -88.599998, 0.000000));
 				camera.setTranslation(glm::vec3(-4.211443, 1.331187, -0.232099));
-				break;			
+				break;
+#if ENABLE_HIT_COUNTS && !RAY_QUERY
+			case KEY_C:
+				captureHitCntFlag = true;
+				break;
+#endif
 #if QUATERNION_CAMERA
 			case KEY_E:
 				quaternionCamera.move(glm::vec3(0, CAM_MOVE_SPEED, 0));
