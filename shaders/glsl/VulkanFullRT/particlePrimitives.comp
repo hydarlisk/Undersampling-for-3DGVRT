@@ -134,10 +134,12 @@ void main()
 			minSpecular = min(minSpecular, specularStrength);
 		}
 
+#if REMOVE_DUMMY_PARTICLE
 		if (albedoStrength > 3.0f)
 			return;
 		else if (maxSpecular / (minSpecular + 1e-5) > 150.0f)
 			return;
+#endif
 
 		const uint saveIdx = atomicAdd(particleCounts, 1);
 		const uint sVertIdx = icosaHedronNumVrt * saveIdx * 3;
