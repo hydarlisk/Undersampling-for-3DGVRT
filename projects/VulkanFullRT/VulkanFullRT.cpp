@@ -1269,8 +1269,10 @@ public:
 		prevFrame.hitCountsbuffer.map();
 		memcpy(hitCnts.data(), prevFrame.hitCountsbuffer.mapped, sizeof(uint32_t) * width * height);
 		prevFrame.hitCountsbuffer.unmap();
-		auto result = std::max_element(hitCnts.begin(), hitCnts.end());
-		std::cout << "max hit : " << *result << "\n";
+		auto maxHit = std::max_element(hitCnts.begin(), hitCnts.end());
+		uint32_t totalHit = accumulate(hitCnts.begin(), hitCnts.end(), 0);
+		std::cout << "max hit : " << *maxHit << "\n";
+		std::cout << "totalHit : " << totalHit << "\n";
 		saveGrayScaleImage(hitCnts);
 		printRayHitCounts(prevFrame);
 		std::cout << "*** Ray hit counts END ***\n";
