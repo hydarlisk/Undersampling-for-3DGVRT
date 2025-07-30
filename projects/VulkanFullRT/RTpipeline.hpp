@@ -8,6 +8,7 @@
 
 #include "vulkan/vulkan.h"
 #include "VulkanUtils.h"
+#include "DebugManager.hpp"
 
 #include <vector>
 
@@ -28,6 +29,16 @@ class RTPipeline {
 		float colorThreshold;
 	}pushConstants;
 
+	struct SimilarityVar {
+		float t;
+		//float galpha;	// maybe weight?
+	};
+
+	DebugManager debugManager;
+
+	vector<vks::Buffer> particleIdBuffers;
+	vector<vks::Buffer> similarityVarBuffers;
+
 	vector<VkDescriptorSet> descriptorSets;
 
 	VkPushConstantRange pushConstantRange;
@@ -44,14 +55,16 @@ class RTPipeline {
 	VkDescriptorPool descriptorPool{ VK_NULL_HANDLE };
 	VkDescriptorSetLayout descriptorSetLayout{ VK_NULL_HANDLE };
 
+	/* RT API */
 	PFN_vkCmdTraceRaysKHR vkCmdTraceRaysKHR;
 	PFN_vkCreateRayTracingPipelinesKHR vkCreateRayTracingPipelinesKHR;
-
+	/* SBT */
 	VkStridedDeviceAddressRegionKHR* raygen;
 	VkStridedDeviceAddressRegionKHR* miss;
 	VkStridedDeviceAddressRegionKHR* hit;
 
 	inline string getShaderPath(string shaderName);
+	void createSimilarityVarBuffers();
 	void createDescriptorSets();
 	void createPipelineLayout();
 	void createPipeline();
@@ -68,6 +81,7 @@ public:
 #if ENABLE_HIT_COUNTS && !RAY_QUERY
 		, vks::Buffer& hitCountsbuffer
 #endif
+//TODO: use member rtMaskBuffers
 #if UNDERSAMPLING && STATISTICS
 		, vks::Buffer& rtMaskBuffer
 #endif
@@ -75,4 +89,6 @@ public:
 	void initShaderBindingTable(VkStridedDeviceAddressRegionKHR* raygen, VkStridedDeviceAddressRegionKHR* miss, VkStridedDeviceAddressRegionKHR* hit);
 	void record(VkCommandBuffer& commandBuffer, uint32_t imageIndex, uint32_t additionalRTFlag);
 	void updateColorThreshold(float threshold);
+
+	void initDebugManager(VkInstance instance);
 };

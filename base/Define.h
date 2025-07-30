@@ -20,10 +20,15 @@
 #define EVAL_QUALITY 0
 
 #define UNDERSAMPLING 1		// Should be managed with 3dgs.glsl
+#define MAX_SIMILARITY_VAR 150
+
 #define STATISTICS 1		// Should be managed with undersampling.glsl
-#define ENABLE_HIT_COUNTS 0	// Should be managed with 3dgs.glsl. Only use when the RAY_QUERY is 0.
+#define ENABLE_HIT_COUNTS 1	// Should be managed with 3dgs.glsl. Only use when the RAY_QUERY is 0.
+
+
 #define HIT_CNT_IMAGE_PATH "../results/texts/"
 #define HIT_CNT_IMAGE_NAME "hitCnt.png"
+
 #if ENABLE_HIT_COUNTS
 #undef UNDERSAMPLING
 #define UNDERSAMPLING 0
@@ -41,7 +46,7 @@
 #define QUATERNION_CAMERA false
 #endif
 
-#define ASSET 4
+#define ASSET 3
 #define LOAD_GLTF 0
 
 #define CAMERA_FILE "transforms_test.json"

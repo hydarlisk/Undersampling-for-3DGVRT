@@ -17,6 +17,8 @@ RTPipeline::RTPipeline(vks::VulkanDevice& device, VkQueue& queue, int swapchainI
 	this->projectPath = projectPath;
 	descriptorSets.resize(swapchainImageCnt);
 	rtMaskBuffers.resize(swapchainImageCnt);
+	particleIdBuffers.resize(swapchainImageCnt);
+	similarityVarBuffers.resize(swapchainImageCnt);
 
 	vkCmdTraceRaysKHR = reinterpret_cast<PFN_vkCmdTraceRaysKHR>(vkGetDeviceProcAddr(device, "vkCmdTraceRaysKHR"));
 	vkCreateRayTracingPipelinesKHR = reinterpret_cast<PFN_vkCreateRayTracingPipelinesKHR>(vkGetDeviceProcAddr(device, "vkCreateRayTracingPipelinesKHR"));
@@ -33,11 +35,34 @@ RTPipeline::~RTPipeline() {
 	for (auto& shaderModule : shaderModules) {
 		vkDestroyShaderModule(device, shaderModule, nullptr);
 	}
+
+	for (int i = 0; i < swapchainImageCnt; i++) {
+		rtMaskBuffers[i].destroy();
+		particleIdBuffers[i].destroy();
+		similarityVarBuffers[i].destroy();
+	}
 }
 
 /* Private Functions */
 inline string RTPipeline::getShaderPath(string shaderName) {
 	return "./../shaders/glsl/" + projectPath + shaderName;
+}
+
+//void
+
+void RTPipeline::createSimilarityVarBuffers() {
+	for (int i = 0; i < swapchainImageCnt; i++) {
+		// particle id
+		VK_CHECK_RESULT(vulkanDevice.createBuffer(VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
+			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &particleIdBuffers[i], pushConstants.width * pushConstants.height * sizeof(uint32_t) * MAX_SIMILARITY_VAR));
+		string bufferName = "particleIdBuffer" + to_string(i);
+		debugManager.setDebugName(particleIdBuffers[i].buffer, bufferName.c_str());
+		// t, galpha
+		VK_CHECK_RESULT(vulkanDevice.createBuffer(VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
+			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &similarityVarBuffers[i], pushConstants.width * pushConstants.height * sizeof(float) * MAX_SIMILARITY_VAR));
+		bufferName = "tBuffer" + to_string(i);
+		debugManager.setDebugName(similarityVarBuffers[i].buffer, bufferName.c_str());
+	}
 }
 
 void RTPipeline::createDescriptorSets() {
@@ -56,6 +81,7 @@ void RTPipeline::createDescriptorSets() {
 #if UNDERSAMPLING && STATISTICS
 		vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1 * swapchainImageCnt),
 #endif
+		vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 2 * swapchainImageCnt),
 	};
 	VkDescriptorPoolCreateInfo descriptorPoolCreateInfo = vks::initializers::descriptorPoolCreateInfo(poolSizes, swapchainImageCnt); // ray tracing pipeline
 
@@ -86,6 +112,10 @@ void RTPipeline::createDescriptorSets() {
 		// Binding 8: Storage buffer - RT mask
 		vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_RAYGEN_BIT_KHR, 8),
 #endif
+		// Binding 9: Storage buffer - Particle ID
+		vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_RAYGEN_BIT_KHR, 9),
+		// Binding 10: Storage buffer - Similarity Var
+		vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_RAYGEN_BIT_KHR, 10),
 	};
 
 	VkDescriptorSetLayoutCreateInfo descriptorSetLayoutCI = vks::initializers::descriptorSetLayoutCreateInfo(setLayoutBindings);
@@ -195,6 +225,7 @@ void RTPipeline::createPipeline() {
 void RTPipeline::prepare(uint32_t width, uint32_t height) {
 	pushConstants.width = width;
 	pushConstants.height = height;
+	createSimilarityVarBuffers();
 	createDescriptorSets();
 	createPipelineLayout();
 	pushConstantRange = vks::initializers::pushConstantRange(VK_SHADER_STAGE_COMPUTE_BIT, sizeof(PushConstants), 0);
@@ -250,8 +281,10 @@ void RTPipeline::initDescriptorSet(int frameIdx, VulkanSwapChain& swapChain, VkA
 		vks::initializers::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 7, &hitCountsbuffer.descriptor),
 #endif
 #if UNDERSAMPLING && STATISTICS
-		vks::initializers::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 8, &rtMaskBuffer.descriptor)
+		vks::initializers::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 8, &rtMaskBuffer.descriptor),
 #endif
+		vks::initializers::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 9, &particleIdBuffers[frameIdx].descriptor),
+		vks::initializers::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 10, &similarityVarBuffers[frameIdx].descriptor),
 	};
 
 	vkUpdateDescriptorSets(device, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, VK_NULL_HANDLE);
@@ -269,6 +302,15 @@ void RTPipeline::record(VkCommandBuffer& commandBuffer, uint32_t imageIndex, uin
 		barrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
 		barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
 		vkCmdPipelineBarrier(commandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_KHR,
+			VK_FLAGS_NONE, 1, &barrier, 0, nullptr, 0, nullptr);
+	}
+	else if (additionalRTFlag == 0) {
+		vkCmdFillBuffer(commandBuffer, particleIdBuffers[imageIndex].buffer, 0, particleIdBuffers[imageIndex].size, 0);
+		vkCmdFillBuffer(commandBuffer, similarityVarBuffers[imageIndex].buffer, 0, similarityVarBuffers[imageIndex].size, 0);
+		VkMemoryBarrier barrier = vks::initializers::memoryBarrier();
+		barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+		barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+		vkCmdPipelineBarrier(commandBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_KHR,
 			VK_FLAGS_NONE, 1, &barrier, 0, nullptr, 0, nullptr);
 	}
 
@@ -289,7 +331,7 @@ void RTPipeline::record(VkCommandBuffer& commandBuffer, uint32_t imageIndex, uin
 	localWidth = pushConstants.width;
 	localHeight = pushConstants.height;
 #endif
-
+	
 	vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR, pipeline);
 	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR, pipelineLayout, 0, 1, &descriptorSets[imageIndex], 0, 0);
 	vkCmdPushConstants(commandBuffer, pipelineLayout, VK_SHADER_STAGE_RAYGEN_BIT_KHR, 0, sizeof(PushConstants), &pushConstants);
@@ -307,4 +349,8 @@ void RTPipeline::record(VkCommandBuffer& commandBuffer, uint32_t imageIndex, uin
 
 void RTPipeline::updateColorThreshold(float threshold) {
 	pushConstants.colorThreshold = threshold;
+}
+
+void RTPipeline::initDebugManager(VkInstance instance) {
+	debugManager.prepare(instance, &device);
 }

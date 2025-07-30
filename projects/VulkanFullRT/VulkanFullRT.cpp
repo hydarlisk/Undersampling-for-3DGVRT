@@ -1156,6 +1156,7 @@ public:
 #endif
 		// (2) Particle Rendering pass
 		rtPipeline = new RTPipeline(*vulkanDevice, graphicsQueue, swapChain.imageCount, DIR_PATH);
+		rtPipeline->initDebugManager(instance);
 		rtPipeline->prepare(width, height);
 		for (int i = 0; i < swapChain.imageCount; i++) {
 			rtPipeline->initDescriptorSet(
