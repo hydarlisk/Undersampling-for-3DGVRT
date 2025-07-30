@@ -623,7 +623,8 @@ public:
 		instance.instanceCustomIndex = 0;
 		instance.mask = 0xFF;
 		instance.instanceShaderBindingTableRecordOffset = 0;
-		instance.flags = VK_GEOMETRY_INSTANCE_TRIANGLE_FACING_CULL_DISABLE_BIT_KHR;
+		//instance.flags = VK_GEOMETRY_INSTANCE_TRIANGLE_FACING_CULL_DISABLE_BIT_KHR;
+		instance.flags = VK_FLAGS_NONE;
 		instance.accelerationStructureReference = bottomLevelAS3DGRT.deviceAddress;
 
 		// Buffer for instance data

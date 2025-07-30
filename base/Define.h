@@ -22,8 +22,8 @@
 #define UNDERSAMPLING 1		// Should be managed with 3dgs.glsl
 #define MAX_SIMILARITY_VAR 150
 
-#define STATISTICS 1		// Should be managed with undersampling.glsl
-#define ENABLE_HIT_COUNTS 1	// Should be managed with 3dgs.glsl. Only use when the RAY_QUERY is 0.
+#define STATISTICS 0		// Should be managed with undersampling.glsl
+#define ENABLE_HIT_COUNTS 0	// Should be managed with 3dgs.glsl. Only use when the RAY_QUERY is 0.
 
 
 #define HIT_CNT_IMAGE_PATH "../results/texts/"
@@ -38,7 +38,7 @@
 
 /* cameras */
 #define QUATERNION_CAMERA true
-#define LOAD_NERF_CAMERA false
+#define LOAD_NERF_CAMERA true
 #define DYNAMIC_CAMERA false
 
 #if DYNAMIC_CAMERA
