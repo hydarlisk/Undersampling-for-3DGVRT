@@ -14,8 +14,8 @@ ssim = StructuralSimilarityIndexMeasure(data_range=1.0)
 lpips = LearnedPerceptualImagePatchSimilarity(net_type='vgg')
 
 # 비교 대상 폴더
-ref_dir = 'GT_test'
-cmp_dirs = ['3dgrt_test', 'FRT', 'US', 'FLI']
+ref_dir = 'GroundTruth/cam_test'
+cmp_dirs = ['3dgrt_test', '250731_fixed_quality_problem/FRT', 'before_fix_quality_problem\FRT']
 
 # 이미지 개수
 num_images = 200  # ← 필요한 만큼 수정하세요

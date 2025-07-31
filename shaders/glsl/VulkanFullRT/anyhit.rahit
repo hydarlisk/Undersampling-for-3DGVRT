@@ -28,8 +28,10 @@ layout(binding = 6, set = 0) buffer PrimitiveIdsBuffers {
 
 void compareAndSwapHitPayloadValue(inout RayHit hit, int idx) {
     const float dist = rayPayload.hits[idx].dist;
+#if REMOVE_DUPLICATE_ANYHIT_BY_SHADER
 	if(hit.particleId == rayPayload.hits[idx].particleId)
 		ignoreIntersectionEXT;
+#endif
     if (hit.dist < dist) {
         rayPayload.hits[idx].dist = hit.dist;
         const uint id = rayPayload.hits[idx].particleId;

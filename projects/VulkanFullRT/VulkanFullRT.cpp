@@ -544,6 +544,9 @@ public:
 		geometry.geometry.triangles.indexType = VK_INDEX_TYPE_UINT32;
 		geometry.geometry.triangles.indexData = indexBufferDeviceAddress;
 		geometry.geometry.triangles.transformData = transformBufferDeviceAddress;
+#if !REMOVE_DUPLICATE_ANYHIT_BY_SHADER
+		geometry.flags = VK_GEOMETRY_NO_DUPLICATE_ANY_HIT_INVOCATION_BIT_KHR;
+#endif
 
 		buildRangeInfo.firstVertex = 0;
 		buildRangeInfo.primitiveOffset = 0;

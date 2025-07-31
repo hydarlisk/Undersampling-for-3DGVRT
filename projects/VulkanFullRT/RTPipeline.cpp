@@ -78,10 +78,12 @@ void RTPipeline::createDescriptorSets() {
 #if ENABLE_HIT_COUNTS && !RAY_QUERY
 		vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1 * swapchainImageCnt),
 #endif
-#if UNDERSAMPLING && STATISTICS
+#if UNDERSAMPLING
+	#if STATISTICS
 		vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1 * swapchainImageCnt),
-#endif
+	#endif
 		vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 2 * swapchainImageCnt),
+#endif
 	};
 	VkDescriptorPoolCreateInfo descriptorPoolCreateInfo = vks::initializers::descriptorPoolCreateInfo(poolSizes, swapchainImageCnt); // ray tracing pipeline
 
@@ -297,6 +299,7 @@ void RTPipeline::initShaderBindingTable(VkStridedDeviceAddressRegionKHR* raygen,
 }
 
 void RTPipeline::record(VkCommandBuffer& commandBuffer, uint32_t imageIndex, uint32_t additionalRTFlag) {
+#if UNDERSAMPLING
 	if (additionalRTFlag) {
 		VkMemoryBarrier barrier = vks::initializers::memoryBarrier();
 		barrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
@@ -313,6 +316,7 @@ void RTPipeline::record(VkCommandBuffer& commandBuffer, uint32_t imageIndex, uin
 		vkCmdPipelineBarrier(commandBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_KHR,
 			VK_FLAGS_NONE, 1, &barrier, 0, nullptr, 0, nullptr);
 	}
+#endif
 
 	pushConstants.additionalRT = additionalRTFlag;
 
