@@ -110,14 +110,16 @@ void RTPipeline::createDescriptorSets() {
 		// Binding 7: Storage buffer - Ray Hit Count for debugging
 		vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_RAYGEN_BIT_KHR, 7),
 #endif
-#if UNDERSAMPLING && STATISTICS
+#if UNDERSAMPLING 
+	#if STATISTICS
 		// Binding 8: Storage buffer - RT mask
 		vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_RAYGEN_BIT_KHR, 8),
-#endif
+	#endif
 		// Binding 9: Storage buffer - Particle ID
 		vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_RAYGEN_BIT_KHR, 9),
 		// Binding 10: Storage buffer - Similarity Var
 		vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_RAYGEN_BIT_KHR, 10),
+#endif
 	};
 
 	VkDescriptorSetLayoutCreateInfo descriptorSetLayoutCI = vks::initializers::descriptorSetLayoutCreateInfo(setLayoutBindings);
@@ -227,7 +229,9 @@ void RTPipeline::createPipeline() {
 void RTPipeline::prepare(uint32_t width, uint32_t height) {
 	pushConstants.width = width;
 	pushConstants.height = height;
+#if UNDERSAMPLING
 	createSimilarityVarBuffers();
+#endif
 	createDescriptorSets();
 	createPipelineLayout();
 	pushConstantRange = vks::initializers::pushConstantRange(VK_SHADER_STAGE_COMPUTE_BIT, sizeof(PushConstants), 0);
@@ -282,11 +286,13 @@ void RTPipeline::initDescriptorSet(int frameIdx, VulkanSwapChain& swapChain, VkA
 #if ENABLE_HIT_COUNTS && !RAY_QUERY
 		vks::initializers::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 7, &hitCountsbuffer.descriptor),
 #endif
-#if UNDERSAMPLING && STATISTICS
+#if UNDERSAMPLING
+	#if STATISTICS
 		vks::initializers::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 8, &rtMaskBuffer.descriptor),
-#endif
+	#endif
 		vks::initializers::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 9, &particleIdBuffers[frameIdx].descriptor),
 		vks::initializers::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 10, &similarityVarBuffers[frameIdx].descriptor),
+#endif
 	};
 
 	vkUpdateDescriptorSets(device, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, VK_NULL_HANDLE);
@@ -338,7 +344,9 @@ void RTPipeline::record(VkCommandBuffer& commandBuffer, uint32_t imageIndex, uin
 	
 	vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR, pipeline);
 	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR, pipelineLayout, 0, 1, &descriptorSets[imageIndex], 0, 0);
+#if UNDERSAMPLING
 	vkCmdPushConstants(commandBuffer, pipelineLayout, VK_SHADER_STAGE_RAYGEN_BIT_KHR, 0, sizeof(PushConstants), &pushConstants);
+#endif
 	VkStridedDeviceAddressRegionKHR emptySbtEntry{};
 	vkCmdTraceRaysKHR(
 		commandBuffer,

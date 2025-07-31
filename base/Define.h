@@ -50,7 +50,7 @@
 #define ASSET 3
 #define LOAD_GLTF 0
 
-#define CAMERA_FILE "transforms_test.json"
+#define CAMERA_FILE "transforms_val.json"
 #define FOV_Y 39.6f
 #define NEAR_PLANE 0.005f
 #define FAR_PLANE 20.00f
@@ -93,7 +93,7 @@
 
 #elif ASSET == 3
 #define ASSET_PATH "3DGRTModels/hotdog/"
-#define PLY_FILE "hotdog_3dgrt.ply"
+#define PLY_FILE "hotdog_3dgrt2.ply"
 
 #elif ASSET == 4
 #define ASSET_PATH "3DGRTModels/bicycle/"
