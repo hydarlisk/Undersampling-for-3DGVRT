@@ -767,6 +767,7 @@ void VulkanRTBase::updateOverlay(std::vector<BaseFrameObject*>& frameObjects)
 	//ImGui::Checkbox("Shadow ray", &pushConstants.rayOption.shadowRay);
 	//ImGui::Checkbox("Reflection", &pushConstants.rayOption.reflection);
 	//ImGui::Checkbox("Refraction", &pushConstants.rayOption.refraction);
+	ImGui::Checkbox("Rendering", &renderFlag);
 	ImGui::Text("Camera Vertical Movement");
 	ImGui::SameLine();
 	if (ImGui::ArrowButton("##Up", ImGuiDir_Up) || ImGui::IsItemActive()) {

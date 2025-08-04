@@ -1289,6 +1289,7 @@ public:
 		if (!prepared)
 			return;
 
+		if (!renderFlag) return;
 		draw();
 #if ENABLE_HIT_COUNTS && !RAY_QUERY
 		if (captureHitCntFlag) {

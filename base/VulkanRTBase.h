@@ -214,6 +214,8 @@ public:
 	bool resized = false;
 	bool viewUpdated = false;
 
+	bool renderFlag = true;
+
 #if EVAL_QUALITY
 	uint32_t width = 800;
 	uint32_t height = 800;
