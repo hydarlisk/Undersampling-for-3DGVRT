@@ -1275,12 +1275,22 @@ public:
 		memcpy(hitCnts.data(), prevFrame.hitCountsbuffer.mapped, sizeof(uint32_t) * width * height);
 		prevFrame.hitCountsbuffer.unmap();
 		auto maxHit = std::max_element(hitCnts.begin(), hitCnts.end());
-		uint32_t totalHit = accumulate(hitCnts.begin(), hitCnts.end(), 0);
+		//uint32_t totalHit = accumulate(hitCnts.begin(), hitCnts.end(), 0);
+		uint32_t totalHit = 0;
+		uint32_t zeroCnt = 0;
+		for (int val : hitCnts) {
+			if (val != 0) {
+				totalHit += val;
+				zeroCnt++;
+			}
+		}
+		float avgHit = (float)totalHit / zeroCnt;
 		std::cout << "max hit : " << *maxHit << "\n";
 		std::cout << "totalHit : " << totalHit << "\n";
+		std::cout << "Average hit (ignore zero) : " << avgHit << "\n";
 		saveGrayScaleImage(hitCnts);
 		printRayHitCounts(prevFrame);
-		std::cout << "*** Ray hit counts END ***\n";
+		std::cout << "*** Ray hit counts END ***\n\n";
 	}
 #endif
 
