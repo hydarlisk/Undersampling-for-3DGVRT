@@ -41,6 +41,8 @@
 #define KEY_EQUAL 0xBB
 #define KEY_LEFTBRACKET 0xDB
 #define KEY_RIGHTBRACKET 0xDD
+#define KEY_0 0x30
+#define KEY_9 0x39
 
 #elif defined(VK_USE_PLATFORM_ANDROID_KHR)
 #define GAMEPAD_BUTTON_A 0x1000

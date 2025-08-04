@@ -14,8 +14,9 @@ ssim = StructuralSimilarityIndexMeasure(data_range=1.0)
 lpips = LearnedPerceptualImagePatchSimilarity(net_type='vgg')
 
 # 비교 대상 폴더
-ref_dir = 'GroundTruth/lego'
-cmp_dirs = ['lego/3dgrt', 'lego/0804']
+ref_dir = 'GroundTruth/hotdog'
+cmp_dir = 'hotdog/0804/'
+cmp_dirs = ['hotdog/3dgrt', cmp_dir+'FRT', cmp_dir+'us_150', cmp_dir+'us_298']
 
 # 이미지 개수
 num_images = 200  # ← 필요한 만큼 수정하세요

@@ -809,7 +809,7 @@ void VulkanRTBase::updateOverlay(std::vector<BaseFrameObject*>& frameObjects)
 	#if STATISTICS
 	ImGui::Separator();
 	ImGui::Text("Statistics");
-	ImGui::Text("- Total pixels : %u", width * height);
+	//ImGui::Text("- Total pixels : %u", width * height);
 	//ImGui::Text("Horizontal LinearInterpolation : ");
 	//ImGui::Text("Vertical LinearInterpolation : ");
 	//ImGui::Text("- Total LinearInterpolation : %u", interpolationCnt);
@@ -844,7 +844,7 @@ void VulkanRTBase::updateOverlay(std::vector<BaseFrameObject*>& frameObjects)
 				if(!is_selected){
 					//ImGui::SetItemDefaultFocus();
 #if QUATERNION_CAMERA
-					quaternionCamera.setDatasetCamera(quaternionCamera.dataType, n, (float)width / height, false);
+					quaternionCamera.setDatasetCamera(quaternionCamera.dataType, n, (float)width / height);
 #else
 					camera.setDatasetCamera(camera.dataType, n, (float)width / height);
 #endif
@@ -1831,6 +1831,14 @@ void VulkanRTBase::handleMessages(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lP
 				//quaternionCamera.rotate(glm::radians(glm::vec3(0.0f, -1.0f, 0.0f)));
 				viewUpdated = true;
 				break;
+	#if LOAD_NERF_CAMERA
+			case KEY_9:
+				quaternionCamera.setPrevCamera();
+				break;
+			case KEY_0:
+				quaternionCamera.setNextCamera();
+				break;
+	#endif
 #else
 			case KEY_E:
 				camera.keys.up = true;
@@ -3897,7 +3905,7 @@ void VulkanRTBase::initCamera(DatasetType type, string path)
 	if (type != DatasetType::none) {
 		quaternionCamera.setPerspective(FOV_Y, (float)width / (float)height, NEAR_PLANE, FAR_PLANE);
 		quaternionCamera.loadDatasetCamera(type, path, width, height);
-		quaternionCamera.setDatasetCamera(type, 0, (float)width / (float)height, true);
+		quaternionCamera.setDatasetCamera(type, 0, (float)width / (float)height);
 	}
 	else {
 		quaternionCamera.setPerspective(60.0f, (float)width / (float)height, NEAR_PLANE, FAR_PLANE);

@@ -243,7 +243,7 @@ public:
 	const uint32_t fpsUnit = 5;
 
 #if UNDERSAMPLING
-	float colorThreshold = 0.15;
+	float colorThreshold = INIT_COLOR_THRESHOLD;
 	#if STATISTICS
 	vector<uint32_t> curRTMask;
 	uint32_t interpolationCnt = 0;

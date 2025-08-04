@@ -20,8 +20,9 @@
 #define EVAL_QUALITY 0
 
 #define UNDERSAMPLING 1						// Should be managed with 3dgs.glsl
+#define INIT_COLOR_THRESHOLD 0.15
 #define MAX_SIMILARITY_VAR 150				// Should be managed with 3dgs.glsl
-#define REMOVE_DUPLICATE_ANYHIT_BY_SHADER 0 // Should be managed with 3dgs.glsl
+#define REMOVE_DUPLICATE_ANYHIT_BY_SHADER 1 // Should be managed with 3dgs.glsl
 
 #define STATISTICS 0		// Should be managed with undersampling.glsl
 #define ENABLE_HIT_COUNTS 0	// Should be managed with 3dgs.glsl. Only use when the RAY_QUERY is 0.
@@ -50,7 +51,12 @@
 #define ASSET 3
 #define LOAD_GLTF 0
 
-#define CAMERA_FILE "transforms_val.json"
+#if EVAL_QUALITY
+	#define CAMERA_FILE "transforms_test.json"
+#else
+	#define CAMERA_FILE "transforms_val.json"
+#endif
+
 #define FOV_Y 39.6f
 #define NEAR_PLANE 0.005f
 #define FAR_PLANE 20.00f

@@ -30,8 +30,11 @@ public:
     float deltaTime;
 
     bool updated;
+    bool debugMsg = false;
 
     CameraLoader cameraLoader;
+    uint32_t curIdx;
+
     DatasetType dataType;
     glm::mat4 viewMatrix;
 
@@ -121,10 +124,10 @@ public:
         return cameraLoader.camNames.size();
     }
 
-    void setNerfCamera(uint32_t idx, bool debugMsg) {
+    void setNerfCamera(uint32_t idx) {
         CameraFrame* frame = &cameraLoader.nerfCameras.frames[idx];
         viewMatrix = frame->transformMatrix;
-
+        curIdx = idx;
         if (debugMsg) {
             cout << "perspective mat:\n";
             printMat4(perspective);
@@ -133,10 +136,10 @@ public:
         }
     }
 
-    void setDatasetCamera(DatasetType type, uint32_t idx, float aspect, bool debugMsg) {
+    void setDatasetCamera(DatasetType type, uint32_t idx, float aspect) {
         if (type == nerf) {
             setPerspective(FOV_Y, aspect, znear, zfar);
-            setNerfCamera(idx, debugMsg);
+            setNerfCamera(idx);
         }
     }
 
@@ -145,5 +148,16 @@ public:
             cameraLoader.loadNerfCameraData(path, width, height, znear, zfar);
         }
         dataType = type;
+    }
+
+
+    void setNextCamera() {
+        uint32_t idx = (curIdx + 1) % cameraLoader.camNames.size();
+        setNerfCamera(idx);
+    }
+
+    void setPrevCamera() {
+        uint32_t idx = (curIdx + cameraLoader.camNames.size() - 1) % cameraLoader.camNames.size();
+        setNerfCamera(idx);
     }
 };
