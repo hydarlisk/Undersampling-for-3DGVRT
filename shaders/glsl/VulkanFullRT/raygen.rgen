@@ -72,7 +72,7 @@ layout(std430, binding = 5, set = 0) buffer ParticleSphCoefficients {
 	float c[];
 } particleSphCoefficients;	// [features_albedo(vec3), features_specular(float)]. uboStatic.particleRadiance
 
-#if ENABLE_HIT_COUNTS
+#if ENABLE_HIT_COUNTS || SIMILARITY_VAR
 layout(std430, binding = 7, set = 0) buffer RayHitCounts {
 	uint cnts[];
 } rayHitCounts;
@@ -149,40 +149,34 @@ void main()
 	vec2 pixelCenter;
 	vec2 inUV;
 	uvec2 targetPixel;
+	uvec2 nearPixel1;
+	uvec2 nearPixel2;
 	//TODO: handle edge condition
 	if(additionalRT == 0){
 		targetPixel = gl_LaunchIDEXT.xy * 2;
 		pixelCenter = vec2(targetPixel) + vec2(0.5);	// pixel position
 		inUV = pixelCenter/vec2(gl_LaunchSizeEXT.xy * 2);	// pixel position in WdC
 	}
-	else if(additionalRT == 1){
-		targetPixel = gl_LaunchIDEXT.xy * 2 + ivec2(1,0);
-		pixelCenter = vec2(targetPixel) + vec2(0.5);
-		inUV = pixelCenter/vec2(gl_LaunchSizeEXT.xy * 2);	// pixel position in WdC
-
-		vec4 leftColor = imageLoad(image, ivec2(targetPixel.x - 1, targetPixel.y));
-		vec4 rightColor = imageLoad(image, ivec2(targetPixel.x + 1, targetPixel.y));
-
-		vec4 finalColor = vec4(0.0, 0.0, 0.0, 0.0);
-		bool similar = similarityCheck(leftColor.xyz, rightColor.xyz);
-		if(similar){
-			finalColor = (leftColor + rightColor) / 2;
-			imageStore(image, ivec2(targetPixel), finalColor);
-			return;
-		}
-	}
 	else{
-		targetPixel = gl_LaunchIDEXT.xy;
-		targetPixel.y = targetPixel.y * 2 + 1;
-		pixelCenter = vec2(targetPixel) + vec2(0.5);	// pixel position
-		inUV = pixelCenter/vec2(gl_LaunchSizeEXT.x, gl_LaunchSizeEXT.y * 2);	// pixel position in WdC
+		if(additionalRT == 1){
+			targetPixel = gl_LaunchIDEXT.xy * 2 + ivec2(1,0);
+			nearPixel1 = uvec2(targetPixel.x - 1, targetPixel.y);
+			nearPixel2 = uvec2(targetPixel.x + 1, targetPixel.y);
 
-		vec4 upColor = imageLoad(image, ivec2(targetPixel.x, targetPixel.y-1));
-		vec4 downColor = imageLoad(image, ivec2(targetPixel.x, targetPixel.y+1));
-		vec4 finalColor = vec4(0.0, 0.0, 0.0, 0.0);
-		bool similar = similarityCheck(upColor.xyz, downColor.xyz);
+			pixelCenter = vec2(targetPixel) + vec2(0.5);
+			inUV = pixelCenter/vec2(gl_LaunchSizeEXT.xy * 2);	// pixel position in WdC
+		}
+		else{
+			targetPixel = gl_LaunchIDEXT.xy;
+			targetPixel.y = targetPixel.y * 2 + 1;
+			nearPixel1 = uvec2(targetPixel.x, targetPixel.y - 1);
+			nearPixel2 = uvec2(targetPixel.x, targetPixel.y + 1);
+			pixelCenter = vec2(targetPixel) + vec2(0.5);	// pixel position
+			inUV = pixelCenter/vec2(gl_LaunchSizeEXT.x, gl_LaunchSizeEXT.y * 2);	// pixel position in WdC
+		}
+		vec4 finalColor;
+		bool similar = similarityCheck(nearPixel1, nearPixel2, finalColor);
 		if(similar){
-			finalColor = (upColor + downColor) / 2;
 			imageStore(image, ivec2(targetPixel), finalColor);
 			return;
 		}

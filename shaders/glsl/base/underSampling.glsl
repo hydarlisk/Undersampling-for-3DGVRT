@@ -8,6 +8,8 @@
 #define LOCAL_SIZE_X 32
 #define LOCAL_SIZE_Y 32
 
+#define MAX_SIMILARITY_VAR 150
+
 #define SHARED_MEMORY 1
 
 #define COLOR_SIMILARITY 0      //0 : Simple, 1 : PSNR
@@ -15,7 +17,7 @@
 #define PSNR_THRESHOLD 30
 
 #if COLOR_SIMILARITY == 0
-bool similarityCheck(vec3 color1, vec3 color2) {
+bool colorSimilarityCheck(vec3 color1, vec3 color2) {
     if (distance(color1, color2) < colorThreshold) {
         return true;
     }
@@ -38,10 +40,36 @@ float calculatePSNR(vec3 color1, vec3 color2) {
     return 10.0 * log(maxVal * maxVal / mse) / log(10.0); // log base 10
 }
 
-bool similarityCheck(vec3 color1, vec3 color2) {
+bool colorSimilarityCheck(vec3 color1, vec3 color2) {
     float psnr = calculatePSNR(color1, color2);
     if (psnr > PSNR_THRESHOLD)
         return true;
     return false;
 }
 #endif
+
+uint calcIdx(uvec2 pixel) {
+    return pixel.y * width + pixel.x;
+}
+
+#if SIMILARITY_VAR
+//bool hitInfoCheck(uvec2 nearPixel1, uvec2 nearPixel2) {
+//    uint hitCnt1 = rayHitCounts.cnts[calcIdx(nearPixel1)];
+//    uint hitCnt2 = rayHitCounts.cnts[calcIdx(nearPixel2)];
+//    
+//    uint minCnt = min(MAX_SIMILARITY_VAR, min(hitCnt1, hitCnt2));
+//    uint 
+//    for (int i = 0; i < minCnt; i++) {
+//        if () {}
+//    }
+//}
+#endif
+
+bool similarityCheck(uvec2 nearPixel1, uvec2 nearPixel2, out vec4 finalColor) {
+    vec4 color1 = imageLoad(image, ivec2(nearPixel1));
+    vec4 color2 = imageLoad(image, ivec2(nearPixel2));
+
+    bool similar = colorSimilarityCheck(color1.xyz, color2.xyz);
+    if (similar) finalColor = (color1 + color2) / 2;
+    return similar;
+}

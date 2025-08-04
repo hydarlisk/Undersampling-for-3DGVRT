@@ -844,7 +844,7 @@ void VulkanRTBase::updateOverlay(std::vector<BaseFrameObject*>& frameObjects)
 				if(!is_selected){
 					//ImGui::SetItemDefaultFocus();
 #if QUATERNION_CAMERA
-					quaternionCamera.setDatasetCamera(quaternionCamera.dataType, n, (float)width / height, true);
+					quaternionCamera.setDatasetCamera(quaternionCamera.dataType, n, (float)width / height, false);
 #else
 					camera.setDatasetCamera(camera.dataType, n, (float)width / height);
 #endif
