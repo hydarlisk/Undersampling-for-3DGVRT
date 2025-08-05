@@ -43,6 +43,7 @@ public:
 	}
 private:
 	DebugManager() = default;
+	~DebugManager();
 	DebugManager(const DebugManager&) = delete;
 	DebugManager& operator=(const DebugManager&) = delete;
 	DebugManager(DebugManager&&) = delete;
@@ -57,9 +58,17 @@ private:
 			vkSetDebugUtilsObjectNameEXT(device, &nameInfo);
 		}
 	}*/
+	vks::VulkanDevice* vulkanDevice;
 	VkDevice* device;
+
+	/* capture image */
+	VkQueue* queue;
+	uint32_t width, height;
+	vks::Buffer currentImgBuffer;
+	void* currentImg;
+
 public:
-	void prepare(VkInstance instance, VkDevice* device);
+	void prepare(VkInstance instance, vks::VulkanDevice* device, VkQueue* queue, uint32_t width, uint32_t height);
 
 	template <typename VulkanObjectType>
 	void setDebugName(VulkanObjectType object, const char* name) {
@@ -112,4 +121,6 @@ public:
 				vkSetDebugUtilsObjectNameEXT(*device, &nameInfo);
 			}
 	}
+
+	void captureImage(VkImage image);
 };

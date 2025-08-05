@@ -304,7 +304,7 @@ void VulkanRTBase::prepare()
 	setupRenderPass();
 	createPipelineCache();
 	setupFrameBuffer();
-	DebugManager::getInstance().prepare(instance, &device);
+	DebugManager::getInstance().prepare(instance, vulkanDevice, &graphicsQueue, width, height);
 	settings.overlay = settings.overlay && (!benchmark.active);
 	if (settings.overlay) {
 		UIOverlay.device = vulkanDevice;
@@ -1888,6 +1888,9 @@ void VulkanRTBase::handleMessages(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lP
 				evalCameraIdx = 0;
 				break;
 #endif
+			case KEY_I:
+				DebugManager::getInstance().captureImage(swapChain.images[frameIndex]);
+				break;
 			}
 		}
 

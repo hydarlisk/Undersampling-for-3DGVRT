@@ -41,6 +41,7 @@
 #define KEY_EQUAL 0xBB
 #define KEY_LEFTBRACKET 0xDB
 #define KEY_RIGHTBRACKET 0xDD
+#define KEY_I 0x49
 #define KEY_0 0x30
 #define KEY_9 0x39
 

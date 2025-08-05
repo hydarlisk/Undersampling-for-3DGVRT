@@ -1221,7 +1221,7 @@ public:
 			evalCameraIdx++;
 
 #if QUATERNION_CAMERA
-			quaternionCamera.setDatasetCamera(quaternionCamera.dataType, evalCameraIdx, (float)width / height, false);
+			quaternionCamera.setDatasetCamera(quaternionCamera.dataType, evalCameraIdx, (float)width / height);
 #else
 			camera.setDatasetCamera(camera.dataType, evalCameraIdx, (float)width / height);
 #endif
