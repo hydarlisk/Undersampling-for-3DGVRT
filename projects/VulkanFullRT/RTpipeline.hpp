@@ -8,7 +8,6 @@
 
 #include "vulkan/vulkan.h"
 #include "VulkanUtils.h"
-#include "DebugManager.hpp"
 
 #include <vector>
 
@@ -33,8 +32,6 @@ class RTPipeline {
 		float t;
 		//float galpha;	// maybe weight?
 	};
-
-	DebugManager debugManager;
 
 	vector<vks::Buffer> particleIdBuffers;
 	vector<vks::Buffer> similarityVarBuffers;
@@ -89,6 +86,4 @@ public:
 	void initShaderBindingTable(VkStridedDeviceAddressRegionKHR* raygen, VkStridedDeviceAddressRegionKHR* miss, VkStridedDeviceAddressRegionKHR* hit);
 	void record(VkCommandBuffer& commandBuffer, uint32_t imageIndex, uint32_t additionalRTFlag);
 	void updateColorThreshold(float threshold);
-
-	void initDebugManager(VkInstance instance);
 };

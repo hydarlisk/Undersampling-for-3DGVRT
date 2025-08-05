@@ -1085,7 +1085,6 @@ public:
 		vkGetFenceStatus = reinterpret_cast<PFN_vkGetFenceStatus>(vkGetDeviceProcAddr(device, "vkGetFenceStatus"));
 		vkCmdWriteTimestamp = reinterpret_cast<PFN_vkCmdWriteTimestamp>(vkGetDeviceProcAddr(device, "vkCmdWriteTimestamp"));
 #endif
-
 		loadAssets();
 
 		frameObjects.resize(swapChain.imageCount);
@@ -1154,13 +1153,13 @@ public:
 		//usPipeline = new USPipeline(*vulkanDevice, graphicsQueue, swapChain.imageCount, DIR_PATH);
 		//usPipeline->prepare(swapChain, width, height);
 		curRTMask.resize(width * height);
-		for (auto& frame : frameObjects) {
-			VK_CHECK_RESULT(vulkanDevice->createBuffer(VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &frame.rtMaskBuffer, width * height * 4));
+		for (int i = 0; i < frameObjects.size(); i++) {
+			string bufferName = "rtMask" + to_string(i);
+			VK_CHECK_RESULT(vulkanDevice->createBuffer(VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &frameObjects[i].rtMaskBuffer, width * height * 4, nullptr, bufferName.c_str()));
 		}
 #endif
 		// (2) Particle Rendering pass
 		rtPipeline = new RTPipeline(*vulkanDevice, graphicsQueue, swapChain.imageCount, DIR_PATH);
-		rtPipeline->initDebugManager(instance);
 		rtPipeline->prepare(width, height);
 		for (int i = 0; i < swapChain.imageCount; i++) {
 			rtPipeline->initDescriptorSet(

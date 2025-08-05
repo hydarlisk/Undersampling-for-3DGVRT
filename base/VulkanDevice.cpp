@@ -14,7 +14,9 @@
 #endif
 #include <VulkanDevice.h>
 #include <unordered_set>
+
 #include "Define.h"
+#include "DebugManager.hpp"
 
 namespace vks
 {	
@@ -383,14 +385,14 @@ namespace vks
 	*
 	* @return VK_SUCCESS if buffer handle and memory have been created and (optionally passed) data has been copied
 	*/
-	VkResult VulkanDevice::createBuffer(VkBufferUsageFlags usageFlags, VkMemoryPropertyFlags memoryPropertyFlags, vks::Buffer *buffer, VkDeviceSize size, void *data)
+	VkResult VulkanDevice::createBuffer(VkBufferUsageFlags usageFlags, VkMemoryPropertyFlags memoryPropertyFlags, vks::Buffer *buffer, VkDeviceSize size, void *data, std::string name)
 	{
 		buffer->device = logicalDevice;
 
 		// Create the buffer handle
 		VkBufferCreateInfo bufferCreateInfo = vks::initializers::bufferCreateInfo(usageFlags, size);
 		VK_CHECK_RESULT(vkCreateBuffer(logicalDevice, &bufferCreateInfo, nullptr, &buffer->buffer));
-
+		DebugManager::getInstance().setDebugName(buffer->buffer, name.c_str());
 		// Create the memory backing up the buffer handle
 		VkMemoryRequirements memReqs;
 		VkMemoryAllocateInfo memAlloc = vks::initializers::memoryAllocateInfo();

@@ -36,6 +36,17 @@ private:
 
 //TODO: change to singleton, use cpp file
 class DebugManager{
+public:
+	static DebugManager& getInstance() {
+		static DebugManager instance;
+		return instance;
+	}
+private:
+	DebugManager() = default;
+	DebugManager(const DebugManager&) = delete;
+	DebugManager& operator=(const DebugManager&) = delete;
+	DebugManager(DebugManager&&) = delete;
+	DebugManager& operator=(DebugManager&&) = delete;
 	PFN_vkSetDebugUtilsObjectNameEXT vkSetDebugUtilsObjectNameEXT{ nullptr };
 	/*void setDebugNameImpl(VkDevice& device, VkObjectType objectType, uint64_t objectHandle, const char* name) {
 		if (name) {
@@ -48,10 +59,8 @@ class DebugManager{
 	}*/
 	VkDevice* device;
 public:
-	void prepare(VkInstance instance, VkDevice* device){
-		vkSetDebugUtilsObjectNameEXT = reinterpret_cast<PFN_vkSetDebugUtilsObjectNameEXT>(vkGetInstanceProcAddr(instance, "vkSetDebugUtilsObjectNameEXT"));
-		this->device = device;
-	}
+	void prepare(VkInstance instance, VkDevice* device);
+
 	template <typename VulkanObjectType>
 	void setDebugName(VulkanObjectType object, const char* name) {
 		VkObjectType objectType;

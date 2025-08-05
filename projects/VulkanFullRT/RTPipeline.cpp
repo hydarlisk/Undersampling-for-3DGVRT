@@ -53,15 +53,14 @@ inline string RTPipeline::getShaderPath(string shaderName) {
 void RTPipeline::createSimilarityVarBuffers() {
 	for (int i = 0; i < swapchainImageCnt; i++) {
 		// particle id
-		VK_CHECK_RESULT(vulkanDevice.createBuffer(VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
-			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &particleIdBuffers[i], pushConstants.width * pushConstants.height * sizeof(uint32_t) * MAX_SIMILARITY_VAR));
 		string bufferName = "particleIdBuffer" + to_string(i);
-		debugManager.setDebugName(particleIdBuffers[i].buffer, bufferName.c_str());
-		// t, galpha
 		VK_CHECK_RESULT(vulkanDevice.createBuffer(VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
-			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &similarityVarBuffers[i], pushConstants.width * pushConstants.height * sizeof(float) * MAX_SIMILARITY_VAR));
+			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &particleIdBuffers[i], pushConstants.width * pushConstants.height * sizeof(uint32_t) * MAX_SIMILARITY_VAR, nullptr, bufferName));
+
+		// t, galpha
 		bufferName = "tBuffer" + to_string(i);
-		debugManager.setDebugName(similarityVarBuffers[i].buffer, bufferName.c_str());
+		VK_CHECK_RESULT(vulkanDevice.createBuffer(VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
+			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &similarityVarBuffers[i], pushConstants.width * pushConstants.height * sizeof(float) * MAX_SIMILARITY_VAR, nullptr, bufferName));
 	}
 }
 
@@ -361,8 +360,4 @@ void RTPipeline::record(VkCommandBuffer& commandBuffer, uint32_t imageIndex, uin
 
 void RTPipeline::updateColorThreshold(float threshold) {
 	pushConstants.colorThreshold = threshold;
-}
-
-void RTPipeline::initDebugManager(VkInstance instance) {
-	debugManager.prepare(instance, &device);
 }

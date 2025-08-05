@@ -17,6 +17,8 @@
 #include <CoreVideo/CVDisplayLink.h>
 #endif
 
+#include "DebugManager.hpp"
+
 std::vector<const char*> VulkanRTBase::args;
 
 VkResult VulkanRTBase::createInstance(bool enableValidation)
@@ -302,6 +304,7 @@ void VulkanRTBase::prepare()
 	setupRenderPass();
 	createPipelineCache();
 	setupFrameBuffer();
+	DebugManager::getInstance().prepare(instance, &device);
 	settings.overlay = settings.overlay && (!benchmark.active);
 	if (settings.overlay) {
 		UIOverlay.device = vulkanDevice;
