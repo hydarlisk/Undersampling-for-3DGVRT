@@ -28,6 +28,61 @@ void DebugManager::prepare(VkInstance instance, vks::VulkanDevice* device, VkQue
 	VK_CHECK_RESULT(vulkanDevice->createBuffer(VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &currentImgBuffer, width * height * 4, nullptr));
 }
 
+// Print the ray hit count of each pixel of last frame to the txt file.
+void DebugManager::printRayHitCounts(vks::Buffer& hitCountsBuffer) {
+	vector<uint32_t> hitCnts(width * height);
+	hitCountsBuffer.map();
+	memcpy(hitCnts.data(), hitCountsBuffer.mapped, sizeof(uint32_t) * width * height);
+	hitCountsBuffer.unmap();
+
+	FILE* fp = fopen("../results/texts/rayHitCountsOutput.txt", "w");
+	if (fp) {
+		for (size_t i = 0; i < height; ++i) {
+			for (size_t j = 0; j < width; ++j) {
+				fprintf(fp, "%u ", hitCnts[i * width + j]);
+			}
+			fprintf(fp, "\n");
+		}
+		fclose(fp);
+	}
+}
+
+void DebugManager::saveGrayScaleImage(const std::vector<uint32_t>& data) {
+	std::vector<uint8_t> grayscaleData(width * height);
+
+	for (int i = 0; i < width * height; ++i) {
+		grayscaleData[i] = static_cast<uint8_t>(data[i] & 0xFF);
+	}
+	string filename = string(HIT_CNT_IMAGE_PATH) + string(HIT_CNT_IMAGE_NAME);
+	stbi_write_png(filename.c_str(), width, height, 1, grayscaleData.data(), width);
+}
+
+void DebugManager::captureHitCnt(vks::Buffer hitCountsBuffer) {
+	vkQueueWaitIdle(*queue);
+
+	vector<uint32_t> hitCnts(width * height);
+	hitCountsBuffer.map();
+	memcpy(hitCnts.data(), hitCountsBuffer.mapped, sizeof(uint32_t) * width * height);
+	hitCountsBuffer.unmap();
+	auto maxHit = std::max_element(hitCnts.begin(), hitCnts.end());
+	//uint32_t totalHit = accumulate(hitCnts.begin(), hitCnts.end(), 0);
+	uint32_t totalHit = 0;
+	uint32_t zeroCnt = 0;
+	for (int val : hitCnts) {
+		if (val != 0) {
+			totalHit += val;
+			zeroCnt++;
+		}
+	}
+	float avgHit = (float)totalHit / zeroCnt;
+	std::cout << "max hit : " << *maxHit << "\n";
+	std::cout << "totalHit : " << totalHit << "\n";
+	std::cout << "Average hit (ignore zero) : " << avgHit << "\n";
+	saveGrayScaleImage(hitCnts);
+	printRayHitCounts(hitCountsBuffer);
+	std::cout << "*** Ray hit counts END ***\n\n";
+}
+
 void DebugManager::captureImage(VkImage image) {
 	static uint32_t cnt = 0;
 	vkQueueWaitIdle(*queue);

@@ -27,7 +27,7 @@
 #include "USPipeline.hpp"
 #endif
 
-#if EVAL_QUALITY || ENABLE_HIT_COUNTS
+#if EVAL_QUALITY
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "stb_image_write.h"
 #endif
@@ -102,8 +102,8 @@ public:
 
 	struct FrameObject : public BaseFrameObject {
 		VkDescriptorSet descriptorSet{ VK_NULL_HANDLE };
-#if ENABLE_HIT_COUNTS && !RAY_QUERY
-		vks::Buffer hitCountsbuffer;
+#if ENABLE_HIT_COUNTS && !RAY_QUERY || UNDERSAMPLING
+		vks::Buffer hitCountsBuffer;
 #endif
 	};
 
@@ -1109,7 +1109,7 @@ public:
 			// For debugging, write hit counts
 #if ENABLE_HIT_COUNTS && !RAY_QUERY
 			string bufferName = "hitCountsBuffer" + to_string(i);
-			VK_CHECK_RESULT(vulkanDevice->createBuffer(VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &frame.hitCountsbuffer, sizeof(unsigned int) * width * height, nullptr, bufferName.c_str()));
+			VK_CHECK_RESULT(vulkanDevice->createBuffer(VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &frame.hitCountsBuffer, sizeof(unsigned int) * width * height, nullptr, bufferName.c_str()));
 #endif
 
 			// Time Stamp for measuring performance.
@@ -1175,7 +1175,7 @@ public:
 				particleDensities,
 				particleSphCoefficients
 #if ENABLE_HIT_COUNTS && !RAY_QUERY
-				, frameObjects[i].hitCountsbuffer
+				, frameObjects[i].hitCountsBuffer
 #endif
 #if UNDERSAMPLING && STATISTICS
 				,frameObjects[i].rtMaskBuffer
@@ -1237,69 +1237,18 @@ public:
 		}
 #endif
 	}
-
 #if ENABLE_HIT_COUNTS && !RAY_QUERY
-	// Print the ray hit count of each pixel of last frame to the txt file.
-	void printRayHitCounts(FrameObject prevFrame) {
-		vector<uint32_t> hitCnts(width * height);
-		prevFrame.hitCountsbuffer.map();
-		memcpy(hitCnts.data(), prevFrame.hitCountsbuffer.mapped, sizeof(uint32_t) * width * height);
-		prevFrame.hitCountsbuffer.unmap();
-		
-		FILE* fp = fopen("../results/texts/rayHitCountsOutput.txt", "w");
-		if (fp) {
-			for (size_t i = 0; i < height; ++i) {
-				for (size_t j = 0; j < width; ++j) {
-					fprintf(fp, "%u ", hitCnts[i * width + j]);
-				}
-				fprintf(fp, "\n");
-			}
-			fclose(fp);
-		}
-	}
-
-	void saveGrayScaleImage(const std::vector<uint32_t>& data) {
-		std::vector<uint8_t> grayscaleData(width * height);
-		
-		for (int i = 0; i < width * height; ++i) {
-			grayscaleData[i] = static_cast<uint8_t>(data[i] & 0xFF);
-		}
-		string filename = string(HIT_CNT_IMAGE_PATH) + string(HIT_CNT_IMAGE_NAME);
-		stbi_write_png(filename.c_str(), width, height, 1, grayscaleData.data(), width);
-	}
-
 	void captureHitCnt() {
 		FrameObject& prevFrame = frameObjects[getPrevFrameIndex()];
-		vkQueueWaitIdle(graphicsQueue);
-
-		vector<uint32_t> hitCnts(width * height);
-		prevFrame.hitCountsbuffer.map();
-		memcpy(hitCnts.data(), prevFrame.hitCountsbuffer.mapped, sizeof(uint32_t) * width * height);
-		prevFrame.hitCountsbuffer.unmap();
-		auto maxHit = std::max_element(hitCnts.begin(), hitCnts.end());
-		//uint32_t totalHit = accumulate(hitCnts.begin(), hitCnts.end(), 0);
-		uint32_t totalHit = 0;
-		uint32_t zeroCnt = 0;
-		for (int val : hitCnts) {
-			if (val != 0) {
-				totalHit += val;
-				zeroCnt++;
-			}
-		}
-		float avgHit = (float)totalHit / zeroCnt;
-		std::cout << "max hit : " << *maxHit << "\n";
-		std::cout << "totalHit : " << totalHit << "\n";
-		std::cout << "Average hit (ignore zero) : " << avgHit << "\n";
-		saveGrayScaleImage(hitCnts);
-		printRayHitCounts(prevFrame);
-		std::cout << "*** Ray hit counts END ***\n\n";
+		DebugManager::getInstance().captureHitCnt(prevFrame.hitCountsBuffer);
 	}
 #endif
-
+#if UNDERSAMPLING && STATISTICS
 	void captureRTMask() {
 		FrameObject& prevFrame = frameObjects[getPrevFrameIndex()];
 		DebugManager::getInstance().captureRTMask(prevFrame.rtMaskBuffer);
 	}
+#endif
 
 	virtual void render()
 	{
@@ -1314,10 +1263,12 @@ public:
 			captureHitCntFlag = false;
 		}
 #endif
+#if UNDERSAMPLING && STATISTICS
 		if (captureRTMaskFlag) {
 			captureRTMask();
 			captureRTMaskFlag = false;
 		}
+#endif
 	}
 };
 

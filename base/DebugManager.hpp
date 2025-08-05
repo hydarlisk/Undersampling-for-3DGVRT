@@ -67,6 +67,9 @@ private:
 	vks::Buffer currentImgBuffer;
 	void* currentImg;
 
+	void printRayHitCounts(vks::Buffer& hitCountsbuffer);
+	void saveGrayScaleImage(const std::vector<uint32_t>& data);
+
 public:
 	void prepare(VkInstance instance, vks::VulkanDevice* device, VkQueue* queue, uint32_t width, uint32_t height);
 
@@ -124,4 +127,5 @@ public:
 
 	void captureImage(VkImage image);
 	void captureRTMask(vks::Buffer rtMask);
+	void captureHitCnt(vks::Buffer hitCountsBuffer);
 };

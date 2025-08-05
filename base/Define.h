@@ -25,7 +25,7 @@
 #define REMOVE_DUPLICATE_ANYHIT_BY_SHADER 1 // Should be managed with 3dgs.glsl
 
 #define STATISTICS 1		// Should be managed with undersampling.glsl
-#define ENABLE_HIT_COUNTS 0	// Should be managed with 3dgs.glsl. Only use when the RAY_QUERY is 0.
+#define ENABLE_HIT_COUNTS 1	// Should be managed with 3dgs.glsl. Only use when the RAY_QUERY is 0.
 
 #define DEBUG_FILE_PATH "../results/debug/"
 #define HIT_CNT_IMAGE_PATH "../results/texts/"
