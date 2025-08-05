@@ -75,7 +75,7 @@ void RTPipeline::createDescriptorSets() {
 #if SPLIT_BLAS && !RAY_QUERY
 		vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1 * swapchainImageCnt),
 #endif 
-#if ENABLE_HIT_COUNTS && !RAY_QUERY
+#if ENABLE_HIT_COUNTS && !RAY_QUERY || SIMILARITY_VAR
 		vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1 * swapchainImageCnt),
 #endif
 #if UNDERSAMPLING
@@ -106,7 +106,7 @@ void RTPipeline::createDescriptorSets() {
 		// Binding 6: Storage buffer - primitive Id
 		vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_ANY_HIT_BIT_KHR, 6),
 #endif
-#if ENABLE_HIT_COUNTS && !RAY_QUERY
+#if ENABLE_HIT_COUNTS && !RAY_QUERY || SIMILARITY_VAR
 		// Binding 7: Storage buffer - Ray Hit Count for debugging
 		vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_RAYGEN_BIT_KHR, 7),
 #endif
@@ -241,7 +241,7 @@ void RTPipeline::prepare(uint32_t width, uint32_t height) {
 // init descriptor set of frameIdx
 // need to init each frame seperately
 void RTPipeline::initDescriptorSet(int frameIdx, VulkanSwapChain& swapChain, VkAccelerationStructureKHR& tlasHandle, vks::Buffer& uniformBuffer, vks::Buffer& uniformBufferStatic, vks::Buffer& particleDensities, vks::Buffer& particleSphCoefficients
-#if ENABLE_HIT_COUNTS && !RAY_QUERY
+#if ENABLE_HIT_COUNTS && !RAY_QUERY || SIMILARITY_VAR
 	, vks::Buffer& hitCountsbuffer
 #endif
 #if UNDERSAMPLING && STATISTICS
@@ -283,7 +283,7 @@ void RTPipeline::initDescriptorSet(int frameIdx, VulkanSwapChain& swapChain, VkA
 #if SPLIT_BLAS && !RAY_QUERY
 		vks::initializers::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 6, &splitBLAS.d_splittedPrimitiveIdsDeviceAddress.descriptor),
 #endif
-#if ENABLE_HIT_COUNTS && !RAY_QUERY
+#if ENABLE_HIT_COUNTS && !RAY_QUERY || SIMILARITY_VAR
 		vks::initializers::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 7, &hitCountsbuffer.descriptor),
 #endif
 #if UNDERSAMPLING
@@ -361,6 +361,10 @@ void RTPipeline::record(VkCommandBuffer& commandBuffer, uint32_t imageIndex, uin
 
 void RTPipeline::updateColorThreshold(float threshold) {
 	pushConstants.colorThreshold = threshold;
+}
+
+void RTPipeline::updateHitThreshold(float threshold) {
+	pushConstants.hitThreshold = threshold;
 }
 
 void RTPipeline::initDebugManager(VkInstance instance) {

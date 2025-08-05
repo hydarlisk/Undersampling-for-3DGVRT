@@ -9,10 +9,10 @@
 
 #define UNDERSAMPLING 1		// Should be managed with Define.h
 #define SIMILARITY_VAR 1
-#define REMOVE_DUPLICATE_ANYHIT_BY_SHADER 0		//Should be managed with Define.h
+#define REMOVE_DUPLICATE_ANYHIT_BY_SHADER 1		//Should be managed with Define.h
 
 /* debug */
-#define STATISTICS 0            // Should be managed with Define.h
+#define STATISTICS 1            // Should be managed with Define.h
 #define ENABLE_HIT_COUNTS 0		// Should be managed with Define.h
 #define CHECK_BVH 0
 

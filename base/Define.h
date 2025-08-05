@@ -20,12 +20,14 @@
 #define EVAL_QUALITY 0
 
 #define UNDERSAMPLING 1						// Should be managed with 3dgs.glsl
+#define SIMILARITY_VAR 1
 #define INIT_COLOR_THRESHOLD 0.15
+#define INIT_HIT_THRESHOLD 0.5
 #define MAX_SIMILARITY_VAR 150				// Should be managed with 3dgs.glsl
 #define REMOVE_DUPLICATE_ANYHIT_BY_SHADER 1 // Should be managed with 3dgs.glsl
 
-#define STATISTICS 0		// Should be managed with undersampling.glsl
-#define ENABLE_HIT_COUNTS 0	// Should be managed with 3dgs.glsl. Only use when the RAY_QUERY is 0.
+#define STATISTICS 1		// Should be managed with undersampling.glsl
+#define ENABLE_HIT_COUNTS 0 // Should be managed with 3dgs.glsl. Only use when the RAY_QUERY is 0.
 
 
 #define HIT_CNT_IMAGE_PATH "../results/texts/"
