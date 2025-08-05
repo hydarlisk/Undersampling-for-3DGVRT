@@ -298,6 +298,7 @@ public:
 #if ENABLE_HIT_COUNTS && !RAY_QUERY
 	bool captureHitCntFlag = false;
 #endif
+	bool captureRTMaskFlag = false;
 
 	/** @brief State of gamepad input (only used on Android) */
 	struct {

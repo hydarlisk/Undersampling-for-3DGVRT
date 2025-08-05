@@ -1891,6 +1891,9 @@ void VulkanRTBase::handleMessages(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lP
 			case KEY_I:
 				DebugManager::getInstance().captureImage(swapChain.images[frameIndex]);
 				break;
+			case KEY_M:
+				captureRTMaskFlag = true;
+				break;
 			}
 		}
 

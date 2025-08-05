@@ -32,6 +32,7 @@
 #define KEY_F 0x46
 #define KEY_L 0x4C
 #define KEY_N 0x4E
+#define KEY_M 0x4D
 #define KEY_O 0x4F
 #define KEY_T 0x54
 #define KEY_Q 0x51

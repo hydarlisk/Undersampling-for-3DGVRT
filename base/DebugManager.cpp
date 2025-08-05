@@ -38,8 +38,30 @@ void DebugManager::captureImage(VkImage image) {
 	memcpy(currentImg, currentImgBuffer.mapped, width * height * 4);
 	currentImgBuffer.unmap();
 	int stride = width * 4;
-	std::string fileName = "../results/debug/images/rederingImage" + std::to_string(cnt) + ".png";
+	std::string fileName = DEBUG_FILE_PATH + string("images/rederingImage") + std::to_string(cnt) + ".png";
 	stbi_write_png(fileName.c_str(), width, height, 4, currentImg, stride);
-	cout << "Capture Done\n";
+	cout << "Rendering Image Capture Done\n";
+	cnt++;
+}
+
+void DebugManager::captureRTMask(vks::Buffer rtMaskBuffer) {
+	static uint32_t cnt = 0;
+	vector<uint32_t> rtMask(width * height);
+	vkQueueWaitIdle(*queue);
+	// current RTMask is host visible
+	//vulkanDevice->copyDeviceBufferToHost(rtMask.data(), rtMaskBuffer, *queue);
+	rtMaskBuffer.map();
+	memcpy(rtMask.data(), rtMaskBuffer.mapped, rtMaskBuffer.size);
+	rtMaskBuffer.unmap();
+	vector<uint8_t> grayscaleData(width * height);
+	for (int i = 0; i < width * height; i++) {
+		grayscaleData[i] = (rtMask[i] == 1) ? 255 : 0;
+		if (i % 1920 % 2 == 0 || i / 1920 % 2 == 0) {
+			grayscaleData[i] = 0;
+		}
+	}
+	string filename = DEBUG_FILE_PATH + string("rtMasks/rtMask") + to_string(cnt) + ".png";
+	stbi_write_png(filename.c_str(), width, height, 1, grayscaleData.data(), width);
+	cout << "RTMask Capture Done\n";
 	cnt++;
 }

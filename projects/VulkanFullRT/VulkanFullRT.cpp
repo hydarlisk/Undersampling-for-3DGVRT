@@ -32,6 +32,8 @@
 #include "stb_image_write.h"
 #endif
 
+#include "DebugManager.hpp"
+
 #define DIR_PATH "VulkanFullRT/"
 
 class VulkanFullRT : public VulkanRTCommon
@@ -1094,7 +1096,7 @@ public:
 		int i = 0;
 		for (FrameObject& frame : frameObjects)
 		{
-			createBaseFrameObjects(frame, i++);
+			createBaseFrameObjects(frame, i);
 			pBaseFrameObjects.push_back(&frame);
 
 			// Uniform buffers
@@ -1106,11 +1108,13 @@ public:
 
 			// For debugging, write hit counts
 #if ENABLE_HIT_COUNTS && !RAY_QUERY
-			VK_CHECK_RESULT(vulkanDevice->createBuffer(VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &frame.hitCountsbuffer, sizeof(unsigned int) * width * height, nullptr));
+			string bufferName = "hitCountsBuffer" + to_string(i);
+			VK_CHECK_RESULT(vulkanDevice->createBuffer(VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &frame.hitCountsbuffer, sizeof(unsigned int) * width * height, nullptr, bufferName.c_str()));
 #endif
 
 			// Time Stamp for measuring performance.
 			setupTimeStampQueries(frame, timeStampCountPerFrame);
+			i++;
 		}
 
 		// allocate device memory for vertex/index buffer
@@ -1266,9 +1270,8 @@ public:
 
 	void captureHitCnt() {
 		FrameObject& prevFrame = frameObjects[getPrevFrameIndex()];
-		static unsigned int frame = 0;
 		vkQueueWaitIdle(graphicsQueue);
-		//printRayHitCounts(prevFrame);
+
 		vector<uint32_t> hitCnts(width * height);
 		prevFrame.hitCountsbuffer.map();
 		memcpy(hitCnts.data(), prevFrame.hitCountsbuffer.mapped, sizeof(uint32_t) * width * height);
@@ -1293,6 +1296,11 @@ public:
 	}
 #endif
 
+	void captureRTMask() {
+		FrameObject& prevFrame = frameObjects[getPrevFrameIndex()];
+		DebugManager::getInstance().captureRTMask(prevFrame.rtMaskBuffer);
+	}
+
 	virtual void render()
 	{
 		if (!prepared)
@@ -1306,6 +1314,10 @@ public:
 			captureHitCntFlag = false;
 		}
 #endif
+		if (captureRTMaskFlag) {
+			captureRTMask();
+			captureRTMaskFlag = false;
+		}
 	}
 };
 

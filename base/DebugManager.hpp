@@ -123,4 +123,5 @@ public:
 	}
 
 	void captureImage(VkImage image);
+	void captureRTMask(vks::Buffer rtMask);
 };

@@ -763,7 +763,7 @@ namespace vks
 		vkFreeMemory(logicalDevice, stagingBuffer.memory, nullptr);
 	}
 
-	void VulkanDevice::createAndCopyToDeviceBuffer(void* data, vks::Buffer& buffer, size_t bufferSize, VkQueue queue, VkBufferUsageFlags usageFlags, VkMemoryPropertyFlags memoryFlags) {
+	void VulkanDevice::createAndCopyToDeviceBuffer(void* data, vks::Buffer& buffer, size_t bufferSize, VkQueue& queue, VkBufferUsageFlags usageFlags, VkMemoryPropertyFlags memoryFlags) {
 		struct StagingBuffer {
 			VkBuffer buffer;
 			VkDeviceMemory memory;
@@ -795,6 +795,28 @@ namespace vks
 		flushCommandBuffer(copyCmd, queue, true);
 		vkDestroyBuffer(logicalDevice, stagingBuffer.buffer, nullptr);
 		vkFreeMemory(logicalDevice, stagingBuffer.memory, nullptr);
+	}
+
+	void VulkanDevice::copyDeviceBufferToHost(void* dst, vks::Buffer& buffer, VkQueue& queue) {
+		vks::Buffer stagingBuffer;
+		VK_CHECK_RESULT(createBuffer(
+			VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+			buffer.size,
+			&stagingBuffer.buffer,
+			&stagingBuffer.memory
+		));
+
+		VkCommandBuffer copyCmd = createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
+		VkBufferCopy copyRegion = {};
+		copyRegion.size = buffer.size;
+		vkCmdCopyBuffer(copyCmd, buffer.buffer, stagingBuffer.buffer, 1, &copyRegion);
+		flushCommandBuffer(copyCmd, queue, true);
+		vkQueueWaitIdle(queue);
+		stagingBuffer.map();
+		memcpy(dst, stagingBuffer.mapped, buffer.size);
+		stagingBuffer.unmap();
+		stagingBuffer.destroy();
 	}
 };
 

@@ -27,7 +27,7 @@
 #define STATISTICS 1		// Should be managed with undersampling.glsl
 #define ENABLE_HIT_COUNTS 0	// Should be managed with 3dgs.glsl. Only use when the RAY_QUERY is 0.
 
-
+#define DEBUG_FILE_PATH "../results/debug/"
 #define HIT_CNT_IMAGE_PATH "../results/texts/"
 #define HIT_CNT_IMAGE_NAME "hitCnt.png"
 
