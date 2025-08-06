@@ -392,7 +392,9 @@ namespace vks
 		// Create the buffer handle
 		VkBufferCreateInfo bufferCreateInfo = vks::initializers::bufferCreateInfo(usageFlags, size);
 		VK_CHECK_RESULT(vkCreateBuffer(logicalDevice, &bufferCreateInfo, nullptr, &buffer->buffer));
-		DebugManager::getInstance().setDebugName(buffer->buffer, name.c_str());
+		if (name != "") {
+			DebugManager::getInstance().setDebugName(buffer->buffer, name.c_str());
+		}
 		// Create the memory backing up the buffer handle
 		VkMemoryRequirements memReqs;
 		VkMemoryAllocateInfo memAlloc = vks::initializers::memoryAllocateInfo();

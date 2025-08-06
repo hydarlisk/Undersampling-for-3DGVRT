@@ -9,6 +9,8 @@
 #include "vulkan/vulkan.h"
 #include "VulkanUtils.h"
 
+#include "cameraQuaternion.hpp"
+
 #include <vector>
 
 using namespace std;
@@ -128,4 +130,5 @@ public:
 	void captureImage(VkImage& image);
 	void captureRTMask(vks::Buffer& rtMask);
 	void captureHitCnt(vks::Buffer& hitCountsBuffer);
+	void captureRenderingImages(VkImage& image, QuaternionCamera& quaternionCamera, uint32_t camIdx);
 };

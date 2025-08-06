@@ -10,6 +10,8 @@
 
 #include <iostream>
 
+#include "camera.hpp"
+
 using namespace std;
 
 DebugManager::~DebugManager() {
@@ -111,4 +113,26 @@ void DebugManager::captureRTMask(vks::Buffer& rtMaskBuffer) {
 	stbi_write_png(filename.c_str(), width, height, 1, grayscaleData.data(), width);
 	cout << "RTMask Capture Done\n";
 	cnt++;
+}
+
+void DebugManager::captureRenderingImages(VkImage& image, QuaternionCamera& quaternionCamera, uint32_t camIdx) {
+	vkQueueWaitIdle(*queue);
+
+	vulkanDevice->copyImageToBuffer(image, currentImgBuffer, *queue, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, width, height);
+	vkQueueWaitIdle(*queue);
+
+	currentImgBuffer.map();
+	memcpy(currentImg, currentImgBuffer.mapped, width * height * 4);
+	currentImgBuffer.unmap();
+
+	int stride = width * 4;
+	std::string fileName = "../results/evaluations/output/r_" + std::to_string(camIdx) + ".png";
+	stbi_write_png(fileName.c_str(), width, height, 4, currentImg, stride);
+
+	std::cout << "\t- Camera index " << camIdx << " is completed.\n";
+#if QUATERNION_CAMERA
+	quaternionCamera.setNextCamera();
+#else
+	camera.setDatasetCamera(camera.dataType, evalCameraIdx, (float)width / height);
+#endif
 }

@@ -27,11 +27,6 @@
 #include "USPipeline.hpp"
 #endif
 
-#if EVAL_QUALITY
-#define STB_IMAGE_WRITE_IMPLEMENTATION
-#include "stb_image_write.h"
-#endif
-
 #include "DebugManager.hpp"
 
 #define DIR_PATH "VulkanFullRT/"
@@ -1186,10 +1181,6 @@ public:
 #if !RAY_QUERY
 		createShaderBindingTables(*rtPipeline);
 #endif
-#if EVAL_QUALITY
-		currentImg = (void*)malloc(width * height * 4);
-		VK_CHECK_RESULT(vulkanDevice->createBuffer(VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &currentFrameImg, width * height * 4, nullptr));
-#endif
 		prepared = true;
 	}
 
@@ -1203,40 +1194,27 @@ public:
 #endif 
 		buildCommandBuffer(currentFrame);
 		VulkanRTBase::submitFrame(currentFrame);
-
 #if EVAL_QUALITY
 		if (evalQualFlag) {
-
-			if (evalCameraIdx == 0)
-				std::cout << "*** Evaluate quality BEGIN ***\n";
-
-			vkQueueWaitIdle(graphicsQueue);
-
-			vulkanDevice->copyImageToBuffer(swapChain.images[currentFrame.imageIndex], currentFrameImg, graphicsQueue, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, width, height);
-
-			currentFrameImg.map();
-			memcpy(currentImg, currentFrameImg.mapped, width * height * 4);
-			currentFrameImg.unmap();
-			int stride = width * 4;
-			std::string fileName = "../results/evaluations/output/r_" + std::to_string(evalCameraIdx) + ".png";
-			stbi_write_png(fileName.c_str(), width, height, 4, currentImg, stride);
-
-			std::cout << "\t- Camera index " << evalCameraIdx << " is completed.\n";
-			evalCameraIdx++;
-
-#if QUATERNION_CAMERA
-			quaternionCamera.setDatasetCamera(quaternionCamera.dataType, evalCameraIdx, (float)width / height);
-#else
-			camera.setDatasetCamera(camera.dataType, evalCameraIdx, (float)width / height);
-#endif
-			
-			if (evalCameraIdx >= quaternionCamera.getNumOfCams()) {
-				evalQualFlag = false;
-				std::cout << "*** Evaluate quality END ***\n";
-			}
+			captureImagesForEvalQuality();
 		}
 #endif
 	}
+
+#if EVAL_QUALITY
+	void captureImagesForEvalQuality() {
+		if (evalCameraIdx == 0)
+			std::cout << "*** Evaluate quality BEGIN ***\n";
+		FrameObject& prevFrame = frameObjects[getPrevFrameIndex()];
+		DebugManager::getInstance().captureRenderingImages(swapChain.images[prevFrame.imageIndex], quaternionCamera, evalCameraIdx);
+		if (evalCameraIdx >= quaternionCamera.getNumOfCams()) {
+			evalQualFlag = false;
+			std::cout << "*** Evaluate quality END ***\n";
+		}
+		evalCameraIdx++;
+	}
+#endif
+
 #if ENABLE_HIT_COUNTS && !RAY_QUERY
 	void captureHitCnt() {
 		FrameObject& prevFrame = frameObjects[getPrevFrameIndex()];

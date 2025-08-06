@@ -7,6 +7,8 @@
  *
  */
 
+#pragma once
+
 #define USE_CORRECT_VULKAN_PERSPECTIVE_IHM
 
 #define GLM_FORCE_RADIANS

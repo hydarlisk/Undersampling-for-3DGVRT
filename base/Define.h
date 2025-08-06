@@ -17,7 +17,7 @@
 #define MEASURE_FRAME 2000
 #endif
 
-#define EVAL_QUALITY 0
+#define EVAL_QUALITY 1
 
 #define UNDERSAMPLING 1						// Should be managed with 3dgs.glsl
 #define INIT_COLOR_THRESHOLD 0.15

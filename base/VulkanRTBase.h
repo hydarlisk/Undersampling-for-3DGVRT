@@ -291,9 +291,7 @@ public:
 #if EVAL_QUALITY
 	// for evaluating quality
 	bool evalQualFlag = false;
-	vks::Buffer currentFrameImg;
 	unsigned int evalCameraIdx;
-	void* currentImg;
 #endif
 #if ENABLE_HIT_COUNTS && !RAY_QUERY
 	bool captureHitCntFlag = false;
