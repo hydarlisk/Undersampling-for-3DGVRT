@@ -808,7 +808,11 @@ void VulkanRTBase::updateOverlay(std::vector<BaseFrameObject*>& frameObjects)
 	ImGui::Separator();
 	ImGui::Text("Parameters");
 	ImGui::Text("- Color Threshold");
-	ImGui::SliderFloat(" ", &colorThreshold, 0.0f, 1.0f);
+	ImGui::SliderFloat("Color", &colorThreshold, 0.0f, 1.0f);
+	#if SIMILARITY_VAR
+	ImGui::Text("- Hit Threshold");
+	ImGui::SliderFloat("Hit", &hitThreshold, 0.0f, 1.0f);
+	#endif
 	#if STATISTICS
 	ImGui::Separator();
 	ImGui::Text("Statistics");

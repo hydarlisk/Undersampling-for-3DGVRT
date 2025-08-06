@@ -26,6 +26,7 @@ class RTPipeline {
 		uint32_t height;
 		uint32_t additionalRT;
 		float colorThreshold;
+		float hitThreshold;
 	}pushConstants;
 
 	struct SimilarityVar {
@@ -75,7 +76,7 @@ public:
 	
 	void prepare(uint32_t width, uint32_t height);
 	void initDescriptorSet(int frameIdx, VulkanSwapChain& swapChain, VkAccelerationStructureKHR& tlasHandle, vks::Buffer& uniformBuffer, vks::Buffer& uniformBufferStatic, vks::Buffer& particleDensities, vks::Buffer& particleSphCoefficients
-#if ENABLE_HIT_COUNTS && !RAY_QUERY
+#if ENABLE_HIT_COUNTS && !RAY_QUERY || SIMILARITY_VAR
 		, vks::Buffer& hitCountsbuffer
 #endif
 //TODO: use member rtMaskBuffers
@@ -86,4 +87,5 @@ public:
 	void initShaderBindingTable(VkStridedDeviceAddressRegionKHR* raygen, VkStridedDeviceAddressRegionKHR* miss, VkStridedDeviceAddressRegionKHR* hit);
 	void record(VkCommandBuffer& commandBuffer, uint32_t imageIndex, uint32_t additionalRTFlag);
 	void updateColorThreshold(float threshold);
+	void updateHitThreshold(float threshold);
 };

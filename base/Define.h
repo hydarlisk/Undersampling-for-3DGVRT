@@ -17,25 +17,22 @@
 #define MEASURE_FRAME 2000
 #endif
 
-#define EVAL_QUALITY 1
+#define EVAL_QUALITY 0
 
 #define UNDERSAMPLING 1						// Should be managed with 3dgs.glsl
-#define INIT_COLOR_THRESHOLD 0.15
+#define SIMILARITY_VAR 1
+
 #define MAX_SIMILARITY_VAR 150				// Should be managed with 3dgs.glsl
-#define REMOVE_DUPLICATE_ANYHIT_BY_SHADER 1 // Should be managed with 3dgs.glsl
 
 /* Debug */
-#define STATISTICS 0		// Should be managed with undersampling.glsl
-#define ENABLE_HIT_COUNTS 0	// Should be managed with 3dgs.glsl. 
+#define STATISTICS 1		// Should be managed with undersampling.glsl
+#define ENABLE_HIT_COUNTS 1	// Should be managed with 3dgs.glsl. 
 
 #define DEBUG_FILE_PATH "../results/debug/"
-#define HIT_CNT_IMAGE_PATH "../results/texts/"
-#define HIT_CNT_IMAGE_NAME "hitCnt.png"
 
-#if ENABLE_HIT_COUNTS
-#undef UNDERSAMPLING
-#define UNDERSAMPLING 0
-#endif
+#define INIT_COLOR_THRESHOLD 0.15
+#define INIT_HIT_THRESHOLD 0.5
+#define REMOVE_DUPLICATE_ANYHIT_BY_SHADER 1 // Should be managed with 3dgs.glsl
 
 #define USE_TIME_BASED_FPS true
 
@@ -43,6 +40,25 @@
 #define QUATERNION_CAMERA true
 #define LOAD_NERF_CAMERA true
 #define DYNAMIC_CAMERA false
+
+#if EVAL_QUALITY
+#define CAMERA_FILE "transforms_test.json"
+#else
+#define CAMERA_FILE "transforms_val.json"
+#endif
+
+/* Handle Macro Dependencies */
+#if ENABLE_HIT_COUNTS
+#undef UNDERSAMPLING
+#define UNDERSAMPLING 0
+#endif
+
+#if UNDERSAMPLING == 0
+#undef SIMILARITY_VAR
+#define SIMILARITY_VAR 0
+#undef STATISTICS
+#define STATISTICS 0
+#endif
 
 #if DYNAMIC_CAMERA
 #undef QUATERNION_CAMERA
@@ -52,11 +68,7 @@
 #define ASSET 3
 #define LOAD_GLTF 0
 
-#if EVAL_QUALITY
-	#define CAMERA_FILE "transforms_test.json"
-#else
-	#define CAMERA_FILE "transforms_val.json"
-#endif
+
 
 #define FOV_Y 39.6f
 #define NEAR_PLANE 0.005f

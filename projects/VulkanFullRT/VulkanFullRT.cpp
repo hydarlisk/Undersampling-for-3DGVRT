@@ -97,7 +97,7 @@ public:
 
 	struct FrameObject : public BaseFrameObject {
 		VkDescriptorSet descriptorSet{ VK_NULL_HANDLE };
-#if ENABLE_HIT_COUNTS && !RAY_QUERY || UNDERSAMPLING
+#if ENABLE_HIT_COUNTS && !RAY_QUERY || SIMILARITY_VAR
 		vks::Buffer hitCountsBuffer;
 #endif
 	};
@@ -1102,7 +1102,7 @@ public:
 			vulkanDevice->createAndCopyToDeviceBuffer(&uniformDataStatic, frame.uniformBufferStatic, sizeof(vks::utils::UniformDataStatic), graphicsQueue, usageFlags, memoryFlags);
 
 			// For debugging, write hit counts
-#if ENABLE_HIT_COUNTS && !RAY_QUERY
+#if ENABLE_HIT_COUNTS && !RAY_QUERY || SIMILARITY_VAR
 			string bufferName = "hitCountsBuffer" + to_string(i);
 			VK_CHECK_RESULT(vulkanDevice->createBuffer(VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &frame.hitCountsBuffer, sizeof(unsigned int) * width * height, nullptr, bufferName.c_str()));
 #endif
@@ -1169,7 +1169,7 @@ public:
 				frameObjects[i].uniformBufferStatic,
 				particleDensities,
 				particleSphCoefficients
-#if ENABLE_HIT_COUNTS && !RAY_QUERY
+#if ENABLE_HIT_COUNTS && !RAY_QUERY || SIMILARITY_VAR
 				, frameObjects[i].hitCountsBuffer
 #endif
 #if UNDERSAMPLING && STATISTICS
@@ -1191,6 +1191,7 @@ public:
 		updateUniformBuffer();
 #if UNDERSAMPLING
 		rtPipeline->updateColorThreshold(colorThreshold);
+		rtPipeline->updateHitThreshold(hitThreshold);
 #endif 
 		buildCommandBuffer(currentFrame);
 		VulkanRTBase::submitFrame(currentFrame);
