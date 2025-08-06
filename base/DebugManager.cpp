@@ -29,12 +29,7 @@ void DebugManager::prepare(VkInstance instance, vks::VulkanDevice* device, VkQue
 }
 
 // Print the ray hit count of each pixel of last frame to the txt file.
-void DebugManager::printRayHitCounts(vks::Buffer& hitCountsBuffer) {
-	vector<uint32_t> hitCnts(width * height);
-	hitCountsBuffer.map();
-	memcpy(hitCnts.data(), hitCountsBuffer.mapped, sizeof(uint32_t) * width * height);
-	hitCountsBuffer.unmap();
-
+void DebugManager::printRayHitCounts(vector<uint32_t>& hitCnts) {
 	FILE* fp = fopen("../results/texts/rayHitCountsOutput.txt", "w");
 	if (fp) {
 		for (size_t i = 0; i < height; ++i) {
@@ -57,15 +52,12 @@ void DebugManager::saveGrayScaleImage(const std::vector<uint32_t>& data) {
 	stbi_write_png(filename.c_str(), width, height, 1, grayscaleData.data(), width);
 }
 
-void DebugManager::captureHitCnt(vks::Buffer hitCountsBuffer) {
+void DebugManager::captureHitCnt(vks::Buffer& hitCountsBuffer) {
 	vkQueueWaitIdle(*queue);
 
 	vector<uint32_t> hitCnts(width * height);
-	hitCountsBuffer.map();
-	memcpy(hitCnts.data(), hitCountsBuffer.mapped, sizeof(uint32_t) * width * height);
-	hitCountsBuffer.unmap();
+	vulkanDevice->copyDeviceBufferToHost(hitCnts.data(), hitCountsBuffer, *queue);
 	auto maxHit = std::max_element(hitCnts.begin(), hitCnts.end());
-	//uint32_t totalHit = accumulate(hitCnts.begin(), hitCnts.end(), 0);
 	uint32_t totalHit = 0;
 	uint32_t zeroCnt = 0;
 	for (int val : hitCnts) {
@@ -79,11 +71,11 @@ void DebugManager::captureHitCnt(vks::Buffer hitCountsBuffer) {
 	std::cout << "totalHit : " << totalHit << "\n";
 	std::cout << "Average hit (ignore zero) : " << avgHit << "\n";
 	saveGrayScaleImage(hitCnts);
-	printRayHitCounts(hitCountsBuffer);
+	printRayHitCounts(hitCnts);
 	std::cout << "*** Ray hit counts END ***\n\n";
 }
 
-void DebugManager::captureImage(VkImage image) {
+void DebugManager::captureImage(VkImage& image) {
 	static uint32_t cnt = 0;
 	vkQueueWaitIdle(*queue);
 
@@ -99,7 +91,7 @@ void DebugManager::captureImage(VkImage image) {
 	cnt++;
 }
 
-void DebugManager::captureRTMask(vks::Buffer rtMaskBuffer) {
+void DebugManager::captureRTMask(vks::Buffer& rtMaskBuffer) {
 	static uint32_t cnt = 0;
 	vector<uint32_t> rtMask(width * height);
 	vkQueueWaitIdle(*queue);

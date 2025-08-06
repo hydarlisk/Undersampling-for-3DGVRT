@@ -800,11 +800,10 @@ namespace vks
 	void VulkanDevice::copyDeviceBufferToHost(void* dst, vks::Buffer& buffer, VkQueue& queue) {
 		vks::Buffer stagingBuffer;
 		VK_CHECK_RESULT(createBuffer(
-			VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+			VK_BUFFER_USAGE_TRANSFER_DST_BIT,
 			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-			buffer.size,
-			&stagingBuffer.buffer,
-			&stagingBuffer.memory
+			&stagingBuffer,
+			buffer.size
 		));
 
 		VkCommandBuffer copyCmd = createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);

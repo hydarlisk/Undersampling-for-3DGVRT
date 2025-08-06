@@ -1109,7 +1109,7 @@ public:
 			// For debugging, write hit counts
 #if ENABLE_HIT_COUNTS && !RAY_QUERY
 			string bufferName = "hitCountsBuffer" + to_string(i);
-			VK_CHECK_RESULT(vulkanDevice->createBuffer(VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &frame.hitCountsBuffer, sizeof(unsigned int) * width * height, nullptr, bufferName.c_str()));
+			VK_CHECK_RESULT(vulkanDevice->createBuffer(VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &frame.hitCountsBuffer, sizeof(unsigned int) * width * height, nullptr, bufferName.c_str()));
 #endif
 
 			// Time Stamp for measuring performance.
