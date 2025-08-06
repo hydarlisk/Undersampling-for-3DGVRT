@@ -72,6 +72,9 @@ It's still being prepared. 😘 <br/>
     |Esc|Terminate|
     |T|Print current camera|
     |C|Capture hit count|
+    |I|Capture rendering image|
+    |O|Capture camera images|
+    |M|Capture RT mask|
 
 
 ## 🌷 Experiments
