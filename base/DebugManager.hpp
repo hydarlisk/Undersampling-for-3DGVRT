@@ -69,8 +69,9 @@ private:
 	vks::Buffer currentImgBuffer;
 	void* currentImg;
 
-	void printRayHitCounts(vector<uint32_t>& hitCnts);
-	void saveGrayScaleImage(const std::vector<uint32_t>& data);
+	void printRayHitCounts(const vector<uint32_t>& hitCnts, uint32_t cnt);
+	void saveGrayScaleImage(const std::vector<uint32_t>& data, uint32_t cnt);
+	void saveColorMapImage(const vector<uint32_t>& data, uint32_t maxHit, uint32_t cnt);
 
 public:
 	void prepare(VkInstance instance, vks::VulkanDevice* device, VkQueue* queue, uint32_t width, uint32_t height);

@@ -31,30 +31,66 @@ void DebugManager::prepare(VkInstance instance, vks::VulkanDevice* device, VkQue
 }
 
 // Print the ray hit count of each pixel of last frame to the txt file.
-void DebugManager::printRayHitCounts(vector<uint32_t>& hitCnts) {
-	FILE* fp = fopen("../results/texts/rayHitCountsOutput.txt", "w");
+void DebugManager::printRayHitCounts(const vector<uint32_t>& hitCnts, uint32_t cnt) {
+	string filename = DEBUG_FILE_PATH + string("hitCounts/text") + to_string(cnt) + ".txt";
+	FILE* fp = fopen(filename.c_str(), "w");
 	if (fp) {
 		for (size_t i = 0; i < height; ++i) {
 			for (size_t j = 0; j < width; ++j) {
-				fprintf(fp, "%u ", hitCnts[i * width + j]);
+				fprintf(fp, "%u\t", hitCnts[i * width + j]);
 			}
 			fprintf(fp, "\n");
 		}
 		fclose(fp);
 	}
+	cout << "Writing " + filename + " done\n";
 }
 
-void DebugManager::saveGrayScaleImage(const std::vector<uint32_t>& data) {
+void DebugManager::saveGrayScaleImage(const std::vector<uint32_t>& data, uint32_t cnt) {
 	std::vector<uint8_t> grayscaleData(width * height);
 
 	for (int i = 0; i < width * height; ++i) {
 		grayscaleData[i] = static_cast<uint8_t>(data[i] & 0xFF);
 	}
-	string filename = string(HIT_CNT_IMAGE_PATH) + string(HIT_CNT_IMAGE_NAME);
+	string filename = DEBUG_FILE_PATH + string("hitCounts/grayscale") + to_string(cnt) + ".png";
 	stbi_write_png(filename.c_str(), width, height, 1, grayscaleData.data(), width);
+	cout << "Writing " + filename + " done\n";
+}
+
+void DebugManager::saveColorMapImage(const vector<uint32_t>& data, uint32_t maxHit, uint32_t cnt) {
+	vector<uint32_t> colormapData(width * height);
+
+	float norm;
+	for (int i = 0; i < width * height; i++) {
+		norm = (float)data[i] / maxHit;
+		if (norm == 0) {
+			colormapData[i] = 0xFF000000;
+		}
+		else if (norm > 0 && norm <= 0.2) {
+			colormapData[i] = 0xFFFF0000;
+		}
+		else if (norm > 0.2 && norm <= 0.4) {
+			colormapData[i] = 0xFFFFFF00;
+		}
+		else if (norm > 0.4 && norm <= 0.6) {
+			colormapData[i] = 0xFF00FFFF;
+		}
+		else if (norm > 0.6 && norm <= 0.8) {
+			colormapData[i] = 0xFF00A5FF;
+		}
+		else if (norm > 0.8 && norm <= 1.0) {
+			colormapData[i] = 0xFF0000FF;
+		}
+	}
+	int stride = width * 4;
+	std::string filename = DEBUG_FILE_PATH + string("hitCounts/colormap") + std::to_string(cnt) + ".png";
+	stbi_write_png(filename.c_str(), width, height, 4, colormapData.data(), stride);
+	cout << "Writing " + filename + " done\n";
+	cnt++;
 }
 
 void DebugManager::captureHitCnt(vks::Buffer& hitCountsBuffer) {
+	static uint32_t cnt = 0;
 	vkQueueWaitIdle(*queue);
 
 	vector<uint32_t> hitCnts(width * height);
@@ -72,9 +108,11 @@ void DebugManager::captureHitCnt(vks::Buffer& hitCountsBuffer) {
 	std::cout << "max hit : " << *maxHit << "\n";
 	std::cout << "totalHit : " << totalHit << "\n";
 	std::cout << "Average hit (ignore zero) : " << avgHit << "\n";
-	saveGrayScaleImage(hitCnts);
-	printRayHitCounts(hitCnts);
+	saveGrayScaleImage(hitCnts, cnt);
+	saveColorMapImage(hitCnts, *maxHit, cnt);
+	printRayHitCounts(hitCnts, cnt);
 	std::cout << "*** Ray hit counts END ***\n\n";
+	cnt++;
 }
 
 void DebugManager::captureImage(VkImage& image) {
