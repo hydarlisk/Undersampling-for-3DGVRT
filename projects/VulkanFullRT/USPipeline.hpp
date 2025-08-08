@@ -8,6 +8,7 @@
 
 #include "vulkan/vulkan.h"
 #include "VulkanUtils.h"
+#include "ExclusiveScan.hpp"
 
 #include <vector>
 
@@ -20,6 +21,15 @@ class USPipeline {
 		VkDeviceMemory memory;
 		VkBuffer buffer;
 	};
+	/* exclusive scan test */
+	vector<vks::Buffer> testInput;
+	vector<vks::Buffer> testOutput;
+
+	ExclusiveScan* exclusiveScan;
+	vector<vks::Buffer> rtMaskBuffers;
+	vector<vks::Buffer> rtMaskScanBuffers;
+
+	vector<VkDescriptorSet> descriptorSets;
 
 	vector<VkDescriptorSet> interpolationDescriptorSets;
 	vector<VkDescriptorSet> additionalRTDescriptorSets;
@@ -65,4 +75,6 @@ public:
 	void recordHorizontalPipeline(VkCommandBuffer& commandBuffer, VulkanSwapChain& swapChain, uint32_t imageIndex, uint32_t width, uint32_t height);
 	void recordVerticalPipeline(VkCommandBuffer& commandBuffer, VulkanSwapChain& swapChain, uint32_t imageIndex, uint32_t width, uint32_t height);
 	void buildCommandBuffer(VkCommandBuffer& commandBuffer, VulkanSwapChain& swapChain, uint32_t imageIndex, uint32_t width, uint32_t height);
+
+	void debugExclusiveScan(VkCommandBuffer commandBuffer, VulkanSwapChain& swapChain, uint32_t imageIndex);
 };

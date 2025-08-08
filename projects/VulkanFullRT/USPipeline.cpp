@@ -10,6 +10,8 @@
 #include <vector>
 #include <algorithm>
 
+#include <numeric>
+
 using namespace std;
 
 // value 1024 should change if local group size change
@@ -18,6 +20,8 @@ USPipeline::USPipeline(vks::VulkanDevice& device, VkQueue& queue, int swapchainI
 	this->projectPath = projectPath;
 	interpolationDescriptorSets.resize(swapchainImageCnt);
 	rtMaskBuffers.resize(swapchainImageCnt);
+
+	exclusiveScan = new ExclusiveScan(device, queue, swapchainImageCnt, projectPath);
 
 	uint32_t sharedDataSize = min((uint32_t)1024, (uint32_t)(vulkanDevice.properties.limits.maxComputeSharedMemorySize / sizeof(glm::vec4)));
 	assert(sharedDataSize >= 1024);
@@ -49,6 +53,50 @@ void USPipeline::createMaskBuffers(uint32_t width, uint32_t height) {
 			&rtMaskBuffers[i],
 			width * height * sizeof(uint32_t)));
 	}
+}
+
+void USPipeline::debugExclusiveScan(VkCommandBuffer commandBuffer, VulkanSwapChain& swapChain, uint32_t imageIndex) {
+	int size = 4096;
+	vector<uint32_t> input(size);
+	for (int i = 0; i < input.size(); i++) {
+		input[i] = 1;
+	}
+	vector<uint32_t> output(size);
+
+	testInput.resize(swapchainImageCnt);
+	testOutput.resize(swapchainImageCnt);
+	for (int i = 0; i < testInput.size(); i++) {
+		vulkanDevice.createBuffer(VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &testInput[i], size * sizeof(uint32_t), input.data());
+		vulkanDevice.createBuffer(VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &testOutput[i], size * sizeof(uint32_t));
+	}
+
+	exclusiveScan->prepare(testInput, testOutput);
+	vkResetCommandBuffer(commandBuffer, VK_FLAGS_NONE);
+	VkCommandBufferBeginInfo cmdBufInfo = vks::initializers::commandBufferBeginInfo();
+	VK_CHECK_RESULT(vkBeginCommandBuffer(commandBuffer, &cmdBufInfo));
+	exclusiveScan->buildCommandBuffer(commandBuffer, swapChain, imageIndex, size);
+	VK_CHECK_RESULT(vkEndCommandBuffer(commandBuffer));
+	VkSubmitInfo submitInfo = vks::initializers::submitInfo();
+	submitInfo.commandBufferCount = 1;
+	submitInfo.pCommandBuffers = &commandBuffer;
+	VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE));
+	vkDeviceWaitIdle(device);
+	testOutput[imageIndex].map();
+	memcpy(output.data(), testOutput[imageIndex].mapped, size * sizeof(float));
+	testOutput[imageIndex].unmap();
+
+	vector<uint32_t> expectedOutput(size);
+	std::exclusive_scan(input.begin(), input.end(), expectedOutput.begin(), 0, std::plus<>());
+
+	for (std::size_t i = 0; i < size; i++)
+	{
+		if (output[i] != expectedOutput[i])
+		{
+			std::cout << "Difference at " << i << " values " << output[i] << " != " << expectedOutput[i] << std::endl;
+		}
+	}
+
+	std::cout << "Scan complete" << std::endl;
 }
 
 void USPipeline::createInterpolationDescriptorSets(VulkanSwapChain& swapChain) {
