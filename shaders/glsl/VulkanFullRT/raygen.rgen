@@ -19,6 +19,9 @@
 #include "../base/3dgs.glsl"
 #include "../base/utils.glsl"
 #include "../base/define.glsl"
+#if UNDERSAMPLING
+#include "../base/underSampling.glsl"
+#endif
 
 /*** playground style ***/
 //struct RayData{
@@ -104,8 +107,8 @@ layout(push_constant, std430) uniform Constants{
 #endif
 
 #include "../base/gaussianfunctions.glsl"
-#if UNDERSAMPLING
-#include "../base/underSampling.glsl"
+#if SIMILARITY_VAR
+#include "../base/similarityFunctions.glsl"
 #endif
 
 /***** 3DGS Functions *****/
