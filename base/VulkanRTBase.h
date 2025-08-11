@@ -96,6 +96,7 @@ struct BaseFrameObject
 //TODO: refactoring?
 #if UNDERSAMPLING && STATISTICS
 	vks::Buffer rtMaskBuffer;
+	vks::Buffer rtMaskScanBuffer;
 #endif
 };
 

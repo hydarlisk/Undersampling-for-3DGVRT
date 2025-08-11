@@ -26,7 +26,7 @@
 
 /* Debug */
 #define STATISTICS 1		// Should be managed with undersampling.glsl
-#define ENABLE_HIT_COUNTS 1	// Should be managed with 3dgs.glsl. 
+#define ENABLE_HIT_COUNTS 0	// Should be managed with 3dgs.glsl. 
 
 #define DEBUG_FILE_PATH "../results/debug/"
 

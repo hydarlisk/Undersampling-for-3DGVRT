@@ -10,7 +10,7 @@
 
 /* debug */
 #define STATISTICS 1            // Should be managed with Define.h
-#define ENABLE_HIT_COUNTS 1		// Should be managed with Define.h
+#define ENABLE_HIT_COUNTS 0		// Should be managed with Define.h
 #define CHECK_BVH 0
 
 #define REMOVE_DUPLICATE_ANYHIT_BY_SHADER 1		//Should be managed with Define.h

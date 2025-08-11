@@ -9,12 +9,12 @@
 
 layout (local_size_x = 1024) in;
 
-//layout(push_constant) uniform Consts
-//{
-//  int n;
-//}consts;
+layout(push_constant) uniform Consts
+{
+  int n;
+}consts;
 
-layout(std430, binding = 0) buffer Input
+layout(std430, binding = 0) buffer PartialSum
 {
   uint value[];
 }i;
@@ -26,19 +26,14 @@ layout(std430, binding = 1) buffer Output
 
 shared uint sum;
 
-void main()
-{
-  //if (gl_WorkGroupID.x > 0 && gl_GlobalInvocationID.x < consts.n)
-  if (gl_WorkGroupID.x > 0)
-  {
+void main() {
+  if (gl_WorkGroupID.x > 0 && gl_GlobalInvocationID.x < consts.n){
     sum = 0;
-//    if(gl_WorkGroupID.x > 0)
     if(gl_LocalInvocationID.x == 0)
         sum = i.value[gl_WorkGroupID.x - 1];
 
     memoryBarrierShared();
     barrier();
-
 
     o.value[gl_GlobalInvocationID.x] += sum;
   }

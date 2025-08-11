@@ -66,8 +66,6 @@ class USPipeline {
 	void createPipelineLayouts();
 	void createPipelines();
 public:
-	vector<vks::Buffer> rtMaskBuffers;
-
 	USPipeline(vks::VulkanDevice& device, VkQueue& queue, int swapchainImageCnt, string projectPath);
 	~USPipeline();
 	

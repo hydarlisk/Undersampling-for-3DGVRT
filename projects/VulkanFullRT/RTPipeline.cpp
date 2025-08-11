@@ -7,6 +7,8 @@
 #include "RTPipeline.hpp"
 #include "Define.h"
 
+#include "DebugManager.hpp"
+
 #include <algorithm>
 
 using namespace std;
@@ -87,6 +89,7 @@ void RTPipeline::createDescriptorSets() {
 	VkDescriptorPoolCreateInfo descriptorPoolCreateInfo = vks::initializers::descriptorPoolCreateInfo(poolSizes, swapchainImageCnt); // ray tracing pipeline
 
 	VK_CHECK_RESULT(vkCreateDescriptorPool(device, &descriptorPoolCreateInfo, nullptr, &descriptorPool));	// descriptor pool
+	DebugManager::getInstance().setDebugName(descriptorPool, "rtPipelineDesciprtorPool");
 
 	std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings = {
 		// Binding 0: Top level acceleration structure
@@ -123,12 +126,13 @@ void RTPipeline::createDescriptorSets() {
 
 	VkDescriptorSetLayoutCreateInfo descriptorSetLayoutCI = vks::initializers::descriptorSetLayoutCreateInfo(setLayoutBindings);
 	VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorSetLayoutCI, nullptr, &descriptorSetLayout));
+	DebugManager::getInstance().setDebugName(descriptorSetLayout, "rtDescriptorSetLayout");
 
-	for (int i = 0; i < swapchainImageCnt; i++)
-	{
+	for (int i = 0; i < swapchainImageCnt; i++){
 		VkDescriptorSet& descriptorSet = descriptorSets[i];
 		VkDescriptorSetAllocateInfo descriptorSetAllocateInfo = vks::initializers::descriptorSetAllocateInfo(descriptorPool, &descriptorSetLayout, 1);
 		VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &descriptorSetAllocateInfo, &descriptorSet));	// descriptor set
+		DebugManager::getInstance().setDebugName(descriptorSet, ("rtDescriptorSet" + to_string(i)).c_str());
 	}
 }
 

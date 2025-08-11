@@ -143,7 +143,7 @@ void DebugManager::captureRTMask(vks::Buffer& rtMaskBuffer) {
 	vector<uint8_t> grayscaleData(width * height);
 	for (int i = 0; i < width * height; i++) {
 		grayscaleData[i] = (rtMask[i] == 1) ? 255 : 0;
-		if (i % 1920 % 2 == 0 || i / 1920 % 2 == 0) {
+		if (i % width % 2 == 0 || i / width % 2 == 0) {
 			grayscaleData[i] = 0;
 		}
 	}

@@ -63,6 +63,7 @@ public:
 #endif
 #if UNDERSAMPLING
 	USPipeline* usPipeline;
+	ExclusiveScan* exclusiveScan;
 #endif
 
 	vks::Buffer transformBuffer3DGRT;
@@ -823,9 +824,15 @@ public:
 #if UNDERSAMPLING
 		rtPipeline->record(frame.commandBuffer, frame.imageIndex, 0);
 		//usPipeline->recordHorizontalPipeline(frame.commandBuffer, swapChain, frame.imageIndex, width, height);
-		rtPipeline->record(frame.commandBuffer, frame.imageIndex, 1);
+		VkBufferCopy copyRegion;
+		copyRegion.srcOffset = 0;
+		copyRegion.dstOffset = 0;
+		copyRegion.size = frame.rtMaskBuffer.size;
+		vkCmdCopyBuffer(frame.commandBuffer, frame.rtMaskBuffer.buffer, frame.rtMaskScanBuffer.buffer, 1, &copyRegion);
+		exclusiveScan->record(frame.commandBuffer, frame.imageIndex);
+		//rtPipeline->record(frame.commandBuffer, frame.imageIndex, 1);
 		//usPipeline->recordVerticalPipeline(frame.commandBuffer, swapChain, frame.imageIndex, width, height);
-		rtPipeline->record(frame.commandBuffer, frame.imageIndex, 2);
+		//rtPipeline->record(frame.commandBuffer, frame.imageIndex, 2);
 #else
 		rtPipeline->record(frame.commandBuffer, frame.imageIndex, 0);
 #endif
@@ -1100,7 +1107,7 @@ public:
 			VkBufferUsageFlags usageFlags = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
 			VkMemoryPropertyFlags memoryFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
 			vulkanDevice->createAndCopyToDeviceBuffer(&uniformDataStatic, frame.uniformBufferStatic, sizeof(vks::utils::UniformDataStatic), graphicsQueue, usageFlags, memoryFlags);
-
+			 
 			// For debugging, write hit counts
 #if ENABLE_HIT_COUNTS && !RAY_QUERY || SIMILARITY_VAR
 			string bufferName = "hitCountsBuffer" + to_string(i);
@@ -1154,7 +1161,9 @@ public:
 		curRTMask.resize(width * height);
 		for (int i = 0; i < frameObjects.size(); i++) {
 			string bufferName = "rtMask" + to_string(i);
-			VK_CHECK_RESULT(vulkanDevice->createBuffer(VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &frameObjects[i].rtMaskBuffer, width * height * 4, nullptr, bufferName.c_str()));
+			VK_CHECK_RESULT(vulkanDevice->createBuffer(VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &frameObjects[i].rtMaskBuffer, width * height * 4, nullptr, bufferName.c_str()));
+			bufferName = "rtMaskScan" + to_string(i);
+			VK_CHECK_RESULT(vulkanDevice->createBuffer(VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &frameObjects[i].rtMaskScanBuffer, width * height * 4, nullptr, bufferName.c_str()));
 		}
 #endif
 		// (2) Particle Rendering pass
@@ -1176,7 +1185,17 @@ public:
 				,frameObjects[i].rtMaskBuffer
 #endif
 			);
+			
 		}
+
+		/* ExclusiveScan */
+		exclusiveScan = new ExclusiveScan(*vulkanDevice, graphicsQueue, swapChain.imageCount, DIR_PATH);
+		vector<vks::Buffer> rtMaskScans = {
+			frameObjects[0].rtMaskScanBuffer,
+			frameObjects[1].rtMaskScanBuffer,
+			frameObjects[2].rtMaskScanBuffer,
+		};
+		exclusiveScan->prepare(rtMaskScans, width * height);
 
 #if !RAY_QUERY
 		createShaderBindingTables(*rtPipeline);
