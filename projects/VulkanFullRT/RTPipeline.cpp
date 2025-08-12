@@ -18,6 +18,9 @@ RTPipeline::RTPipeline(vks::VulkanDevice& device, VkQueue& queue, int swapchainI
 	descriptorSets.resize(swapchainImageCnt);
 	rtMaskBuffers.resize(swapchainImageCnt);
 	particleIdBuffers.resize(swapchainImageCnt);
+	alphaBuffers.resize(swapchainImageCnt);
+	weightBuffers.resize(swapchainImageCnt);
+	depthBuffers.resize(swapchainImageCnt);
 	similarityVarBuffers.resize(swapchainImageCnt);
 
 	vkCmdTraceRaysKHR = reinterpret_cast<PFN_vkCmdTraceRaysKHR>(vkGetDeviceProcAddr(device, "vkCmdTraceRaysKHR"));
@@ -39,6 +42,9 @@ RTPipeline::~RTPipeline() {
 	for (int i = 0; i < swapchainImageCnt; i++) {
 		rtMaskBuffers[i].destroy();
 		particleIdBuffers[i].destroy();
+		alphaBuffers[i].destroy();
+		weightBuffers[i].destroy();
+		depthBuffers[i].destroy();
 		similarityVarBuffers[i].destroy();
 	}
 }
@@ -56,6 +62,15 @@ void RTPipeline::createSimilarityVarBuffers() {
 		string bufferName = "particleIdBuffer" + to_string(i);
 		VK_CHECK_RESULT(vulkanDevice.createBuffer(VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
 			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &particleIdBuffers[i], pushConstants.width * pushConstants.height * sizeof(uint32_t) * MAX_SIMILARITY_VAR, nullptr, bufferName));
+		bufferName = "alphaBuffer" + to_string(i);
+		VK_CHECK_RESULT(vulkanDevice.createBuffer(VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
+			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &alphaBuffers[i], pushConstants.width * pushConstants.height * sizeof(float) * MAX_SIMILARITY_VAR, nullptr, bufferName));
+		bufferName = "weightBuffer" + to_string(i);
+		VK_CHECK_RESULT(vulkanDevice.createBuffer(VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
+			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &weightBuffers[i], pushConstants.width * pushConstants.height * sizeof(float) * MAX_SIMILARITY_VAR, nullptr, bufferName));
+		bufferName = "rayDepthBuffer" + to_string(i);
+		VK_CHECK_RESULT(vulkanDevice.createBuffer(VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
+			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &depthBuffers[i], pushConstants.width * pushConstants.height * sizeof(float) * MAX_SIMILARITY_VAR, nullptr, bufferName));
 
 		// t, galpha
 		bufferName = "tBuffer" + to_string(i);
@@ -81,7 +96,9 @@ void RTPipeline::createDescriptorSets() {
 	#if STATISTICS
 		vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1 * swapchainImageCnt),
 	#endif
-		vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 2 * swapchainImageCnt),
+	#if SIMILARITY_VAR
+		vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 5 * swapchainImageCnt),
+	#endif
 #endif
 	};
 	VkDescriptorPoolCreateInfo descriptorPoolCreateInfo = vks::initializers::descriptorPoolCreateInfo(poolSizes, swapchainImageCnt); // ray tracing pipeline
@@ -114,10 +131,18 @@ void RTPipeline::createDescriptorSets() {
 		// Binding 8: Storage buffer - RT mask
 		vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_RAYGEN_BIT_KHR, 8),
 	#endif
+	#if SIMILARITY_VAR
 		// Binding 9: Storage buffer - Particle ID
 		vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_RAYGEN_BIT_KHR, 9),
-		// Binding 10: Storage buffer - Similarity Var
+		// Binding 10: Storage buffer - alpha
 		vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_RAYGEN_BIT_KHR, 10),
+		// Binding 11: Storage buffer - weight
+		vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_RAYGEN_BIT_KHR, 11),
+		// Binding 12: Storage buffer - Similarity Var
+		vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_RAYGEN_BIT_KHR, 12),
+		// Binding 13: Storage buffer - depth
+		vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_RAYGEN_BIT_KHR, 13),
+	#endif
 #endif
 	};
 
@@ -289,8 +314,13 @@ void RTPipeline::initDescriptorSet(int frameIdx, VulkanSwapChain& swapChain, VkA
 	#if STATISTICS
 		vks::initializers::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 8, &rtMaskBuffer.descriptor),
 	#endif
+	#if SIMILARITY_VAR
 		vks::initializers::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 9, &particleIdBuffers[frameIdx].descriptor),
-		vks::initializers::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 10, &similarityVarBuffers[frameIdx].descriptor),
+		vks::initializers::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 10, &alphaBuffers[frameIdx].descriptor),
+		vks::initializers::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 11, &weightBuffers[frameIdx].descriptor),
+		vks::initializers::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 12, &similarityVarBuffers[frameIdx].descriptor),
+		vks::initializers::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 13, &depthBuffers[frameIdx].descriptor),
+	#endif
 #endif
 	};
 
@@ -314,6 +344,9 @@ void RTPipeline::record(VkCommandBuffer& commandBuffer, uint32_t imageIndex, uin
 	}
 	else if (additionalRTFlag == 0) {
 		vkCmdFillBuffer(commandBuffer, particleIdBuffers[imageIndex].buffer, 0, particleIdBuffers[imageIndex].size, 0);
+		vkCmdFillBuffer(commandBuffer, alphaBuffers[imageIndex].buffer, 0, alphaBuffers[imageIndex].size, 0);
+		vkCmdFillBuffer(commandBuffer, weightBuffers[imageIndex].buffer, 0, weightBuffers[imageIndex].size, 0);
+		vkCmdFillBuffer(commandBuffer, depthBuffers[imageIndex].buffer, 0, depthBuffers[imageIndex].size, 0);
 		vkCmdFillBuffer(commandBuffer, similarityVarBuffers[imageIndex].buffer, 0, similarityVarBuffers[imageIndex].size, 0);
 		VkMemoryBarrier barrier = vks::initializers::memoryBarrier();
 		barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;

@@ -130,8 +130,9 @@ bool processHit(
 	inout float transmittance,
 	inout vec4 radiance,
 	inout float depth
-#if ENABLE_NORMALS
-	,inout vec3 normal
+#if SIMILARITY_VAR
+    ,out float alphaOut
+    ,out float weightOut
 #endif
 	){
 	vec3 particlePosition;
@@ -161,10 +162,12 @@ bool processHit(
 	const float galpha = min(0.99f, gres * particleDensity);
 
 	const bool acceptHit = (gres > minParticleKernelDensity) && (galpha > minParticleAlpha);
-
 	if (acceptHit) {
         const float weight = galpha * (transmittance);
-
+#if SIMILARITY_VAR
+        alphaOut = galpha;
+        weightOut = weight;
+#endif
 		const vec3 grds = particleScale * grd * (SURFEL_PRIMITIVE ? -gro.z / grd.z : dot(grd, -1 * gro));
 		const float hitT = sqrt(dot(grds, grds));
 

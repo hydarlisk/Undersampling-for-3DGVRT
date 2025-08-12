@@ -89,8 +89,17 @@ layout(std430, binding = 9, set = 0) buffer ParticleIDs{
 	uint id[];
 };
 
-layout(std430, binding = 10, set = 0) buffer SimilarityVar{
+layout(std430, binding = 10, set = 0) buffer Alpha{
+	float alphaBuffer[];
+};
+layout(std430, binding = 11, set = 0) buffer Weight{
+	float weightBuffer[];
+};
+layout(std430, binding = 12, set = 0) buffer SimilarityVar{
 	float similarityVar[];
+};
+layout(std430, binding = 13, set = 0) buffer Depth{
+	float depthBuffer[];
 };
 	#endif
 
@@ -207,6 +216,10 @@ void main()
 #if ENABLE_HIT_COUNTS || SIMILARITY_VAR
 	uint hitCnts = 0;
 #endif
+#if SIMILARITY_VAR
+	float alpha;
+	float weight;
+#endif
 
 	vec2 minMaxT = intersectAABB(uboStatic.aabb, rayOrigin.xyz, rayDirection.xyz);
 	const float epsT = EPS_T;
@@ -249,16 +262,24 @@ void main()
 					rayTransmittance,
 					rayRadiance,
 					rayHitDistance
-#if ENABLE_NORMALS
-					,rayNormal
+#if SIMILARITY_VAR
+					,alpha,
+					weight
 #endif
 				);
 
 #if UNDERSAMPLING && SIMILARITY_VAR
-				if(hitCnts < MAX_SIMILARITY_VAR){
-					id[similarityVarOffset + hitCnts] = rayHit.particleId;
-					//similarityVar[similarityVarOffset + hitCnts] = rayHit.dist;
+				if(acceptedHit){
+					if(hitCnts < MAX_SIMILARITY_VAR){
+										id[similarityVarOffset + hitCnts] = rayHit.particleId;
+										alphaBuffer[similarityVarOffset + hitCnts] = alpha;
+										weightBuffer[similarityVarOffset + hitCnts] = weight;
+										depthBuffer[similarityVarOffset + hitCnts] = rayHitDistance;
+										//similarityVar[similarityVarOffset + hitCnts] = rayHit.dist;
+					}
 				}
+
+				
 #endif
 
 				rayLastHitDistance = max(rayLastHitDistance, rayHit.dist);

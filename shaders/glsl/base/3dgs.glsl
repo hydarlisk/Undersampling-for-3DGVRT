@@ -10,7 +10,7 @@
 
 /* debug */
 #define STATISTICS 1            // Should be managed with Define.h
-#define ENABLE_HIT_COUNTS 1		// Should be managed with Define.h
+#define ENABLE_HIT_COUNTS 0		// Should be managed with Define.h
 #define CHECK_BVH 0
 
 #define REMOVE_DUPLICATE_ANYHIT_BY_SHADER 1		//Should be managed with Define.h
@@ -40,7 +40,6 @@
 
 #define MAX_SPH_DEGREE 3 // "configs/render/3dgrt.yaml - particle_radiance_sph_degree"
 #define SPH_MAX_NUM_COEFFS 16	// x = MAX_SPH_DEGREE (x+1) * (x+1)
-#define ENABLE_NORMALS false	// just for training
 #define PARTICLE_KERNEL_DEGREE 4 // "configs/render/3dgrt.yaml - particle_kernel_degree" : 4
 #define SURFEL_PRIMITIVE false // "configs/render/3dgrt.yaml - primitive_type" : instances -> false
 

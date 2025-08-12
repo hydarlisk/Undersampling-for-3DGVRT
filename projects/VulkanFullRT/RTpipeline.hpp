@@ -35,6 +35,9 @@ class RTPipeline {
 	};
 
 	vector<vks::Buffer> particleIdBuffers;
+	vector<vks::Buffer> alphaBuffers;
+	vector<vks::Buffer> weightBuffers;
+	vector<vks::Buffer> depthBuffers;
 	vector<vks::Buffer> similarityVarBuffers;
 
 	vector<VkDescriptorSet> descriptorSets;

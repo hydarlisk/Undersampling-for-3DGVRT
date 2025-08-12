@@ -137,6 +137,10 @@ void main()
 #if ENABLE_HIT_COUNTS
 	uint rayHitsCount = 0;
 #endif
+#if SIMILARITY_VAR
+	float alpha;
+	float weight;
+#endif
 
 	vec2 minMaxT = intersectAABB(uboStatic.aabb, rayOrigin.xyz, rayDirection.xyz);
 	const float epsT = EPS_T;
@@ -167,8 +171,9 @@ void main()
 					rayTransmittance,
 					rayRadiance,
 					rayHitDistance
-#if ENABLE_NORMALS
-					,rayNormal
+#if SIMILARITY_VAR
+					,alpha
+					,weight
 #endif
 				);
 
