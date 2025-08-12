@@ -47,4 +47,6 @@ public:
 
 	void prepare(vks::Buffer& particleDensities, vks::Buffer& particleSphCoefficients);
 	void run();
+
+	void dumpIcosahedron();
 };
