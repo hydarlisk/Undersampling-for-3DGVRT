@@ -1,0 +1,52 @@
+/*
+ * Abura Soba, 2025
+ * 
+ * Full Ray Tracing
+ *
+ * linearInterpolation.comp
+ *
+ * Compute shader
+ */
+
+#version 460
+
+
+#include "undersampling.glsl"
+//#extension GL_KHR_vulkan_glsl : enable
+
+layout(local_size_x = LOCAL_SIZE_X, local_size_y = LOCAL_SIZE_Y) in;
+
+layout(binding = 0, set = 0) buffer outputBuffer{
+	uint packedIdx[];
+};
+
+layout(binding = 1, set = 0) buffer rtMaskBuffer{
+	uint rtMask[];
+};
+
+layout(binding = 2, set = 0) buffer rtMaskScanBuffer{
+	uint rtMaskScan[];
+};
+
+layout(push_constant, std430) uniform pushConstant{
+	uint pass;
+	uint width;
+	uint height;
+	uint r_width;
+	uint r_height;
+	uint additionalRT;
+};
+
+void main()
+{
+	uint gID = gl_GlobalInvocationID.x;
+//	uint target = 
+	uint y = gID / r_width;
+	uint x = gID % r_width;
+	x = x * 2 + 1;
+	y *= 2;
+	if(gID > width * height) return;
+	if(rtMask[gID] != 0){
+		packedIdx[rtMaskScan[gID]] = gID;
+	}
+}
