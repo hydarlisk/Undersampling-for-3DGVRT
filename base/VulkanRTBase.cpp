@@ -1895,9 +1895,16 @@ void VulkanRTBase::handleMessages(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lP
 			case KEY_I:
 				DebugManager::getInstance().captureImage(swapChain.images[frameIndex]);
 				break;
+#if UNDERSAMPLING
 			case KEY_M:
 				captureRTMaskFlag = true;
 				break;
+	#if SIMILARITY_VAR
+			case KEY_B:
+				captureSimilVarBuffersFlag = true;
+				break;
+	#endif
+#endif
 			}
 		}
 

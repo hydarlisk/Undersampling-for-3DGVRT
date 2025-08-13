@@ -9,6 +9,7 @@
 #include "stb_image_write.h"
 
 #include <iostream>
+#include <algorithm>
 
 #include "camera.hpp"
 
@@ -173,4 +174,110 @@ void DebugManager::captureRenderingImages(VkImage& image, QuaternionCamera& quat
 #else
 	camera.setDatasetCamera(camera.dataType, evalCameraIdx, (float)width / height);
 #endif
+}
+
+template<typename T>
+void DebugManager::writeCSVFile(vector<T>& vec, string& fileName) {
+	string output;
+	output.reserve(width * height * MAX_SIMILARITY_VAR * 5);
+	for (int i = 0; i < vec.size();) {
+		for (int j = 0; j < MAX_SIMILARITY_VAR; j++) {
+			output.append(to_string(vec[i]));
+			output.push_back(',');
+			i++;
+		}
+		output.pop_back();
+		output.push_back('\n');
+	}
+
+	ofstream of(fileName);
+	if (of.is_open()) {
+		of << output;
+		of.close();
+		cout << "Write " << fileName << " done\n";
+	}
+	else {
+		cout << "Failed file open : " << fileName << "\n";
+	}
+}
+
+void DebugManager::captureSimilVarBuffers(vks::Buffer& particleIdBuffer, vks::Buffer& alphaBuffer, vks::Buffer& weightBuffer, vks::Buffer& depthBuffer) {
+	vector<uint32_t> particleIdVec(width * height * MAX_SIMILARITY_VAR);
+	vector<float> floatVec(width * height * MAX_SIMILARITY_VAR);
+	
+	//particleId Buffer
+	vulkanDevice->copyDeviceBufferToHost(particleIdVec.data(), particleIdBuffer, *queue);
+	string fileName = DEBUG_FILE_PATH + string("similVars/") + "particleId.csv";
+	writeCSVFile(particleIdVec, fileName);
+	//alpha Buffer
+	vulkanDevice->copyDeviceBufferToHost(floatVec.data(), alphaBuffer, *queue);
+	fileName = DEBUG_FILE_PATH + string("similVars/") + "alpha.csv";
+	writeCSVFile(floatVec, fileName);
+	//weight Buffer
+	vulkanDevice->copyDeviceBufferToHost(floatVec.data(), weightBuffer, *queue);
+	fileName = DEBUG_FILE_PATH + string("similVars/") + "weight.csv";
+	writeCSVFile(floatVec, fileName);
+	//depth Buffer
+	vulkanDevice->copyDeviceBufferToHost(floatVec.data(), depthBuffer, *queue);
+	fileName = DEBUG_FILE_PATH + string("similVars/") + "depth.csv";
+	writeCSVFile(floatVec, fileName);
+}
+
+void DebugManager::dumpParticles(vks::Buffer densitiesBuffer, uint32_t densitiesCnt) {
+	vector<float> densities(densitiesCnt);
+	vector<float> forAvg(densitiesCnt);
+	string output;
+	output.reserve(densitiesCnt * 3);
+	float avg;
+	
+	vulkanDevice->copyDeviceBufferToHost(densities.data(), densitiesBuffer, *queue);
+
+	transform(densities.begin(), densities.end(), densities.begin(), [](double val) { return 1.0f / (1.0f + exp(-val));});
+
+	auto maxDensities = max_element(densities.begin(), densities.end());
+	auto minDensities = min_element(densities.begin(), densities.end());
+	
+	transform(densities.begin(), densities.end(), forAvg.begin(), [densitiesCnt](double val) { return val / densitiesCnt; });
+	avg = accumulate(forAvg.begin(), forAvg.end(), 0);
+
+	std::cout << "max density : " << *maxDensities << "\n";
+	std::cout << "min density : " << *minDensities << "\n";
+	std::cout << "Average density : " << avg << "\n";
+	
+	for (int i = 0; i < densitiesCnt;) {
+		for (int j = 0; j < 100 && i < densitiesCnt; j++) {
+			output.append(to_string(densities[i]));
+			output.push_back(',');
+			i++;
+		}
+		output.pop_back();
+		output.push_back('\n');
+	}
+
+	string fileName = DEBUG_FILE_PATH + string("particleDensities.csv");
+	ofstream of(fileName);
+	of << output;
+	of.close();
+}
+
+void DebugManager::dumpIcosahedron(vks::Buffer verticesBuffer, vks::Buffer indicesBuffer, uint32_t verticesCnt, uint32_t indicesCnt) {
+	string filename = "objDump.obj";
+	cout << "dumping obj file\n";
+	vkQueueWaitIdle(*queue);
+	vector<float> vertices(verticesCnt);
+	vector<uint32_t> indices(indicesCnt);
+
+	vulkanDevice->copyDeviceBufferToHost(vertices.data(), verticesBuffer, *queue);
+	vulkanDevice->copyDeviceBufferToHost(indices.data(), indicesBuffer, *queue);
+	vkQueueWaitIdle(*queue);
+
+	ofstream objFile(filename);
+	for (int i = 0; i < vertices.size(); i += 3) {
+		objFile << "v " << vertices[i] << " " << vertices[i + 1] << " " << vertices[i + 2] << "\n";
+	}
+	for (int i = 0; i < indices.size(); i += 3) {
+		objFile << "f " << indices[i] + 1 << " " << indices[i + 1] + 1 << " " << indices[i + 2] + 1 << "\n";
+	}
+	objFile.close();
+	cout << "dump done\n";
 }

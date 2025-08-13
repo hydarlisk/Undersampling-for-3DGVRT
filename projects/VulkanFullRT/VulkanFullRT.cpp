@@ -1123,6 +1123,7 @@ public:
 		gaussianEnclosingPipeline->prepare(particleDensities, particleSphCoefficients);
 		gaussianEnclosingPipeline->run();
 
+		DebugManager::getInstance().dumpParticles(gModel.densities.storageBuffer, gModel.densities.count);
 		// Create the acceleration structures used to render the ray traced scene
 #if LOAD_GLTF
 		createBottomLevelAccelerationStructure();
@@ -1222,11 +1223,18 @@ public:
 		DebugManager::getInstance().captureHitCnt(prevFrame.hitCountsBuffer);
 	}
 #endif
-#if UNDERSAMPLING && STATISTICS
+#if UNDERSAMPLING
+	#if STATISTICS
 	void captureRTMask() {
 		FrameObject& prevFrame = frameObjects[getPrevFrameIndex()];
 		DebugManager::getInstance().captureRTMask(prevFrame.rtMaskBuffer);
 	}
+	#endif
+	#if SIMILARITY_VAR
+	void captureSimilVarBuffers() {
+		rtPipeline->captureSimilVarBuffers(getPrevFrameIndex());
+	}
+	#endif
 #endif
 
 	virtual void render()
@@ -1242,11 +1250,19 @@ public:
 			captureHitCntFlag = false;
 		}
 #endif
-#if UNDERSAMPLING && STATISTICS
+#if UNDERSAMPLING
+	#if STATISTICS
 		if (captureRTMaskFlag) {
 			captureRTMask();
 			captureRTMaskFlag = false;
 		}
+	#endif
+	#if SIMILARITY_VAR
+		if (captureSimilVarBuffersFlag) {
+			captureSimilVarBuffers();
+			captureSimilVarBuffersFlag = false;
+		}
+	#endif
 #endif
 	}
 };

@@ -91,4 +91,6 @@ public:
 	void record(VkCommandBuffer& commandBuffer, uint32_t imageIndex, uint32_t additionalRTFlag);
 	void updateColorThreshold(float threshold);
 	void updateHitThreshold(float threshold);
+
+	void captureSimilVarBuffers(uint32_t idx);
 };

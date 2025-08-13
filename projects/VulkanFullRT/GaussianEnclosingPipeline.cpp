@@ -5,7 +5,9 @@
  */
 
 #include "GaussianEnclosingPipeline.hpp"
+
 #include "Define.h"
+#include "DebugManager.hpp"
 
 #include <vector>
 #include <algorithm>
@@ -186,25 +188,5 @@ void GaussianEnclosingPipeline::run() {
 	submitInfo.pCommandBuffers = &commandBuffer;
 	VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE));
 	vkDeviceWaitIdle(device);
-	//dumpIcosahedron();
-}
-
-void GaussianEnclosingPipeline::dumpIcosahedron() {
-	string filename = "objDump.obj";
-	cout << "dumping obj file\n";
-	vkQueueWaitIdle(queue);
-	vector<float> vertices(gModel.vertices.count);
-	vector<uint32_t> indices(gModel.indices.count);
-	vulkanDevice.copyDeviceBufferToHost(vertices.data(), gModel.vertices.storageBuffer, queue);
-	vulkanDevice.copyDeviceBufferToHost(indices.data(), gModel.indices.storageBuffer, queue);
-	vkQueueWaitIdle(queue);
-	ofstream objFile(filename);
-	for (int i  = 0; i < vertices.size(); i += 3) {
-		objFile << "v " << vertices[i] << " " << vertices[i + 1] << " " << vertices[i + 2] << "\n";
-	}
-	for (int i = 0; i < indices.size(); i += 3) {
-		objFile << "f " << indices[i] + 1 << " " << indices[i + 1] + 1 << " " << indices[i + 2] + 1 << "\n";
-	}
-	objFile.close();
-	cout << "dump done\n";
+	DebugManager::getInstance().dumpIcosahedron(gModel.vertices.storageBuffer, gModel.indices.storageBuffer, gModel.vertices.count, gModel.indices.count);
 }

@@ -297,7 +297,12 @@ public:
 #if ENABLE_HIT_COUNTS && !RAY_QUERY
 	bool captureHitCntFlag = false;
 #endif
+#if UNDERSAMPLING
 	bool captureRTMaskFlag = false;
+	#if SIMILARITY_VAR
+	bool captureSimilVarBuffersFlag = false;
+	#endif
+#endif
 
 	/** @brief State of gamepad input (only used on Android) */
 	struct {

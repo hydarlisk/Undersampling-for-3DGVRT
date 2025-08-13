@@ -5,7 +5,9 @@
  */
 
 #include "RTPipeline.hpp"
+
 #include "Define.h"
+#include "DebugManager.hpp"
 
 #include <algorithm>
 
@@ -57,19 +59,21 @@ inline string RTPipeline::getShaderPath(string shaderName) {
 //void
 
 void RTPipeline::createSimilarityVarBuffers() {
+	//TODO : remove transferSrc for performance
+	VkFlags transferSrc = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
 	for (int i = 0; i < swapchainImageCnt; i++) {
 		// particle id
 		string bufferName = "particleIdBuffer" + to_string(i);
-		VK_CHECK_RESULT(vulkanDevice.createBuffer(VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
+		VK_CHECK_RESULT(vulkanDevice.createBuffer(VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | transferSrc,
 			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &particleIdBuffers[i], pushConstants.width * pushConstants.height * sizeof(uint32_t) * MAX_SIMILARITY_VAR, nullptr, bufferName));
 		bufferName = "alphaBuffer" + to_string(i);
-		VK_CHECK_RESULT(vulkanDevice.createBuffer(VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
+		VK_CHECK_RESULT(vulkanDevice.createBuffer(VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | transferSrc,
 			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &alphaBuffers[i], pushConstants.width * pushConstants.height * sizeof(float) * MAX_SIMILARITY_VAR, nullptr, bufferName));
 		bufferName = "weightBuffer" + to_string(i);
-		VK_CHECK_RESULT(vulkanDevice.createBuffer(VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
+		VK_CHECK_RESULT(vulkanDevice.createBuffer(VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | transferSrc,
 			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &weightBuffers[i], pushConstants.width * pushConstants.height * sizeof(float) * MAX_SIMILARITY_VAR, nullptr, bufferName));
 		bufferName = "rayDepthBuffer" + to_string(i);
-		VK_CHECK_RESULT(vulkanDevice.createBuffer(VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
+		VK_CHECK_RESULT(vulkanDevice.createBuffer(VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | transferSrc,
 			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &depthBuffers[i], pushConstants.width * pushConstants.height * sizeof(float) * MAX_SIMILARITY_VAR, nullptr, bufferName));
 
 		// t, galpha
@@ -397,4 +401,8 @@ void RTPipeline::updateColorThreshold(float threshold) {
 
 void RTPipeline::updateHitThreshold(float threshold) {
 	pushConstants.hitThreshold = threshold;
+}
+
+void RTPipeline::captureSimilVarBuffers(uint32_t idx) {
+	DebugManager::getInstance().captureSimilVarBuffers(particleIdBuffers[idx], alphaBuffers[idx], weightBuffers[idx], depthBuffers[idx]);
 }
