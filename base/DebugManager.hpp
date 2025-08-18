@@ -70,10 +70,11 @@ private:
 	void* currentImg;
 
 	void printRayHitCounts(const vector<uint32_t>& hitCnts, uint32_t cnt);
-	void saveGrayScaleImage(const std::vector<uint32_t>& data, uint32_t cnt);
-	void saveColorMapImage(const vector<uint32_t>& data, uint32_t maxHit, uint32_t cnt);
+	void saveGrayScaleImage(const std::vector<uint32_t>& data, string filename);
+	void saveColorMapImage(const vector<uint32_t>& data, uint32_t maxHit, string filename);
 	template <typename T>
 	void writeCSVFile(vector<T>& vec, string& fileName);
+	void captureSimilVarValidCnt(vks::Buffer& similVarValidCntBuffers);
 
 public:
 	void prepare(VkInstance instance, vks::VulkanDevice* device, VkQueue* queue, uint32_t width, uint32_t height);
@@ -134,7 +135,7 @@ public:
 	void captureRTMask(vks::Buffer& rtMask);
 	void captureHitCnt(vks::Buffer& hitCountsBuffer);
 	void captureRenderingImages(VkImage& image, QuaternionCamera& quaternionCamera, uint32_t camIdx);
-	void captureSimilVarBuffers(vks::Buffer& particleIdBuffer, vks::Buffer& alphaBuffer, vks::Buffer& weightBuffer, vks::Buffer& depthBuffer);
+	void captureSimilVarBuffers(vks::Buffer& particleIdBuffer, vks::Buffer& alphaBuffer, vks::Buffer& weightBuffer, vks::Buffer& depthBuffer, vks::Buffer& similVarValidCntBuffers);
 	void dumpParticles(vks::Buffer densitiesBuffer, uint32_t densitiesCnt);
 	void dumpIcosahedron(vks::Buffer verticesBuffer, vks::Buffer indicesBuffer, uint32_t verticesCnt, uint32_t indicesCnt);
 };

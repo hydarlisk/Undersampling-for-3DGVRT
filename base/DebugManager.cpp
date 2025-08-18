@@ -31,34 +31,54 @@ void DebugManager::prepare(VkInstance instance, vks::VulkanDevice* device, VkQue
 	VK_CHECK_RESULT(vulkanDevice->createBuffer(VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &currentImgBuffer, width * height * 4, nullptr));
 }
 
-// Print the ray hit count of each pixel of last frame to the txt file.
-void DebugManager::printRayHitCounts(const vector<uint32_t>& hitCnts, uint32_t cnt) {
-	string filename = DEBUG_FILE_PATH + string("hitCounts/text") + to_string(cnt) + ".txt";
-	FILE* fp = fopen(filename.c_str(), "w");
-	if (fp) {
-		for (size_t i = 0; i < height; ++i) {
-			for (size_t j = 0; j < width; ++j) {
-				fprintf(fp, "%u\t", hitCnts[i * width + j]);
-			}
-			fprintf(fp, "\n");
-		}
-		fclose(fp);
+//// Print the ray hit count of each pixel of last frame to the txt file.
+//void DebugManager::printRayHitCounts(const vector<uint32_t>& hitCnts, uint32_t cnt) {
+//	string filename = DEBUG_FILE_PATH + string("hitCounts/text") + to_string(cnt) + ".txt";
+//	FILE* fp = fopen(filename.c_str(), "w");
+//	if (fp) {
+//		for (size_t i = 0; i < height; ++i) {
+//			for (size_t j = 0; j < width; ++j) {
+//				fprintf(fp, "%u\t", hitCnts[i * width + j]);
+//			}
+//			fprintf(fp, "\n");
+//		}
+//		fclose(fp);
+//	}
+//	cout << "Writing " + filename + " done\n";
+//}
+
+void DebugManager::printRayHitCounts(const std::vector<uint32_t>& hitCnts, uint32_t cnt) {
+	std::string filename = DEBUG_FILE_PATH + std::string("hitCounts/text") + std::to_string(cnt) + ".txt";
+	std::ofstream ofs(filename);
+	if (!ofs) {
+		std::cerr << "Failed to open " << filename << "\n";
+		return;
 	}
-	cout << "Writing " + filename + " done\n";
+
+	for (size_t i = 0; i < height; ++i) {
+		for (size_t j = 0; j < width; ++j) {
+			ofs << hitCnts[i * width + j];
+			if (j + 1 < width) ofs << "\t";
+		}
+		ofs << "\n";
+	}
+
+	ofs.close();
+	std::cout << "Writing " << filename << " done\n";
 }
 
-void DebugManager::saveGrayScaleImage(const std::vector<uint32_t>& data, uint32_t cnt) {
+void DebugManager::saveGrayScaleImage(const std::vector<uint32_t>& data, string filename) {
 	std::vector<uint8_t> grayscaleData(width * height);
 
 	for (int i = 0; i < width * height; ++i) {
 		grayscaleData[i] = static_cast<uint8_t>(data[i] & 0xFF);
 	}
-	string filename = DEBUG_FILE_PATH + string("hitCounts/grayscale") + to_string(cnt) + ".png";
+	
 	stbi_write_png(filename.c_str(), width, height, 1, grayscaleData.data(), width);
 	cout << "Writing " + filename + " done\n";
 }
 
-void DebugManager::saveColorMapImage(const vector<uint32_t>& data, uint32_t maxHit, uint32_t cnt) {
+void DebugManager::saveColorMapImage(const vector<uint32_t>& data, uint32_t maxHit, string filename) {
 	vector<uint32_t> colormapData(width * height);
 
 	float norm;
@@ -84,10 +104,8 @@ void DebugManager::saveColorMapImage(const vector<uint32_t>& data, uint32_t maxH
 		}
 	}
 	int stride = width * 4;
-	std::string filename = DEBUG_FILE_PATH + string("hitCounts/colormap") + std::to_string(cnt) + ".png";
 	stbi_write_png(filename.c_str(), width, height, 4, colormapData.data(), stride);
 	cout << "Writing " + filename + " done\n";
-	cnt++;
 }
 
 void DebugManager::captureHitCnt(vks::Buffer& hitCountsBuffer) {
@@ -109,8 +127,8 @@ void DebugManager::captureHitCnt(vks::Buffer& hitCountsBuffer) {
 	std::cout << "max hit : " << *maxHit << "\n";
 	std::cout << "totalHit : " << totalHit << "\n";
 	std::cout << "Average hit (ignore zero) : " << avgHit << "\n";
-	saveGrayScaleImage(hitCnts, cnt);
-	saveColorMapImage(hitCnts, *maxHit, cnt);
+	saveGrayScaleImage(hitCnts, DEBUG_FILE_PATH + string("hitCounts/grayscale") + to_string(cnt) + ".png");
+	saveColorMapImage(hitCnts, *maxHit, DEBUG_FILE_PATH + string("hitCounts/colormap") + std::to_string(cnt) + ".png");
 	printRayHitCounts(hitCnts, cnt);
 	std::cout << "*** Ray hit counts END ***\n\n";
 	cnt++;
@@ -201,7 +219,32 @@ void DebugManager::writeCSVFile(vector<T>& vec, string& fileName) {
 	}
 }
 
-void DebugManager::captureSimilVarBuffers(vks::Buffer& particleIdBuffer, vks::Buffer& alphaBuffer, vks::Buffer& weightBuffer, vks::Buffer& depthBuffer) {
+void DebugManager::captureSimilVarValidCnt(vks::Buffer& similVarValidCntBuffers) {
+	static uint32_t cnt = 0;
+	vector<uint32_t> validCnt(width * height);
+	vulkanDevice->copyDeviceBufferToHost(validCnt.data(), similVarValidCntBuffers, *queue);
+
+	auto maxHit = std::max_element(validCnt.begin(), validCnt.end());
+	uint32_t totalHit = 0;
+	uint32_t zeroCnt = 0;
+	for (int val : validCnt) {
+		if (val != 0) {
+			totalHit += val;
+			zeroCnt++;
+		}
+	}
+	float avgHit = (float)totalHit / zeroCnt;
+	std::cout << "max hit : " << *maxHit << "\n";
+	std::cout << "totalHit : " << totalHit << "\n";
+	std::cout << "Average hit (ignore zero) : " << avgHit << "\n";
+	string filepath = DEBUG_FILE_PATH + string("similVars/");
+	saveGrayScaleImage(validCnt, filepath + "validCntGrayscale" + to_string(cnt) + ".png");
+	saveColorMapImage(validCnt, *maxHit,  filepath + string("validCntcolormap") + std::to_string(cnt) + ".png");
+	std::cout << "*** Ray hit counts END ***\n\n";
+	cnt++;
+}
+
+void DebugManager::captureSimilVarBuffers(vks::Buffer& particleIdBuffer, vks::Buffer& alphaBuffer, vks::Buffer& weightBuffer, vks::Buffer& depthBuffer, vks::Buffer& similVarValidCntBuffers) {
 	vector<uint32_t> particleIdVec(width * height * MAX_SIMILARITY_VAR);
 	vector<float> floatVec(width * height * MAX_SIMILARITY_VAR);
 	
@@ -221,6 +264,8 @@ void DebugManager::captureSimilVarBuffers(vks::Buffer& particleIdBuffer, vks::Bu
 	vulkanDevice->copyDeviceBufferToHost(floatVec.data(), depthBuffer, *queue);
 	fileName = DEBUG_FILE_PATH + string("similVars/") + "depth.csv";
 	writeCSVFile(floatVec, fileName);
+
+	captureSimilVarValidCnt(similVarValidCntBuffers);
 }
 
 void DebugManager::dumpParticles(vks::Buffer densitiesBuffer, uint32_t densitiesCnt) {

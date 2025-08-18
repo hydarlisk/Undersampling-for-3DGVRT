@@ -27,18 +27,21 @@ class RTPipeline {
 		uint32_t additionalRT;
 		float colorThreshold;
 		float hitThreshold;
+		float weightThreshold;
 	}pushConstants;
 
+#if SIMILARITY_VAR
 	struct SimilarityVar {
 		float t;
 		//float galpha;	// maybe weight?
 	};
-
 	vector<vks::Buffer> particleIdBuffers;
 	vector<vks::Buffer> alphaBuffers;
 	vector<vks::Buffer> weightBuffers;
 	vector<vks::Buffer> depthBuffers;
+	vector<vks::Buffer> similVarValidCntBuffers;
 	vector<vks::Buffer> similarityVarBuffers;
+#endif
 
 	vector<VkDescriptorSet> descriptorSets;
 
