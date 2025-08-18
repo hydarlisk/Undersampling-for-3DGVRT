@@ -195,11 +195,11 @@ void DebugManager::captureRenderingImages(VkImage& image, QuaternionCamera& quat
 }
 
 template<typename T>
-void DebugManager::writeCSVFile(vector<T>& vec, string& fileName) {
+void DebugManager::writeCSVFile(vector<T>& vec, uint32_t stride, string& fileName) {
 	string output;
-	output.reserve(width * height * MAX_SIMILARITY_VAR * 5);
+	output.reserve(width * height * stride * 5);
 	for (int i = 0; i < vec.size();) {
-		for (int j = 0; j < MAX_SIMILARITY_VAR; j++) {
+		for (int j = 0; j < stride; j++) {
 			output.append(to_string(vec[i]));
 			output.push_back(',');
 			i++;
@@ -244,31 +244,35 @@ void DebugManager::captureSimilVarValidCnt(vks::Buffer& similVarValidCntBuffers)
 	cnt++;
 }
 
-void DebugManager::captureSimilVarBuffers(vks::Buffer& particleIdBuffer, vks::Buffer& alphaBuffer, vks::Buffer& weightBuffer, vks::Buffer& depthBuffer, vks::Buffer& similVarValidCntBuffers) {
+void DebugManager::captureSimilVarBuffers(vks::Buffer& particleIdBuffer, vks::Buffer& alphaBuffer, vks::Buffer& weightBuffer, vks::Buffer& depthBuffer, vks::Buffer& similVarValidCntBuffer, vks::Buffer& finalTransmittanceBuffer) {
 	vector<uint32_t> particleIdVec(width * height * MAX_SIMILARITY_VAR);
 	vector<float> floatVec(width * height * MAX_SIMILARITY_VAR);
 	
 	//particleId Buffer
 	vulkanDevice->copyDeviceBufferToHost(particleIdVec.data(), particleIdBuffer, *queue);
 	string fileName = DEBUG_FILE_PATH + string("similVars/") + "particleId.csv";
-	writeCSVFile(particleIdVec, fileName);
+	writeCSVFile(particleIdVec, MAX_SIMILARITY_VAR, fileName);
 	//alpha Buffer
 	vulkanDevice->copyDeviceBufferToHost(floatVec.data(), alphaBuffer, *queue);
 	fileName = DEBUG_FILE_PATH + string("similVars/") + "alpha.csv";
-	writeCSVFile(floatVec, fileName);
+	writeCSVFile(floatVec, MAX_SIMILARITY_VAR, fileName);
 	//weight Buffer
 	vulkanDevice->copyDeviceBufferToHost(floatVec.data(), weightBuffer, *queue);
 	fileName = DEBUG_FILE_PATH + string("similVars/") + "weight.csv";
-	writeCSVFile(floatVec, fileName);
+	writeCSVFile(floatVec, MAX_SIMILARITY_VAR, fileName);
 	//depth Buffer
 	vulkanDevice->copyDeviceBufferToHost(floatVec.data(), depthBuffer, *queue);
 	fileName = DEBUG_FILE_PATH + string("similVars/") + "depth.csv";
-	writeCSVFile(floatVec, fileName);
+	writeCSVFile(floatVec, MAX_SIMILARITY_VAR, fileName);
+	//final transmittance Buffer
+	vulkanDevice->copyDeviceBufferToHost(floatVec.data(), finalTransmittanceBuffer, *queue);
+	fileName = DEBUG_FILE_PATH + string("similVars/") + "finalTransmittance.csv";
+	writeCSVFile(floatVec, width, fileName);
 
-	captureSimilVarValidCnt(similVarValidCntBuffers);
+	captureSimilVarValidCnt(similVarValidCntBuffer);
 }
 
-void DebugManager::dumpParticles(vks::Buffer densitiesBuffer, uint32_t densitiesCnt) {
+void DebugManager::dumpParticles(vks::Buffer& densitiesBuffer, uint32_t densitiesCnt) {
 	vector<float> densities(densitiesCnt);
 	vector<float> forAvg(densitiesCnt);
 	string output;
@@ -305,7 +309,7 @@ void DebugManager::dumpParticles(vks::Buffer densitiesBuffer, uint32_t densities
 	of.close();
 }
 
-void DebugManager::dumpIcosahedron(vks::Buffer verticesBuffer, vks::Buffer indicesBuffer, uint32_t verticesCnt, uint32_t indicesCnt) {
+void DebugManager::dumpIcosahedron(vks::Buffer& verticesBuffer, vks::Buffer& indicesBuffer, uint32_t verticesCnt, uint32_t indicesCnt) {
 	string filename = "objDump.obj";
 	cout << "dumping obj file\n";
 	vkQueueWaitIdle(*queue);

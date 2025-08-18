@@ -25,6 +25,7 @@ RTPipeline::RTPipeline(vks::VulkanDevice& device, VkQueue& queue, int swapchainI
 	weightBuffers.resize(swapchainImageCnt);
 	depthBuffers.resize(swapchainImageCnt);
 	similVarValidCntBuffers.resize(swapchainImageCnt);
+	finalTransmittanceBuffers.resize(swapchainImageCnt);
 	similarityVarBuffers.resize(swapchainImageCnt);
 #endif
 
@@ -52,6 +53,7 @@ RTPipeline::~RTPipeline() {
 		weightBuffers[i].destroy();
 		depthBuffers[i].destroy();
 		similVarValidCntBuffers[i].destroy();
+		finalTransmittanceBuffers[i].destroy();
 		similarityVarBuffers[i].destroy();
 #endif
 	}
@@ -83,6 +85,9 @@ void RTPipeline::createSimilarityVarBuffers() {
 		bufferName = "similVarValidCntBuffer" + to_string(i);
 		VK_CHECK_RESULT(vulkanDevice.createBuffer(VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | transferSrc,
 			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &similVarValidCntBuffers[i], pushConstants.width * pushConstants.height * sizeof(uint32_t), nullptr, bufferName));
+		bufferName = "finalTransmittance" + to_string(i);
+		VK_CHECK_RESULT(vulkanDevice.createBuffer(VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | transferSrc,
+			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &finalTransmittanceBuffers[i], pushConstants.width * pushConstants.height * sizeof(float), nullptr, bufferName));
 
 		// t, galpha
 		bufferName = "tBuffer" + to_string(i);
@@ -157,6 +162,8 @@ void RTPipeline::createDescriptorSets() {
 		vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_RAYGEN_BIT_KHR, 13),
 		// Bidning 14: Storage buffer - similVarValid Count
 		vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_RAYGEN_BIT_KHR, 14),
+		// Bidning 15: Storage buffer - finalTransmittance Count
+		vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_RAYGEN_BIT_KHR, 15),
 	#endif
 #endif
 	};
@@ -336,6 +343,7 @@ void RTPipeline::initDescriptorSet(int frameIdx, VulkanSwapChain& swapChain, VkA
 		vks::initializers::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 12, &similarityVarBuffers[frameIdx].descriptor),
 		vks::initializers::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 13, &depthBuffers[frameIdx].descriptor),
 		vks::initializers::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 14, &similVarValidCntBuffers[frameIdx].descriptor),
+		vks::initializers::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 15, &finalTransmittanceBuffers[frameIdx].descriptor),
 	#endif
 #endif
 	};
@@ -364,6 +372,7 @@ void RTPipeline::record(VkCommandBuffer& commandBuffer, uint32_t imageIndex, uin
 		vkCmdFillBuffer(commandBuffer, weightBuffers[imageIndex].buffer, 0, weightBuffers[imageIndex].size, 0);
 		vkCmdFillBuffer(commandBuffer, depthBuffers[imageIndex].buffer, 0, depthBuffers[imageIndex].size, 0);
 		vkCmdFillBuffer(commandBuffer, similVarValidCntBuffers[imageIndex].buffer, 0, similVarValidCntBuffers[imageIndex].size, 0);
+		vkCmdFillBuffer(commandBuffer, finalTransmittanceBuffers[imageIndex].buffer, 0, finalTransmittanceBuffers[imageIndex].size, 0);
 		vkCmdFillBuffer(commandBuffer, similarityVarBuffers[imageIndex].buffer, 0, similarityVarBuffers[imageIndex].size, 0);
 		VkMemoryBarrier barrier = vks::initializers::memoryBarrier();
 		barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
@@ -418,6 +427,6 @@ void RTPipeline::updateHitThreshold(float threshold) {
 
 #if SIMILARITY_VAR
 void RTPipeline::captureSimilVarBuffers(uint32_t idx) {
-	DebugManager::getInstance().captureSimilVarBuffers(particleIdBuffers[idx], alphaBuffers[idx], weightBuffers[idx], depthBuffers[idx], similVarValidCntBuffers[idx]);
+	DebugManager::getInstance().captureSimilVarBuffers(particleIdBuffers[idx], alphaBuffers[idx], weightBuffers[idx], depthBuffers[idx], similVarValidCntBuffers[idx], finalTransmittanceBuffers[idx]);
 }
 #endif

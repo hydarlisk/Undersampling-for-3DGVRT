@@ -104,6 +104,9 @@ layout(std430, binding = 13, set = 0) buffer Depth{
 layout(std430, binding = 14, set = 0) buffer SimilVarValidCnt{
 	uint validCnt[];
 };
+layout(std430, binding = 15, set = 0) buffer FinalTransmittance{
+	float finalTransmittance[];
+};
 	#endif
 
 layout(push_constant, std430) uniform pushConstant{
@@ -275,7 +278,7 @@ void main()
 
 #if UNDERSAMPLING && SIMILARITY_VAR
 				if(acceptedHit){
-					//if(similVarIdx < MAX_SIMILARITY_VAR && weight > 0.1){
+					//if(similVarIdx < MAX_SIMILARITY_VAR){
 					if(similVarIdx < MAX_SIMILARITY_VAR && weight > 0.1){
 						id[similarityVarOffset + similVarIdx] = rayHit.particleId;
 						alphaBuffer[similarityVarOffset + similVarIdx] = alpha;
@@ -311,6 +314,7 @@ void main()
 	#endif
 	#if SIMILARITY_VAR
 	validCnt[targetPixel.y * width + targetPixel.x] = similVarIdx;
+	finalTransmittance[targetPixel.y * width + targetPixel.x] = 1 - rayTransmittance;
 	#endif
 #else
     imageStore(image, ivec2(gl_LaunchIDEXT.xy), rayRadiance);

@@ -40,6 +40,7 @@ class RTPipeline {
 	vector<vks::Buffer> weightBuffers;
 	vector<vks::Buffer> depthBuffers;
 	vector<vks::Buffer> similVarValidCntBuffers;
+	vector<vks::Buffer> finalTransmittanceBuffers;
 	vector<vks::Buffer> similarityVarBuffers;
 #endif
 
