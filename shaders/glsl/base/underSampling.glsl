@@ -61,8 +61,8 @@ uint calcIdx(uvec2 pixel) {
 
 #if SIMILARITY_VAR
 bool hitInfoCheck(uvec2 nearPixel1, uvec2 nearPixel2, uvec2 targetPixel) {
-    uint hitCnt1 = rayHitCounts.cnts[calcIdx(nearPixel1)];
-    uint hitCnt2 = rayHitCounts.cnts[calcIdx(nearPixel2)];
+    uint hitCnt1 = validCnt[calcIdx(nearPixel1)];
+    uint hitCnt2 = validCnt[calcIdx(nearPixel2)];
     uint cmpCnt = min(MAX_SIMILARITY_VAR, min(hitCnt1, hitCnt2));
     if (cmpCnt == 0) return true;
     
@@ -89,6 +89,23 @@ bool hitInfoCheck(uvec2 nearPixel1, uvec2 nearPixel2, uvec2 targetPixel) {
     uint intersection = 0;
     uint unionCount = 0;
 
+    for (int i = 0; i < hitCnt1; i++) {
+        a[i] = id[offset1 + i];
+    }
+    for (int i = 0; i < hitCnt2; i++) {
+        b[i] = id[offset2 + i];
+    }
+    for (int i = 0; i < hitCnt1; i++) {
+        for (int j = 0; j < hitCnt2; j++) {
+            if (a[i] == b[j]) {
+                c[intersection] = a[i];
+                intersection++;
+                break;
+            }
+        }
+    }
+    unionCount = 2 * hitCnt1 * hitCnt2 - intersection;
+
     for (int i = 0; i < cmpCnt; i++) {
         a[i] = id[offset1 + i];
         b[i] = id[offset2 + i];
@@ -103,6 +120,7 @@ bool hitInfoCheck(uvec2 nearPixel1, uvec2 nearPixel2, uvec2 targetPixel) {
         }
     }
     unionCount = 2 * cmpCnt - intersection;
+
     float similarity = (unionCount > 0) ? float(intersection) / float(unionCount) : 0.0;
     similarityVar[offset1 + additionalRT] = similarity;
     if (similarity > hitThreshold) {
