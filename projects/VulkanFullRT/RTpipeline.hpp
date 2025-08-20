@@ -40,9 +40,9 @@ class RTPipeline {
 	vector<vks::Buffer> weightBuffers;
 	vector<vks::Buffer> depthBuffers;
 	vector<vks::Buffer> similVarValidCntBuffers;
-	vector<vks::Buffer> finalTransmittanceBuffers;
 	vector<vks::Buffer> similarityVarBuffers;
 #endif
+	vector<vks::Buffer> finalTransmittanceBuffers;
 
 	vector<VkDescriptorSet> descriptorSets;
 
@@ -95,6 +95,8 @@ public:
 	void record(VkCommandBuffer& commandBuffer, uint32_t imageIndex, uint32_t additionalRTFlag);
 	void updateColorThreshold(float threshold);
 	void updateHitThreshold(float threshold);
+	void updateWeightThreshold(float threshold);
 
 	void captureSimilVarBuffers(uint32_t idx);
+	void captureValidCntBuffer(uint32_t idx);
 };

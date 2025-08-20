@@ -83,6 +83,9 @@ layout(std430, binding = 7, set = 0) buffer RayHitCounts {
 layout(std430, binding = 8, set = 0) buffer RTMask{
 	uint rtMask[];
 };
+layout(std430, binding = 15, set = 0) buffer FinalTransmittance{
+	float finalTransmittance[];
+};
 	#endif
 	#if SIMILARITY_VAR
 layout(std430, binding = 9, set = 0) buffer ParticleIDs{
@@ -104,9 +107,6 @@ layout(std430, binding = 13, set = 0) buffer Depth{
 layout(std430, binding = 14, set = 0) buffer SimilVarValidCnt{
 	uint validCnt[];
 };
-layout(std430, binding = 15, set = 0) buffer FinalTransmittance{
-	float finalTransmittance[];
-};
 	#endif
 
 layout(push_constant, std430) uniform pushConstant{
@@ -115,7 +115,7 @@ layout(push_constant, std430) uniform pushConstant{
 	uint additionalRT;
 	float colorThreshold;
 	float hitThreshold;
-	float weightTrheshold;
+	float weightThreshold;
 };
 #endif
 
@@ -279,11 +279,11 @@ void main()
 #if UNDERSAMPLING && SIMILARITY_VAR
 				if(acceptedHit){
 					//if(similVarIdx < MAX_SIMILARITY_VAR){
-					if(similVarIdx < MAX_SIMILARITY_VAR && weight > 0.1){
+					if(similVarIdx < MAX_SIMILARITY_VAR && weight > weightThreshold){
 						id[similarityVarOffset + similVarIdx] = rayHit.particleId;
-						alphaBuffer[similarityVarOffset + similVarIdx] = alpha;
+						//alphaBuffer[similarityVarOffset + similVarIdx] = alpha;
 						weightBuffer[similarityVarOffset + similVarIdx] = weight;
-						depthBuffer[similarityVarOffset + similVarIdx] = rayHitDistance;
+						//depthBuffer[similarityVarOffset + similVarIdx] = rayHitDistance;
 						similVarIdx += 1;
 					}
 				}
@@ -308,13 +308,13 @@ void main()
 	imageStore(image, ivec2(targetPixel), rayRadiance);
 	#if STATISTICS
 	rtMask[targetPixel.y * width + targetPixel.x] = 1;
+	finalTransmittance[targetPixel.y * width + targetPixel.x] = 1 - rayTransmittance;
 	#endif
-	#if ENABLE_HIT_COUNTS || SIMILARITY_VAR
+	#if ENABLE_HIT_COUNTS
 	rayHitCounts.cnts[targetPixel.y * width + targetPixel.x] = hitCnts;
 	#endif
 	#if SIMILARITY_VAR
 	validCnt[targetPixel.y * width + targetPixel.x] = similVarIdx;
-	finalTransmittance[targetPixel.y * width + targetPixel.x] = 1 - rayTransmittance;
 	#endif
 #else
     imageStore(image, ivec2(gl_LaunchIDEXT.xy), rayRadiance);

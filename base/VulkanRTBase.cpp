@@ -812,6 +812,8 @@ void VulkanRTBase::updateOverlay(std::vector<BaseFrameObject*>& frameObjects)
 	#if SIMILARITY_VAR
 	ImGui::Text("- Hit Threshold");
 	ImGui::SliderFloat("Hit", &hitThreshold, 0.0f, 1.0f);
+	ImGui::Text("- Weight Threshold");
+	ImGui::SliderFloat("Weight", &weightThreshold, 0.0f, 1.0f);
 	#endif
 	#if STATISTICS
 	ImGui::Separator();
@@ -1902,6 +1904,9 @@ void VulkanRTBase::handleMessages(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lP
 	#if SIMILARITY_VAR
 			case KEY_B:
 				captureSimilVarBuffersFlag = true;
+				break;
+			case KEY_V:
+				captureValidCntBufferFlag = true;
 				break;
 	#endif
 #endif

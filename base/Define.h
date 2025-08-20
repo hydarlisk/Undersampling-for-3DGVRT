@@ -22,20 +22,24 @@
 #define UNDERSAMPLING 1						// Should be managed with 3dgs.glsl
 #define SIMILARITY_VAR 1
 
-#define MAX_SIMILARITY_VAR 30				// Should be managed with 3dgs.glsl
+#define MAX_SIMILARITY_VAR 10				// Should be managed with 3dgs.glsl
 
 /* Debug */
-#define STATISTICS 1		// Should be managed with undersampling.glsl
+#define STATISTICS 0		// Should be managed with undersampling.glsl
 #define ENABLE_HIT_COUNTS 0	// Should be managed with 3dgs.glsl. 
 
 #define DEBUG_FILE_PATH "../results/debug/"
 
 #define INIT_COLOR_THRESHOLD 0.15
 #define INIT_HIT_THRESHOLD 0.5
+#define INIT_WEIGHT_THRESHOLD 0.1
 #define REMOVE_DUPLICATE_ANYHIT_BY_SHADER 1 // Should be managed with 3dgs.glsl
 
-#define WIDTH 800
-#define HEIGHT 800
+//#define WIDTH 800
+//#define HEIGHT 800
+
+#define WIDTH 1920
+#define HEIGHT 1080
 
 #define USE_TIME_BASED_FPS true
 

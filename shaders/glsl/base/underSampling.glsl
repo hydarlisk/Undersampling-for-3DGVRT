@@ -8,7 +8,7 @@
 #define LOCAL_SIZE_X 32
 #define LOCAL_SIZE_Y 32
 
-#define MAX_SIMILARITY_VAR 30
+#define MAX_SIMILARITY_VAR 10
 
 #define SHARED_MEMORY 1
 

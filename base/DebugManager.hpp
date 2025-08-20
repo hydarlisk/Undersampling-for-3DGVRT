@@ -10,6 +10,7 @@
 #include "VulkanUtils.h"
 
 #include "cameraQuaternion.hpp"
+#include "Vulkan3DGRTModel.h"
 
 #include <vector>
 
@@ -18,25 +19,6 @@ using namespace std;
 template<typename>
 inline constexpr bool dependent_false_v = false;
 
-class Singleton {
-public:
-	static Singleton& GetInstance() {
-		// Allocate with `new` in case Singleton is not trivially destructible.
-		static Singleton instance;
-		return instance;
-	}
-
-private:
-	Singleton() = default;
-
-	// Delete copy/move so extra instances can't be created/moved.
-	Singleton(const Singleton&) = delete;
-	Singleton& operator=(const Singleton&) = delete;
-	Singleton(Singleton&&) = delete;
-	Singleton& operator=(Singleton&&) = delete;
-};
-
-//TODO: change to singleton, use cpp file
 class DebugManager{
 public:
 	static DebugManager& getInstance() {
@@ -69,15 +51,18 @@ private:
 	vks::Buffer currentImgBuffer;
 	void* currentImg;
 
+	vk3DGRT::Model* gModel;
+
 	void printRayHitCounts(const vector<uint32_t>& hitCnts, uint32_t cnt);
 	void saveGrayScaleImage(const std::vector<uint32_t>& data, string filename);
 	void saveColorMapImage(const vector<uint32_t>& data, uint32_t maxHit, string filename);
 	template <typename T>
 	void writeCSVFile(vector<T>& vec, uint32_t stride, string& fileName);
-	void captureSimilVarValidCnt(vks::Buffer& similVarValidCntBuffers);
+	void captureValidHitParticles(vector<uint32_t>& particleIds);
 
 public:
 	void prepare(VkInstance instance, vks::VulkanDevice* device, VkQueue* queue, uint32_t width, uint32_t height);
+	void setModel(vk3DGRT::Model& gModel);
 
 	template <typename VulkanObjectType>
 	void setDebugName(VulkanObjectType object, const char* name) {
@@ -135,7 +120,8 @@ public:
 	void captureRTMask(vks::Buffer& rtMask);
 	void captureHitCnt(vks::Buffer& hitCountsBuffer);
 	void captureRenderingImages(VkImage& image, QuaternionCamera& quaternionCamera, uint32_t camIdx);
-	void captureSimilVarBuffers(vks::Buffer& particleIdBuffer, vks::Buffer& alphaBuffer, vks::Buffer& weightBuffer, vks::Buffer& depthBuffer, vks::Buffer& similVarValidCntBuffers, vks::Buffer& finalTransmittanceBuffers);
-	void dumpParticles(vks::Buffer& densitiesBuffer, uint32_t densitiesCnt);
-	void dumpIcosahedron(vks::Buffer& verticesBuffer, vks::Buffer& indicesBuffer, uint32_t verticesCnt, uint32_t indicesCnt);
+	void captureSimilVarBuffers(vks::Buffer& particleIdBuffer, vks::Buffer& alphaBuffer, vks::Buffer& weightBuffer, vks::Buffer& depthBuffer, vks::Buffer& similVarValidCntBuffer, vks::Buffer& finalTransmittanceBuffer);
+	void captureSimilVarValidCnt(vks::Buffer& similVarValidCntBuffers);
+	void dumpParticles();
+	void dumpIcosahedron();
 };

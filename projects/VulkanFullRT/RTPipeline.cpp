@@ -275,7 +275,7 @@ void RTPipeline::createPipeline() {
 void RTPipeline::prepare(uint32_t width, uint32_t height) {
 	pushConstants.width = width;
 	pushConstants.height = height;
-#if UNDERSAMPLING
+#if UNDERSAMPLING && SIMILARITY_VAR
 	createSimilarityVarBuffers();
 #endif
 	createDescriptorSets();
@@ -367,6 +367,7 @@ void RTPipeline::record(VkCommandBuffer& commandBuffer, uint32_t imageIndex, uin
 			VK_FLAGS_NONE, 1, &barrier, 0, nullptr, 0, nullptr);
 	}
 	else if (additionalRTFlag == 0) {
+#if SIMILARITY_VAR
 		vkCmdFillBuffer(commandBuffer, particleIdBuffers[imageIndex].buffer, 0, particleIdBuffers[imageIndex].size, 0);
 		vkCmdFillBuffer(commandBuffer, alphaBuffers[imageIndex].buffer, 0, alphaBuffers[imageIndex].size, 0);
 		vkCmdFillBuffer(commandBuffer, weightBuffers[imageIndex].buffer, 0, weightBuffers[imageIndex].size, 0);
@@ -374,6 +375,7 @@ void RTPipeline::record(VkCommandBuffer& commandBuffer, uint32_t imageIndex, uin
 		vkCmdFillBuffer(commandBuffer, similVarValidCntBuffers[imageIndex].buffer, 0, similVarValidCntBuffers[imageIndex].size, 0);
 		vkCmdFillBuffer(commandBuffer, finalTransmittanceBuffers[imageIndex].buffer, 0, finalTransmittanceBuffers[imageIndex].size, 0);
 		vkCmdFillBuffer(commandBuffer, similarityVarBuffers[imageIndex].buffer, 0, similarityVarBuffers[imageIndex].size, 0);
+#endif
 		VkMemoryBarrier barrier = vks::initializers::memoryBarrier();
 		barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
 		barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
@@ -425,8 +427,15 @@ void RTPipeline::updateHitThreshold(float threshold) {
 	pushConstants.hitThreshold = threshold;
 }
 
+void RTPipeline::updateWeightThreshold(float threshold) {
+	pushConstants.weightThreshold = threshold;
+}
+
 #if SIMILARITY_VAR
 void RTPipeline::captureSimilVarBuffers(uint32_t idx) {
 	DebugManager::getInstance().captureSimilVarBuffers(particleIdBuffers[idx], alphaBuffers[idx], weightBuffers[idx], depthBuffers[idx], similVarValidCntBuffers[idx], finalTransmittanceBuffers[idx]);
+}
+void RTPipeline::captureValidCntBuffer(uint32_t idx) {
+	DebugManager::getInstance().captureSimilVarValidCnt(similVarValidCntBuffers[idx]);
 }
 #endif

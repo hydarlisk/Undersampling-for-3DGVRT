@@ -9,7 +9,7 @@
 #define SIMILARITY_VAR 1
 
 /* debug */
-#define STATISTICS 1            // Should be managed with Define.h
+#define STATISTICS 0            // Should be managed with Define.h
 #define ENABLE_HIT_COUNTS 0		// Should be managed with Define.h
 #define CHECK_BVH 0
 

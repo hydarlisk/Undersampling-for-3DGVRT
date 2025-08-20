@@ -1123,7 +1123,8 @@ public:
 		gaussianEnclosingPipeline->prepare(particleDensities, particleSphCoefficients);
 		gaussianEnclosingPipeline->run();
 
-		DebugManager::getInstance().dumpParticles(gModel.densities.storageBuffer, gModel.densities.count);
+		DebugManager::getInstance().setModel(gModel);
+		DebugManager::getInstance().dumpParticles();
 		// Create the acceleration structures used to render the ray traced scene
 #if LOAD_GLTF
 		createBottomLevelAccelerationStructure();
@@ -1193,6 +1194,7 @@ public:
 #if UNDERSAMPLING
 		rtPipeline->updateColorThreshold(colorThreshold);
 		rtPipeline->updateHitThreshold(hitThreshold);
+		rtPipeline->updateWeightThreshold(weightThreshold);
 #endif 
 		buildCommandBuffer(currentFrame);
 		VulkanRTBase::submitFrame(currentFrame);
@@ -1234,6 +1236,9 @@ public:
 	void captureSimilVarBuffers() {
 		rtPipeline->captureSimilVarBuffers(getPrevFrameIndex());
 	}
+	void captureValidCntBuffer() {
+		rtPipeline->captureValidCntBuffer(getPrevFrameIndex());
+	}
 	#endif
 #endif
 
@@ -1261,6 +1266,10 @@ public:
 		if (captureSimilVarBuffersFlag) {
 			captureSimilVarBuffers();
 			captureSimilVarBuffersFlag = false;
+		}
+		if (captureValidCntBufferFlag) {
+			captureValidCntBuffer();
+			captureValidCntBufferFlag = false;
 		}
 	#endif
 #endif

@@ -19,32 +19,36 @@
 #define KEY_UP VK_UP  
 #define KEY_RIGHT VK_RIGHT
 #define KEY_DOWN VK_DOWN  
-#define KEY_W 0x57
 #define KEY_A 0x41
-#define KEY_S 0x53
+#define KEY_B 0x42
+#define KEY_C 0x43
 #define KEY_D 0x44
+#define KEY_E 0x45
+#define KEY_F 0x46
+#define KEY_I 0x49
+#define KEY_L 0x4C
+#define KEY_M 0x4D
+#define KEY_N 0x4E
+#define KEY_O 0x4F
 #define KEY_P 0x50
+#define KEY_Q 0x51
+#define KEY_R 0x52
+#define KEY_S 0x53
+#define KEY_T 0x54
+#define KEY_V 0x56
+#define KEY_W 0x57
+#define KEY_Y 0x59
+#define KEY_0 0x30
+#define KEY_9 0x39
+
 #define KEY_SPACE 0x20
 #define KEY_KPADD 0x6B
 #define KEY_KPSUB 0x6D
-#define KEY_B 0x42
-#define KEY_C 0x43
-#define KEY_F 0x46
-#define KEY_L 0x4C
-#define KEY_N 0x4E
-#define KEY_M 0x4D
-#define KEY_O 0x4F
-#define KEY_T 0x54
-#define KEY_Q 0x51
-#define KEY_E 0x45
-#define KEY_R 0x52
 #define KEY_HYPHEN 0xBD
 #define KEY_EQUAL 0xBB
 #define KEY_LEFTBRACKET 0xDB
 #define KEY_RIGHTBRACKET 0xDD
-#define KEY_I 0x49
-#define KEY_0 0x30
-#define KEY_9 0x39
+
 
 #elif defined(VK_USE_PLATFORM_ANDROID_KHR)
 #define GAMEPAD_BUTTON_A 0x1000

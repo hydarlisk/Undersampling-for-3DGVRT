@@ -31,6 +31,10 @@ void DebugManager::prepare(VkInstance instance, vks::VulkanDevice* device, VkQue
 	VK_CHECK_RESULT(vulkanDevice->createBuffer(VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &currentImgBuffer, width * height * 4, nullptr));
 }
 
+void DebugManager::setModel(vk3DGRT::Model& gModel) {
+	this->gModel = &gModel;
+}
+
 //// Print the ray hit count of each pixel of last frame to the txt file.
 //void DebugManager::printRayHitCounts(const vector<uint32_t>& hitCnts, uint32_t cnt) {
 //	string filename = DEBUG_FILE_PATH + string("hitCounts/text") + to_string(cnt) + ".txt";
@@ -219,22 +223,69 @@ void DebugManager::writeCSVFile(vector<T>& vec, uint32_t stride, string& fileNam
 	}
 }
 
+void DebugManager::captureValidHitParticles(vector<uint32_t>& particleIds) {
+	static uint32_t cnt = 0;
+	cout << "dumping obj file\n";
+	vkQueueWaitIdle(*queue);
+	
+	vector<float> vertices(gModel->vertices.count);
+	vector<uint32_t> indices(gModel->indices.count);
+	string filename = DEBUG_FILE_PATH + string("/similVars/validParticle") + to_string(cnt) + ".obj";
+	uint32_t offset;
+	
+	vulkanDevice->copyDeviceBufferToHost(vertices.data(), gModel->vertices.storageBuffer, *queue);
+	vulkanDevice->copyDeviceBufferToHost(indices.data(), gModel->indices.storageBuffer, *queue);
+	vkQueueWaitIdle(*queue);
+
+	ofstream of(filename);
+	if (of.is_open()) {
+		for (int i = 0; i < vertices.size(); i += 3) {
+			of << "v " << vertices[i] << " " << vertices[i + 1] << " " << vertices[i + 2] << "\n";
+		}
+		for (int t = 0; t < particleIds.size(); t++) {
+			for (int i = 0; i < 60; i += 3) {
+				offset = (particleIds[t] - 1) * 3;
+				of << "f " << indices[offset + i] + 1 << " " << indices[offset + i + 1] + 1 << " " << indices[offset + i + 2] + 1 << "\n";
+			}
+		}
+		of.close();
+		cout << "Write " << filename << " done\n";
+		cnt++;
+	}
+	else {
+		cout << "Failed file open : " << filename << "\n";
+	}
+}
+
 void DebugManager::captureSimilVarValidCnt(vks::Buffer& similVarValidCntBuffers) {
 	static uint32_t cnt = 0;
 	vector<uint32_t> validCnt(width * height);
 	vulkanDevice->copyDeviceBufferToHost(validCnt.data(), similVarValidCntBuffers, *queue);
 
 	auto maxHit = std::max_element(validCnt.begin(), validCnt.end());
+	vector<uint32_t> maxIndices;
+	vector<uint32_t> validHitIndices;
 	uint32_t totalHit = 0;
-	uint32_t zeroCnt = 0;
-	for (int val : validCnt) {
-		if (val != 0) {
-			totalHit += val;
-			zeroCnt++;
+	uint32_t nonZeroCnt = 0;
+	for (int i = 0; i < validCnt.size(); i++) {
+		if (validCnt[i] != 0) {
+			totalHit += validCnt[i];
+			nonZeroCnt++;
+			validHitIndices.push_back(i);
+		}
+		if (validCnt[i] == *maxHit) {
+			maxIndices.push_back(i + 1);
 		}
 	}
-	float avgHit = (float)totalHit / zeroCnt;
+	captureValidHitParticles(validHitIndices);
+	float avgHit = (float)totalHit / nonZeroCnt;
 	std::cout << "max hit : " << *maxHit << "\n";
+	cout << "max hit count : " << maxIndices.size() << "\n";
+	cout << "max hit idx : ";
+	for (int i = 0; i < maxIndices.size(); i++) {
+		cout << maxIndices[i] << " ";
+	}
+	cout << "\n";
 	std::cout << "totalHit : " << totalHit << "\n";
 	std::cout << "Average hit (ignore zero) : " << avgHit << "\n";
 	string filepath = DEBUG_FILE_PATH + string("similVars/");
@@ -272,14 +323,15 @@ void DebugManager::captureSimilVarBuffers(vks::Buffer& particleIdBuffer, vks::Bu
 	captureSimilVarValidCnt(similVarValidCntBuffer);
 }
 
-void DebugManager::dumpParticles(vks::Buffer& densitiesBuffer, uint32_t densitiesCnt) {
+void DebugManager::dumpParticles() {
+	uint32_t densitiesCnt = gModel->densities.count;
 	vector<float> densities(densitiesCnt);
 	vector<float> forAvg(densitiesCnt);
 	string output;
 	output.reserve(densitiesCnt * 3);
 	float avg;
 	
-	vulkanDevice->copyDeviceBufferToHost(densities.data(), densitiesBuffer, *queue);
+	vulkanDevice->copyDeviceBufferToHost(densities.data(), gModel->densities.storageBuffer, *queue);
 
 	transform(densities.begin(), densities.end(), densities.begin(), [](double val) { return 1.0f / (1.0f + exp(-val));});
 
@@ -309,15 +361,15 @@ void DebugManager::dumpParticles(vks::Buffer& densitiesBuffer, uint32_t densitie
 	of.close();
 }
 
-void DebugManager::dumpIcosahedron(vks::Buffer& verticesBuffer, vks::Buffer& indicesBuffer, uint32_t verticesCnt, uint32_t indicesCnt) {
+void DebugManager::dumpIcosahedron() {
 	string filename = "objDump.obj";
 	cout << "dumping obj file\n";
 	vkQueueWaitIdle(*queue);
-	vector<float> vertices(verticesCnt);
-	vector<uint32_t> indices(indicesCnt);
+	vector<float> vertices(gModel->vertices.count);
+	vector<uint32_t> indices(gModel->indices.count);
 
-	vulkanDevice->copyDeviceBufferToHost(vertices.data(), verticesBuffer, *queue);
-	vulkanDevice->copyDeviceBufferToHost(indices.data(), indicesBuffer, *queue);
+	vulkanDevice->copyDeviceBufferToHost(vertices.data(), gModel->vertices.storageBuffer, *queue);
+	vulkanDevice->copyDeviceBufferToHost(indices.data(), gModel->indices.storageBuffer, *queue);
 	vkQueueWaitIdle(*queue);
 
 	ofstream objFile(filename);
