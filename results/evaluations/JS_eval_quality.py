@@ -15,8 +15,11 @@ lpips = LearnedPerceptualImagePatchSimilarity(net_type='vgg')
 
 # 비교 대상 폴더
 ref_dir = 'GroundTruth/hotdog'
-cmp_dir = 'hotdog/0804/'
-cmp_dirs = ['hotdog/3dgrt', cmp_dir+'FRT', cmp_dir+'us_150', cmp_dir+'us_298']
+cmp_dir = '0814~/non'
+# cmp_dirs = ['hotdog/3dgrt', cmp_dir+'FRT', cmp_dir+'us_150', cmp_dir+'us_298']
+cmp_dirs = [os.path.join(cmp_dir, d) for d in os.listdir(cmp_dir) if os.path.isdir(os.path.join(cmp_dir, d))]
+
+print(cmp_dirs)
 
 # 이미지 개수
 num_images = 200  # ← 필요한 만큼 수정하세요
