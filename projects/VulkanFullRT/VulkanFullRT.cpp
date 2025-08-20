@@ -64,6 +64,9 @@ public:
 #if UNDERSAMPLING
 	USPipeline* usPipeline;
 #endif
+#if EVAL_QUALITY
+	uint32_t evalQualityDirNum = 0;
+#endif
 
 	vks::Buffer transformBuffer3DGRT;
 
@@ -1210,9 +1213,10 @@ public:
 		if (evalCameraIdx == 0)
 			std::cout << "*** Evaluate quality BEGIN ***\n";
 		FrameObject& prevFrame = frameObjects[getPrevFrameIndex()];
-		DebugManager::getInstance().captureRenderingImages(swapChain.images[prevFrame.imageIndex], quaternionCamera, evalCameraIdx);
+		DebugManager::getInstance().captureRenderingImages(swapChain.images[prevFrame.imageIndex], quaternionCamera, evalCameraIdx, evalQualityDirNum);
 		if (evalCameraIdx >= quaternionCamera.getNumOfCams()) {
 			evalQualFlag = false;
+			evalQualityDirNum++;
 			std::cout << "*** Evaluate quality END ***\n";
 		}
 		evalCameraIdx++;

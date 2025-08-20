@@ -119,7 +119,7 @@ public:
 	void captureImage(VkImage& image);
 	void captureRTMask(vks::Buffer& rtMask);
 	void captureHitCnt(vks::Buffer& hitCountsBuffer);
-	void captureRenderingImages(VkImage& image, QuaternionCamera& quaternionCamera, uint32_t camIdx);
+	void captureRenderingImages(VkImage& image, QuaternionCamera& quaternionCamera, uint32_t camIdx, uint32_t evalQualityDirNum);
 	void captureSimilVarBuffers(vks::Buffer& particleIdBuffer, vks::Buffer& alphaBuffer, vks::Buffer& weightBuffer, vks::Buffer& depthBuffer, vks::Buffer& similVarValidCntBuffer, vks::Buffer& finalTransmittanceBuffer);
 	void captureSimilVarValidCnt(vks::Buffer& similVarValidCntBuffers);
 	void dumpParticles();

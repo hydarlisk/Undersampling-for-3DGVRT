@@ -1892,6 +1892,7 @@ void VulkanRTBase::handleMessages(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lP
 			case KEY_O:
 				evalQualFlag = true;
 				evalCameraIdx = 0;
+				quaternionCamera.setNerfCamera(evalCameraIdx);
 				break;
 #endif
 			case KEY_I:

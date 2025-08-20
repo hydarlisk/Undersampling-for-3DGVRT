@@ -283,11 +283,7 @@ public:
 		/** @brief Set to true if v-sync will be forced for the swapchain */
 		bool vsync = false;
 		/** @brief Enable UI overlay */
-#if EVAL_QUALITY
-		bool overlay = false;
-#else
 		bool overlay = true;
-#endif
 	} settings;
 
 #if EVAL_QUALITY

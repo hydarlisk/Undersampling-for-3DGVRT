@@ -5,6 +5,10 @@
  *
  */
 
+
+#define REAL_JACCARD 0
+
+
 #define LOCAL_SIZE_X 32
 #define LOCAL_SIZE_Y 32
 
@@ -89,6 +93,7 @@ bool hitInfoCheck(uvec2 nearPixel1, uvec2 nearPixel2, uvec2 targetPixel) {
     uint intersection = 0;
     uint unionCount = 0;
 
+#if REAL_JACCARD
     for (int i = 0; i < hitCnt1; i++) {
         a[i] = id[offset1 + i];
     }
@@ -105,7 +110,7 @@ bool hitInfoCheck(uvec2 nearPixel1, uvec2 nearPixel2, uvec2 targetPixel) {
         }
     }
     unionCount = 2 * hitCnt1 * hitCnt2 - intersection;
-
+#else
     for (int i = 0; i < cmpCnt; i++) {
         a[i] = id[offset1 + i];
         b[i] = id[offset2 + i];
@@ -120,7 +125,7 @@ bool hitInfoCheck(uvec2 nearPixel1, uvec2 nearPixel2, uvec2 targetPixel) {
         }
     }
     unionCount = 2 * cmpCnt - intersection;
-
+#endif
     float similarity = (unionCount > 0) ? float(intersection) / float(unionCount) : 0.0;
     similarityVar[offset1 + additionalRT] = similarity;
     if (similarity > hitThreshold) {

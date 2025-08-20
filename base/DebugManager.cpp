@@ -8,10 +8,11 @@
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "stb_image_write.h"
 
+#include "camera.hpp"
+
 #include <iostream>
 #include <algorithm>
-
-#include "camera.hpp"
+#include <filesystem>
 
 using namespace std;
 
@@ -176,7 +177,7 @@ void DebugManager::captureRTMask(vks::Buffer& rtMaskBuffer) {
 	cnt++;
 }
 
-void DebugManager::captureRenderingImages(VkImage& image, QuaternionCamera& quaternionCamera, uint32_t camIdx) {
+void DebugManager::captureRenderingImages(VkImage& image, QuaternionCamera& quaternionCamera, uint32_t camIdx, uint32_t evalQualityDirNum) {
 	vkQueueWaitIdle(*queue);
 
 	vulkanDevice->copyImageToBuffer(image, currentImgBuffer, *queue, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, width, height);
@@ -187,7 +188,19 @@ void DebugManager::captureRenderingImages(VkImage& image, QuaternionCamera& quat
 	currentImgBuffer.unmap();
 
 	int stride = width * 4;
-	std::string fileName = "../results/evaluations/output/r_" + std::to_string(camIdx) + ".png";
+	string outputDir = "../results/evaluations/outputs/output" + to_string(evalQualityDirNum) + "/";
+	if (!filesystem::exists(outputDir)) {
+		try {
+			filesystem::create_directories(outputDir);
+			cout << "create folder : " << outputDir << "\n";
+		}
+		catch (const std::exception& e) {
+			cerr << "cannot create folder : " << e.what() << "\n";
+			return;
+		}
+	}
+	
+	std::string fileName = outputDir + "r_" + std::to_string(camIdx) + ".png";
 	stbi_write_png(fileName.c_str(), width, height, 4, currentImg, stride);
 
 	std::cout << "\t- Camera index " << camIdx << " is completed.\n";
