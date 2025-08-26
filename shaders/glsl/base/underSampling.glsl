@@ -6,13 +6,13 @@
  */
 
 
-#define REAL_JACCARD 0
+#define REAL_JACCARD 1
 
 
 #define LOCAL_SIZE_X 32
 #define LOCAL_SIZE_Y 32
 
-#define MAX_SIMILARITY_VAR 10
+#define MAX_SIMILARITY_VAR 10   // Should be managed with Define.h
 
 #define SHARED_MEMORY 1
 
@@ -109,7 +109,7 @@ bool hitInfoCheck(uvec2 nearPixel1, uvec2 nearPixel2, uvec2 targetPixel) {
             }
         }
     }
-    unionCount = 2 * hitCnt1 * hitCnt2 - intersection;
+    unionCount = hitCnt1 + hitCnt2 - intersection;
 #else
     for (int i = 0; i < cmpCnt; i++) {
         a[i] = id[offset1 + i];
