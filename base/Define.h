@@ -27,6 +27,7 @@
 /* Debug */
 #define STATISTICS 0		// Should be managed with undersampling.glsl
 #define ENABLE_HIT_COUNTS 0	// Should be managed with 3dgs.glsl. 
+#define DUMP_ICOSAHEDRON 1					// Should be managed with 3dgs.glsl ENCLOSING_DENSITY_TRHESHOLD
 
 #define DEBUG_FILE_PATH "../results/debug/"
 

@@ -141,7 +141,8 @@ void main()
 			return;
 #endif
 		float density = sigmoid(gDns[globalIdx]);	//activation
-        //if(density < 0.98) return;
+        
+        if(density < ENCLOSING_DENSITY_TRHESHOLD) return;
 
 		const uint saveIdx = atomicAdd(particleCounts, 1);
 		const uint sVertIdx = icosaHedronNumVrt * saveIdx * 3;

@@ -1122,11 +1122,12 @@ public:
 		// particle sph coefficient
 		VK_CHECK_RESULT(vulkanDevice->createBuffer(VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &particleSphCoefficients, sizeof(ParticleSphCoefficient) * gModel.splatSet.size(), nullptr));
 
+		DebugManager::getInstance().setModel(gModel);
+
 		gaussianEnclosingPipeline = new GaussianEnclosingPipeline(*vulkanDevice, graphicsQueue, cmdPool, gModel, DIR_PATH);
 		gaussianEnclosingPipeline->prepare(particleDensities, particleSphCoefficients);
 		gaussianEnclosingPipeline->run();
 
-		DebugManager::getInstance().setModel(gModel);
 		DebugManager::getInstance().dumpParticles();
 		// Create the acceleration structures used to render the ray traced scene
 #if LOAD_GLTF

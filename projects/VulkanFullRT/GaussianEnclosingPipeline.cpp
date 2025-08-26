@@ -188,5 +188,7 @@ void GaussianEnclosingPipeline::run() {
 	submitInfo.pCommandBuffers = &commandBuffer;
 	VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE));
 	vkDeviceWaitIdle(device);
-	//DebugManager::getInstance().dumpIcosahedron(gModel.vertices.storageBuffer, gModel.indices.storageBuffer, gModel.vertices.count, gModel.indices.count);
+#if DUMP_ICOSAHEDRON
+	DebugManager::getInstance().dumpIcosahedron();
+#endif
 }
