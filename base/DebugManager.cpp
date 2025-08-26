@@ -121,17 +121,18 @@ void DebugManager::captureHitCnt(vks::Buffer& hitCountsBuffer) {
 	vulkanDevice->copyDeviceBufferToHost(hitCnts.data(), hitCountsBuffer, *queue);
 	auto maxHit = std::max_element(hitCnts.begin(), hitCnts.end());
 	uint32_t totalHit = 0;
-	uint32_t zeroCnt = 0;
+	uint32_t nonZero = 0;
 	for (int val : hitCnts) {
 		if (val != 0) {
 			totalHit += val;
-			zeroCnt++;
+			nonZero++;
 		}
 	}
-	float avgHit = (float)totalHit / zeroCnt;
+	float avgHit = (float)totalHit / nonZero;
 	std::cout << "max hit : " << *maxHit << "\n";
 	std::cout << "totalHit : " << totalHit << "\n";
 	std::cout << "Average hit (ignore zero) : " << avgHit << "\n";
+	std::cout << "No hit pixel ratio : " << (float)(width * height - nonZero) / (width * height) << "\n";
 	saveGrayScaleImage(hitCnts, DEBUG_FILE_PATH + string("hitCounts/grayscale") + to_string(cnt) + ".png");
 	saveColorMapImage(hitCnts, *maxHit, DEBUG_FILE_PATH + string("hitCounts/colormap") + std::to_string(cnt) + ".png");
 	printRayHitCounts(hitCnts, cnt);
