@@ -1255,6 +1255,7 @@ public:
 		if (!renderFlag) return;
 		draw();
 #if ENABLE_HIT_COUNTS && !RAY_QUERY
+		//KEY_C
 		if (captureHitCntFlag) {
 			captureHitCnt();
 			captureHitCntFlag = false;
@@ -1262,16 +1263,19 @@ public:
 #endif
 #if UNDERSAMPLING
 	#if STATISTICS
+		//KEY_M
 		if (captureRTMaskFlag) {
 			captureRTMask();
 			captureRTMaskFlag = false;
 		}
 	#endif
 	#if SIMILARITY_VAR
+		//KEY_B
 		if (captureSimilVarBuffersFlag) {
 			captureSimilVarBuffers();
 			captureSimilVarBuffersFlag = false;
 		}
+		//KEY_V
 		if (captureValidCntBufferFlag) {
 			captureValidCntBuffer();
 			captureValidCntBufferFlag = false;

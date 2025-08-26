@@ -36,22 +36,6 @@ void DebugManager::setModel(vk3DGRT::Model& gModel) {
 	this->gModel = &gModel;
 }
 
-//// Print the ray hit count of each pixel of last frame to the txt file.
-//void DebugManager::printRayHitCounts(const vector<uint32_t>& hitCnts, uint32_t cnt) {
-//	string filename = DEBUG_FILE_PATH + string("hitCounts/text") + to_string(cnt) + ".txt";
-//	FILE* fp = fopen(filename.c_str(), "w");
-//	if (fp) {
-//		for (size_t i = 0; i < height; ++i) {
-//			for (size_t j = 0; j < width; ++j) {
-//				fprintf(fp, "%u\t", hitCnts[i * width + j]);
-//			}
-//			fprintf(fp, "\n");
-//		}
-//		fclose(fp);
-//	}
-//	cout << "Writing " + filename + " done\n";
-//}
-
 void DebugManager::printRayHitCounts(const std::vector<uint32_t>& hitCnts, uint32_t cnt) {
 	std::string filename = DEBUG_FILE_PATH + std::string("hitCounts/text") + std::to_string(cnt) + ".txt";
 	std::ofstream ofs(filename);
