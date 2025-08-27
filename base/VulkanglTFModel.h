@@ -185,16 +185,6 @@ namespace vkglTF
 		std::string name;
 		uint32_t objectID;
 
-#if USE_ANIMATION
-		struct UniformBuffer {
-			VkBuffer buffer;
-			VkDeviceMemory memory;
-			VkDescriptorBufferInfo descriptor;
-			VkDescriptorSet descriptorSet = VK_NULL_HANDLE;
-			void* mapped;
-		} uniformBuffer;
-#endif
-
 		UniformBlock uniformBlock{};
 
 		Mesh(vks::VulkanDevice* device, glm::mat4 matrix);
@@ -221,9 +211,6 @@ namespace vkglTF
 		glm::mat4 matrix;
 		std::string name;
 		Mesh* mesh;
-#if USE_ANIMATION
-		Skin* skin;
-#endif
 		int32_t skinIndex = -1;
 		glm::vec3 translation{};
 		glm::vec3 scale{ 1.0f };

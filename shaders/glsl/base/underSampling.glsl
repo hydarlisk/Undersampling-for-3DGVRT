@@ -69,21 +69,6 @@ bool hitInfoCheck(uvec2 nearPixel1, uvec2 nearPixel2, uvec2 targetPixel) {
     uint hitCnt2 = validCnt[calcIdx(nearPixel2)];
     uint cmpCnt = min(MAX_SIMILARITY_VAR, min(hitCnt1, hitCnt2));
     if (cmpCnt == 0) return true;
-    
-    /*uint cmpCnt = min(MAX_SIMILARITY_VAR, min(hitCnt1, hitCnt2));
-    float dot = 0.0f;
-    float normA = 0.0f;
-    float normB = 0.0f;
-
-    for (int i = 0; i < cmpCnt; i++) {
-        float a = id[calcIdx(nearPixel1) * MAX_SIMILARITY_VAR + i];
-        float b = id[calcIdx(nearPixel2) * MAX_SIMILARITY_VAR + i];
-        dot += a * b;
-        normA += a * a;
-        normB += b * b;
-    }
-    float denom = sqrt(normA) * sqrt(normB);
-    return (dot / denom) > HIT_SIMILARITY ? true : false;*/
 
     uint a[MAX_SIMILARITY_VAR];
     uint b[MAX_SIMILARITY_VAR];

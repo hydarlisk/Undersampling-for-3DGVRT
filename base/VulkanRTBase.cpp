@@ -366,11 +366,7 @@ void VulkanRTBase::nextFrame(std::vector<BaseFrameObject*>& frameObjects)
 	// Convert to clamped timer value
 	if (!paused)
 	{
-#if TIMER_CORRECTION
 		timer += timerSpeed * frameTimer;
-#else
-		timer += timerSpeed * timerControl;
-#endif
 		if (timer > 1.0)
 		{
 			timer -= 1.0f;
@@ -482,11 +478,7 @@ void VulkanRTBase::renderLoop(std::vector<BaseFrameObject*>& frameObjects)
 			// Convert to clamped timer value
 			if (!paused)
 			{
-#if TIMER_CORRECTION
 				timer += timerSpeed * frameTimer;
-#else
-				timer += timerSpeed * timerControl;
-#endif
 				if (timer > 1.0)
 				{
 					timer -= 1.0f;
@@ -1046,11 +1038,7 @@ void VulkanRTBase::prepareFrame(BaseFrameObject& frame)
 
 void VulkanRTBase::submitFrame()
 {
-#if MULTIQUEUE
-	VkResult result = swapChain.queuePresent(presentQueue, acquiredIndex, semaphores.renderComplete);
-#else
 	VkResult result = swapChain.queuePresent(graphicsQueue, acquiredIndex, semaphores.renderComplete);
-#endif
 	// Recreate the swapchain if it's no longer compatible with the surface (OUT_OF_DATE) or no longer optimal for presentation (SUBOPTIMAL)
 	if ((result == VK_ERROR_OUT_OF_DATE_KHR) || (result == VK_SUBOPTIMAL_KHR)) {
 		windowResize();
@@ -1079,11 +1067,7 @@ void VulkanRTBase::submitFrame(BaseFrameObject& frame)
 	submitInfo.pCommandBuffers = &frame.commandBuffer;
 	VK_CHECK_RESULT(vkQueueSubmit(graphicsQueue, 1, &submitInfo, frame.renderCompleteFence));
 
-#if MULTIQUEUE
-	VkResult result = swapChain.queuePresent(presentQueue, frame.imageIndex, frame.renderCompleteSemaphore);
-#else
 	VkResult result = swapChain.queuePresent(graphicsQueue, frame.imageIndex, frame.renderCompleteSemaphore);
-#endif
 
 	if (!((result == VK_SUCCESS) || (result == VK_SUBOPTIMAL_KHR))) {
 		if (result == VK_ERROR_OUT_OF_DATE_KHR) {
@@ -1138,11 +1122,7 @@ void VulkanRTBase::submitFrameCustomWait(BaseFrameObject& frame, std::vector<VkS
 	submitInfo.pCommandBuffers = &frame.commandBuffer;
 	VK_CHECK_RESULT(vkQueueSubmit(graphicsQueue, 1, &submitInfo, frame.renderCompleteFence));
 
-#if MULTIQUEUE
-	VkResult result = swapChain.queuePresent(presentQueue, frame.imageIndex, frame.renderCompleteSemaphore);
-#else
 	VkResult result = swapChain.queuePresent(graphicsQueue, frame.imageIndex, frame.renderCompleteSemaphore);
-#endif
 	if (!((result == VK_SUCCESS) || (result == VK_SUBOPTIMAL_KHR))) {
 		if (result == VK_ERROR_OUT_OF_DATE_KHR) {
 			// Swap chain is no longer compatible with the surface and needs to be recreated
@@ -1523,9 +1503,6 @@ bool VulkanRTBase::initVulkan()
 
 	// Get a graphics queue from the device
 	vkGetDeviceQueue(device, vulkanDevice->queueFamilyIndices.graphics, 0, &graphicsQueue);
-#if MULTIQUEUE
-	vkGetDeviceQueue(device, vulkanDevice->queueFamilyIndices.graphics, 1, &presentQueue);
-#endif
 
 	// Find a suitable depth and/or stencil format
 	VkBool32 validFormat{ false };
@@ -1809,7 +1786,7 @@ void VulkanRTBase::handleMessages(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lP
 				camera.setRotation(glm::vec3(-3.199999, -88.599998, 0.000000));
 				camera.setTranslation(glm::vec3(-4.211443, 1.331187, -0.232099));
 				break;
-#if ENABLE_HIT_COUNTS && !RAY_QUERY
+#if ENABLE_HIT_COUNTS
 			case KEY_C:
 				captureHitCntFlag = true;
 				break;

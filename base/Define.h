@@ -27,9 +27,7 @@
 /* Debug */
 #define STATISTICS 0		// Should be managed with undersampling.glsl
 #define ENABLE_HIT_COUNTS 0	// Should be managed with 3dgs.glsl. 
-#define DUMP_ICOSAHEDRON 1					// Should be managed with 3dgs.glsl ENCLOSING_DENSITY_TRHESHOLD
-
-#define DEBUG_FILE_PATH "../results/debug/"
+#define DUMP_ICOSAHEDRON 0					// Should be managed with 3dgs.glsl ENCLOSING_DENSITY_TRHESHOLD
 
 #define INIT_COLOR_THRESHOLD 0.15
 #define INIT_HIT_THRESHOLD 0.5
@@ -49,34 +47,17 @@
 #define LOAD_NERF_CAMERA true
 #define DYNAMIC_CAMERA false
 
+#define ASSET 3
+#define LOAD_GLTF 0
+
+
+#define DEBUG_FILE_PATH "../results/debug/"
+
 #if EVAL_QUALITY
 #define CAMERA_FILE "transforms_test.json"
 #else
 #define CAMERA_FILE "transforms_val.json"
 #endif
-
-/* Handle Macro Dependencies */
-#if ENABLE_HIT_COUNTS
-#undef UNDERSAMPLING
-#define UNDERSAMPLING 0
-#endif
-
-#if UNDERSAMPLING == 0
-#undef SIMILARITY_VAR
-#define SIMILARITY_VAR 0
-#undef STATISTICS
-#define STATISTICS 0
-#endif
-
-#if DYNAMIC_CAMERA
-#undef QUATERNION_CAMERA
-#define QUATERNION_CAMERA false
-#endif
-
-#define ASSET 3
-#define LOAD_GLTF 0
-
-
 
 #define FOV_Y 39.6f
 #define NEAR_PLANE 0.005f
@@ -96,11 +77,28 @@
 #define TB_SIZE_X 1	// Should be managed with define.glsl
 #define TB_SIZE_Y 2	// Should be managed with define.glsl
 
-#define MULTIQUEUE 0	// 0 is Default
-#define TIMER_CORRECTION 1
-#define TEXTURE_COMPRESSION 0
+/* Handle Macro Dependencies */
+#if ENABLE_HIT_COUNTS
+#undef UNDERSAMPLING
+#define UNDERSAMPLING 0
+#endif
 
-#define USE_ANIMATION 0 // 0 is Default
+#if UNDERSAMPLING == 0
+#undef SIMILARITY_VAR
+#define SIMILARITY_VAR 0
+#undef STATISTICS
+#define STATISTICS 0
+#endif
+
+#if DYNAMIC_CAMERA
+#undef QUATERNION_CAMERA
+#define QUATERNION_CAMERA false
+#endif
+
+#if SPLIT_BLAS || ENABLE_HIT_COUNTS
+#undef RAY_QUERY
+#define RAY_QUERY 0
+#endif
 
 #define N_IS_UP		// Should be managed with 3DGRT Asset Num.
 //#define Y_IS_UP
@@ -133,42 +131,7 @@
 #define LOAD_NERF_CAMERA false
 #endif
 
-#if TEXTURE_COMPRESSION
-#undef ASSET_PATH
-#if ASSET == 0
-#define ASSET_PATH "models/suntemple_etc1s/SunTemple.gltf"
-
-#elif ASSET == 1
-#define ASSET_PATH "models/sponza_etc1s/Sponza.gltf"
-
-#elif ASSET == 4
-#define ASSET_PATH "models/bistroexterior_etc1s/BistroExterior.gltf"
-#endif
-#endif
-
 #define CUBEMAP_TEXTURE_PATH "cubeMapTextures/blueSky.ktx"
-
-#if ASSET == 0
-#define NUM_OF_LIGHTS_SUPPORTED 1
-#define NUM_OF_DYNAMIC_LIGHTS 1	
-#define NUM_OF_STATIC_LIGHTS 1
-#define STATIC_LIGHT_OFFSET 0
-#elif ASSET == 1
-#define NUM_OF_LIGHTS_SUPPORTED 1
-#define NUM_OF_DYNAMIC_LIGHTS 1		
-#define NUM_OF_STATIC_LIGHTS 1		// for convenience
-#define STATIC_LIGHT_OFFSET 0
-#elif ASSET == 4
-#define NUM_OF_LIGHTS_SUPPORTED 1
-#define NUM_OF_DYNAMIC_LIGHTS 1	 // temporarily assigned value
-#define NUM_OF_STATIC_LIGHTS 1	// temporarily assigned value
-#define STATIC_LIGHT_OFFSET 0
-#else
-#define NUM_OF_LIGHTS_SUPPORTED 1
-#define NUM_OF_DYNAMIC_LIGHTS 1		// for convenience
-#define NUM_OF_STATIC_LIGHTS 1
-#define STATIC_LIGHT_OFFSET 0
-#endif
 
 /*** 3DGS ***/
 #define NUM_OF_GAUSSIANS 1024	// This macro should be managed with 3dgs.glsl

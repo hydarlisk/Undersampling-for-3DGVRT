@@ -20,7 +20,7 @@
 #include "GaussianEnclosingPipeline.hpp"
 #include "RTpipeline.hpp"
 
-#if SPLIT_BLAS && !RAY_QUERY
+#if SPLIT_BLAS
 #include "SplitBLAS.hpp"
 #endif
 #if UNDERSAMPLING
@@ -58,7 +58,7 @@ public:
 	GaussianEnclosingPipeline* gaussianEnclosingPipeline;
 	RTPipeline* rtPipeline;
 
-#if SPLIT_BLAS && !RAY_QUERY
+#if SPLIT_BLAS
 	SplitBLAS splitBLAS;
 #endif
 #if UNDERSAMPLING
@@ -70,26 +70,15 @@ public:
 
 	vks::Buffer transformBuffer3DGRT;
 
-#if !RAY_QUERY
 	std::vector<VkRayTracingShaderGroupCreateInfoKHR> shaderGroups{};
 	struct ShaderBindingTables {
 		ShaderBindingTable raygen;
 		ShaderBindingTable miss;
 		ShaderBindingTable hit;
 	} shaderBindingTables;
-#endif
 
 	vks::utils::UniformDataDynamic uniformDataDynamic;
 	vks::utils::UniformDataStatic uniformDataStatic;
-
-	struct SpecializationData {
-		uint32_t numOfLights = NUM_OF_LIGHTS_SUPPORTED;
-		uint32_t numOfDynamicLights = NUM_OF_DYNAMIC_LIGHTS;
-		uint32_t numOfStaticLights = NUM_OF_STATIC_LIGHTS;
-		uint32_t staticLightOffset = STATIC_LIGHT_OFFSET;
-		uint32_t windowSizeX = 1;
-		uint32_t windowSizeY = 1;
-	} specializationData;
 
 	// for Particle Rendering pass
 	VkPipeline pipeline{ VK_NULL_HANDLE };
@@ -100,7 +89,7 @@ public:
 
 	struct FrameObject : public BaseFrameObject {
 		VkDescriptorSet descriptorSet{ VK_NULL_HANDLE };
-#if ENABLE_HIT_COUNTS && !RAY_QUERY || SIMILARITY_VAR
+#if ENABLE_HIT_COUNTS || SIMILARITY_VAR
 		vks::Buffer hitCountsBuffer;
 #endif
 	};
@@ -110,9 +99,6 @@ public:
 
 	VkPhysicalDeviceDescriptorIndexingFeaturesEXT physicalDeviceDescriptorIndexingFeatures{};
 	VkPhysicalDeviceHostQueryResetFeaturesEXT physicalDeviceHostQueryResetFeatures{};
-#if RAY_QUERY
-	VkPhysicalDeviceRayQueryFeaturesKHR enabledRayQueryFeatures{};
-#endif
 
 	const uint32_t timeStampCountPerFrame = 1;
 #if !SPLIT_BLAS
@@ -155,10 +141,6 @@ public:
 	VulkanFullRT() : VulkanRTCommon()
 	{
 		title = "Abura Soba - Vulkan Full Ray Tracing";
-
-#if RAY_QUERY
-		rayQueryOnly = true;
-#endif
 	}
 
 	~VulkanFullRT()
@@ -185,11 +167,9 @@ public:
 			deleteAccelerationStructure(topLevelAS3DGRT);
 			transformBuffer3DGRT.destroy();
 		
-#if !RAY_QUERY
 			shaderBindingTables.raygen.destroy();
 			shaderBindingTables.miss.destroy();
 			shaderBindingTables.hit.destroy();
-#endif
 			destroyCommandBuffers();
 
 #if LOAD_GLTF
@@ -729,7 +709,6 @@ public:
 	}
 #endif
 
-#if !RAY_QUERY
 	/*
 		Create the Shader Binding Tables that binds the programs and top-level acceleration structure
 
@@ -770,7 +749,6 @@ public:
 			&shaderBindingTables.hit.stridedDeviceAddressRegion
 		);
 	}
-#endif
 
 	/*
 		If the window has been resized, we need to recreate the storage image and it's descriptor
@@ -812,7 +790,6 @@ public:
 			VK_IMAGE_LAYOUT_UNDEFINED,
 			VK_IMAGE_LAYOUT_GENERAL,
 			subresourceRange);
-		
 
 #if RAY_QUERY
 		vkCmdBindPipeline(frame.commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, pipeline);
@@ -820,8 +797,6 @@ public:
 		vkCmdPushConstants(frame.commandBuffer, pipelineLayout, VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(pushConstants), &pushConstants);
 		vkCmdDispatch(frame.commandBuffer, (width + TB_SIZE_X - 1) / TB_SIZE_X, (height + TB_SIZE_Y - 1) / TB_SIZE_Y, 1);
 #endif
-		//original push constant for rt pipeline
-		/*vkCmdPushConstants(frame.commandBuffer, pipelineLayout, VK_SHADER_STAGE_RAYGEN_BIT_KHR, 0, sizeof(pushConstants), &pushConstants);*/
 
 #if UNDERSAMPLING
 		rtPipeline->record(frame.commandBuffer, frame.imageIndex, 0);
@@ -864,15 +839,9 @@ public:
 
 			vkCmdResetQueryPool(frame.commandBuffer, frame.timeStampQueryPool, 0, static_cast<uint32_t>(frame.timeStamps.size()));
 
-#if RAY_QUERY
-			vkCmdBindPipeline(frame.commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, pipeline);
-			vkCmdBindDescriptorSets(frame.commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, pipelineLayout, 0, 1, &frame.descriptorSet, 0, 0);
-			vkCmdPushConstants(frame.commandBuffer, pipelineLayout, VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(pushConstants), &pushConstants);
-#else
 			vkCmdBindPipeline(frame.commandBuffer, VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR, pipeline);
 			vkCmdBindDescriptorSets(frame.commandBuffer, VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR, pipelineLayout, 0, 1, &frame.descriptorSet, 0, 0);
 			vkCmdPushConstants(frame.commandBuffer, pipelineLayout, VK_SHADER_STAGE_RAYGEN_BIT_KHR, 0, sizeof(pushConstants), &pushConstants);
-#endif
 
 			vks::tools::setImageLayout(
 				frame.commandBuffer,
@@ -881,9 +850,6 @@ public:
 				VK_IMAGE_LAYOUT_GENERAL,
 				subresourceRange);
 
-#if RAY_QUERY
-			vkCmdDispatch(frame.commandBuffer, width, height, 1);
-#else
 			VkStridedDeviceAddressRegionKHR emptySbtEntry = {};
 			vkCmdTraceRaysKHR(
 				frame.commandBuffer,
@@ -894,7 +860,6 @@ public:
 				width,
 				height,
 				1);
-#endif
 
 			vks::tools::setImageLayout(
 				frame.commandBuffer,
@@ -955,14 +920,6 @@ public:
 	virtual void getEnabledFeatures()
 	{
 		// New Features using VkPhysicalDeviceFeatures2 structure.
-#if RAY_QUERY
-		// Enable feature required for ray query.
-		enabledRayQueryFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_QUERY_FEATURES_KHR;
-		enabledRayQueryFeatures.rayQuery = VK_TRUE;
-		
-		physicalDeviceHostQueryResetFeatures.pNext = &enabledRayQueryFeatures;
-#endif
-
 		// Enable feature required for time stamp command pool reset.
 		physicalDeviceHostQueryResetFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_HOST_QUERY_RESET_FEATURES_EXT;
 		physicalDeviceHostQueryResetFeatures.hostQueryReset = VK_TRUE;
@@ -998,7 +955,7 @@ public:
 
 		enabledDeviceExtensions.push_back(VK_KHR_MAINTENANCE3_EXTENSION_NAME);
 		enabledDeviceExtensions.push_back(VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME);
-		enabledDeviceExtensions.push_back(VK_KHR_RAY_QUERY_EXTENSION_NAME);
+		//enabledDeviceExtensions.push_back(VK_KHR_RAY_QUERY_EXTENSION_NAME);
 	}
 
 	void loadAssets()
@@ -1105,7 +1062,7 @@ public:
 			vulkanDevice->createAndCopyToDeviceBuffer(&uniformDataStatic, frame.uniformBufferStatic, sizeof(vks::utils::UniformDataStatic), graphicsQueue, usageFlags, memoryFlags);
 
 			// For debugging, write hit counts
-#if ENABLE_HIT_COUNTS && !RAY_QUERY || SIMILARITY_VAR
+#if ENABLE_HIT_COUNTS || SIMILARITY_VAR
 			string bufferName = "hitCountsBuffer" + to_string(i);
 			VK_CHECK_RESULT(vulkanDevice->createBuffer(VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &frame.hitCountsBuffer, sizeof(unsigned int) * width * height, nullptr, bufferName.c_str()));
 #endif
@@ -1135,7 +1092,7 @@ public:
 		createTopLevelAccelerationStructure();
 #endif
 
-#if SPLIT_BLAS && !RAY_QUERY
+#if SPLIT_BLAS
 		std::cout << "*** Split BLAS BEGIN ***\n";
 		auto startTime = std::chrono::high_resolution_clock::now();
 		splitBLAS.init(vulkanDevice);
@@ -1175,7 +1132,7 @@ public:
 				frameObjects[i].uniformBufferStatic,
 				particleDensities,
 				particleSphCoefficients
-#if ENABLE_HIT_COUNTS && !RAY_QUERY || SIMILARITY_VAR
+#if ENABLE_HIT_COUNTS || SIMILARITY_VAR
 				, frameObjects[i].hitCountsBuffer
 #endif
 #if UNDERSAMPLING && STATISTICS
@@ -1184,9 +1141,7 @@ public:
 			);
 		}
 
-#if !RAY_QUERY
 		createShaderBindingTables(*rtPipeline);
-#endif
 		prepared = true;
 	}
 
@@ -1224,7 +1179,7 @@ public:
 	}
 #endif
 
-#if ENABLE_HIT_COUNTS && !RAY_QUERY
+#if ENABLE_HIT_COUNTS
 	void captureHitCnt() {
 		FrameObject& prevFrame = frameObjects[getPrevFrameIndex()];
 		DebugManager::getInstance().captureHitCnt(prevFrame.hitCountsBuffer);
@@ -1254,7 +1209,7 @@ public:
 
 		if (!renderFlag) return;
 		draw();
-#if ENABLE_HIT_COUNTS && !RAY_QUERY
+#if ENABLE_HIT_COUNTS
 		//KEY_C
 		if (captureHitCntFlag) {
 			captureHitCnt();

@@ -679,24 +679,9 @@ void vkglTF::Primitive::setDimensions(glm::vec3 min, glm::vec3 max) {
 vkglTF::Mesh::Mesh(vks::VulkanDevice* device, glm::mat4 matrix) {
 	this->device = device;
 	this->uniformBlock.matrix = matrix;
-#if USE_ANIMATION
-	VK_CHECK_RESULT(device->createBuffer(
-		VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-		VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-		sizeof(uniformBlock),
-		&uniformBuffer.buffer,
-		&uniformBuffer.memory,
-		&uniformBlock));
-	VK_CHECK_RESULT(vkMapMemory(device->logicalDevice, uniformBuffer.memory, 0, sizeof(uniformBlock), 0, &uniformBuffer.mapped));
-	uniformBuffer.descriptor = { uniformBuffer.buffer, 0, sizeof(uniformBlock) };
-#endif
 };
 
 vkglTF::Mesh::~Mesh() {
-#if USE_ANIMATION
-	vkDestroyBuffer(device->logicalDevice, uniformBuffer.buffer, nullptr);
-	vkFreeMemory(device->logicalDevice, uniformBuffer.memory, nullptr);
-#endif
 	for (auto primitive : primitives)
 	{
 		delete primitive;
@@ -739,21 +724,6 @@ glm::mat4 vkglTF::Node::getRotationMatrix()
 void vkglTF::Node::update() {
 	if (mesh) {
 		glm::mat4 m = getMatrix();
-#if USE_ANIMATION
-		if (skin) {
-			mesh->uniformBlock.matrix = m;
-			// Update join matrices
-			glm::mat4 inverseTransform = glm::inverse(m);
-			for (size_t i = 0; i < skin->joints.size(); i++) {
-				vkglTF::Node* jointNode = skin->joints[i];
-				glm::mat4 jointMat = jointNode->getMatrix() * skin->inverseBindMatrices[i];
-				jointMat = inverseTransform * jointMat;
-				mesh->uniformBlock.jointMatrix[i] = jointMat;
-			}
-			mesh->uniformBlock.jointcount = (float)skin->joints.size();
-			memcpy(mesh->uniformBuffer.mapped, &mesh->uniformBlock, sizeof(mesh->uniformBlock));
-		}
-#endif
 	}
 
 	for (auto& child : children) {
@@ -1598,12 +1568,6 @@ void vkglTF::Model::loadFromFile(std::string filename, vks::VulkanDevice* device
 		//taekgeun added end
 
 		for (auto node : linearNodes) {
-#if USE_ANIMATION
-			// Assign skins
-			if (node->skinIndex > -1) {
-				node->skin = skins[node->skinIndex];
-			}
-#endif
 			// Initial pose
 			if (node->mesh) {
 				node->update();				
@@ -1897,26 +1861,6 @@ vkglTF::Node* vkglTF::Model::nodeFromIndex(uint32_t index) {
 }
 
 void vkglTF::Model::prepareNodeDescriptor(vkglTF::Node* node, VkDescriptorSetLayout descriptorSetLayout) {
-	if (node->mesh) {
-#if USE_ANIMATION
-		VkDescriptorSetAllocateInfo descriptorSetAllocInfo{};
-		descriptorSetAllocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-		descriptorSetAllocInfo.descriptorPool = descriptorPool;
-		descriptorSetAllocInfo.pSetLayouts = &descriptorSetLayout;
-		descriptorSetAllocInfo.descriptorSetCount = 1;
-		VK_CHECK_RESULT(vkAllocateDescriptorSets(device->logicalDevice, &descriptorSetAllocInfo, &node->mesh->uniformBuffer.descriptorSet));
-
-		VkWriteDescriptorSet writeDescriptorSet{};
-		writeDescriptorSet.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-		writeDescriptorSet.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-		writeDescriptorSet.descriptorCount = 1;
-		writeDescriptorSet.dstSet = node->mesh->uniformBuffer.descriptorSet;
-		writeDescriptorSet.dstBinding = 0;
-		writeDescriptorSet.pBufferInfo = &node->mesh->uniformBuffer.descriptor;
-
-		vkUpdateDescriptorSets(device->logicalDevice, 1, &writeDescriptorSet, 0, nullptr);
-#endif
-	}
 	for (auto& child : node->children) {
 		prepareNodeDescriptor(child, descriptorSetLayout);
 	}

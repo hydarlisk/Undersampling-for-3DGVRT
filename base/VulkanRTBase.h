@@ -291,7 +291,7 @@ public:
 	bool evalQualFlag = false;
 	unsigned int evalCameraIdx;
 #endif
-#if ENABLE_HIT_COUNTS && !RAY_QUERY
+#if ENABLE_HIT_COUNTS
 	bool captureHitCntFlag = false;
 #endif
 #if UNDERSAMPLING

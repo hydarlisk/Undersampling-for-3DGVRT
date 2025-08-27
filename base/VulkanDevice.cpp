@@ -198,13 +198,8 @@ namespace vks
 			VkDeviceQueueCreateInfo queueInfo{};
 			queueInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
 			queueInfo.queueFamilyIndex = queueFamilyIndices.graphics;
-#if MULTIQUEUE
-			queueInfo.queueCount = 2;
-			queueInfo.pQueuePriorities = defaultQueuePriorities.data();
-#else
 			queueInfo.queueCount = 1;
 			queueInfo.pQueuePriorities = &defaultQueuePriority;
-#endif
 
 			queueCreateInfos.push_back(queueInfo);
 

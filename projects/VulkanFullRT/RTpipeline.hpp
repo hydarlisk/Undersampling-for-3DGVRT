@@ -83,7 +83,7 @@ public:
 	
 	void prepare(uint32_t width, uint32_t height);
 	void initDescriptorSet(int frameIdx, VulkanSwapChain& swapChain, VkAccelerationStructureKHR& tlasHandle, vks::Buffer& uniformBuffer, vks::Buffer& uniformBufferStatic, vks::Buffer& particleDensities, vks::Buffer& particleSphCoefficients
-#if ENABLE_HIT_COUNTS && !RAY_QUERY || SIMILARITY_VAR
+#if ENABLE_HIT_COUNTS || SIMILARITY_VAR
 		, vks::Buffer& hitCountsbuffer
 #endif
 //TODO: use member rtMaskBuffers

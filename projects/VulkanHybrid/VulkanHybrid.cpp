@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Sogang Univ, Graphics Lab, 2024
  *
  * Abura Soba, 2025
@@ -24,13 +24,6 @@ public:
 
 	vks::utils::UniformDataDynamic uniformData;
 	vks::utils::UniformDataStatic uniformDataStaticLight;
-
-	struct SpecializationData {
-		uint32_t numOfLights = NUM_OF_LIGHTS_SUPPORTED;
-		uint32_t numOfDynamicLights = NUM_OF_DYNAMIC_LIGHTS;
-		uint32_t numOfStaticLights = NUM_OF_STATIC_LIGHTS;
-		uint32_t staticLightOffset = STATIC_LIGHT_OFFSET;
-	} specializationData;
 
 	struct {
 		VkPipeline offscreen{ VK_NULL_HANDLE };
@@ -1463,7 +1456,7 @@ public:
 		if (!prepared)
 			return;
 
-		vks::utils::updateLightDynamicInfo(uniformData, scene, timer);
+		//vks::utils::updateLightDynamicInfo(uniformData, scene, timer);
 		updateUniformBufferComposition();
 		updateUniformBufferOffscreen();
 

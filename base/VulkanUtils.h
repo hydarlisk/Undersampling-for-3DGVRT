@@ -35,8 +35,6 @@ namespace vks {
 		struct UniformDataDynamic {
 			alignas(16) glm::mat4 viewInverse;
 			alignas(16) glm::mat4 projInverse;
-			//alignas(16) Light lights[NUM_OF_DYNAMIC_LIGHTS];
-			// alignas(16) Params3DGRT params;
 		};
 
 		enum MOGRenderOpts {
@@ -48,7 +46,6 @@ namespace vks {
 		};
 
 		struct UniformDataStatic {
-			alignas(16) Light lights[NUM_OF_STATIC_LIGHTS];
 			/* 3DGRT */
 			alignas(16) Aabb aabb = { -100.0f, -100.0f, -100.0f, 100.0f, 100.0f, 100.0f };
 			alignas(16) float minTransmittance = 0.001f; // to be separated to Config.h?
