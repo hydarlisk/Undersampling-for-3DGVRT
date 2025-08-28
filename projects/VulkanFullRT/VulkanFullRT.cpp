@@ -816,9 +816,9 @@ public:
 			subresourceRange);
 
 		drawUI(frame.commandBuffer, frameBuffers[frame.imageIndex], frame.vertexBuffer, frame.indexBuffer);
-
+#if !USE_TIME_BASED_FPS
 		vkCmdWriteTimestamp(frame.commandBuffer, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, frame.timeStampQueryPool, 0);
-
+#endif
 		VK_CHECK_RESULT(vkEndCommandBuffer(frame.commandBuffer));
 	}
 
@@ -1179,6 +1179,40 @@ public:
 	}
 #endif
 
+	void measureFPSMultipleView() {
+		static uint32_t measureCamCnt = 0;
+		static bool measuring = false;
+		if (measuring == false) {
+			measuring = true;
+#if USE_TIME_BASED_FPS
+			startTime = std::chrono::high_resolution_clock::now();
+#else
+			startFrame = recordCount + 1;
+#endif
+			fpsQuery = true;
+			quaternionCamera.setNerfCamera(MEASURE_START_CAM + measureCamCnt);
+		}
+		else {
+			if (fpsQuery == false) {
+				if (MEASURE_START_CAM + measureCamCnt == MEASURE_END_CAM) {
+					measuring = false;
+					measureFPSMultipleViewFlag = false;
+					return;
+				}
+				else {
+					measureCamCnt++;
+#if USE_TIME_BASED_FPS
+					startTime = std::chrono::high_resolution_clock::now();
+#else
+					startFrame = recordCount + 1;
+#endif
+					fpsQuery = true;
+					quaternionCamera.setNerfCamera(MEASURE_START_CAM + measureCamCnt);
+				}
+			}
+		}
+	}
+
 #if ENABLE_HIT_COUNTS
 	void captureHitCnt() {
 		FrameObject& prevFrame = frameObjects[getPrevFrameIndex()];
@@ -1208,6 +1242,9 @@ public:
 			return;
 
 		if (!renderFlag) return;
+		if (measureFPSMultipleViewFlag) {
+			measureFPSMultipleView();
+		}
 		draw();
 #if ENABLE_HIT_COUNTS
 		//KEY_C

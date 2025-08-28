@@ -857,6 +857,11 @@ void VulkanRTBase::updateOverlay(std::vector<BaseFrameObject*>& frameObjects)
 	ImGui::Separator();
 	ImGui::Separator();
 #endif
+	if (!measureFPSMultipleViewFlag) {
+		if (ImGui::Button("measure multiple cam fps")) {
+			measureFPSMultipleViewFlag = true;
+		}
+	}
 
 	//text input for fps calculation
 	if(!fpsQuery) {
@@ -941,7 +946,7 @@ void VulkanRTBase::calculateFPS()
 void VulkanRTBase::calculateFPS(BaseFrameObject& frame)
 {
 	// Time stamp
-	if (fpsQuery && (recordCount == swapChain.imageCount + startFrame || recordCount == measureFrame + swapChain.imageCount + startFrame)) {
+	if ((recordCount == swapChain.imageCount + startFrame || recordCount == measureFrame + swapChain.imageCount + startFrame)) {
 		vkGetQueryPoolResults(device, frame.timeStampQueryPool, 0, 1, frame.timeStamps.size() * sizeof(uint64_t),
 			frame.timeStamps.data(), sizeof(uint64_t) * 2, VK_QUERY_RESULT_64_BIT | VK_QUERY_RESULT_WITH_AVAILABILITY_BIT);
 #if defined(_WIN32)
@@ -1020,7 +1025,9 @@ void VulkanRTBase::prepareFrame(BaseFrameObject& frame)
 #endif
 
 #if !USE_TIME_BASED_FPS
-	calculateFPS(frame);
+	if (fpsQuery) {
+		calculateFPS(frame);
+	}
 #endif
 
 	VK_CHECK_RESULT(vkResetFences(device, 1, &frame.renderCompleteFence));

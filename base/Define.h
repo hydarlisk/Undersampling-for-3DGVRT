@@ -10,12 +10,14 @@
 #pragma once
 
 #if defined(VK_USE_PLATFORM_ANDROID_KHR)
-#define START_FRAME 300
+//#define START_FRAME 300
 #define MEASURE_FRAME 500
 #else
-#define START_FRAME 2000
-#define MEASURE_FRAME 2000
+//#define START_FRAME 2000
+#define MEASURE_FRAME 500
 #endif
+#define MEASURE_START_CAM 0
+#define MEASURE_END_CAM 2
 
 #define EVAL_QUALITY 0
 

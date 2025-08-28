@@ -130,19 +130,14 @@ protected:
 	uint32_t lastFPS = 0;
 	std::chrono::time_point<std::chrono::high_resolution_clock> lastTimestamp, tPrevEnd;
 
-	int recordCount = 0;
+	uint32_t recordCount = 0;
 #if USE_TIME_BASED_FPS
 	unsigned int frameCount = 0;
 	float measureSec = 20.0f;
 	std::chrono::steady_clock::time_point startTime;
 #else
-#if defined(VK_USE_PLATFORM_WIN32_KHR)
 	int measureFrame = MEASURE_FRAME;
-#endif
-#if defined(VK_USE_PLATFORM_ANDROID_KHR)
-	int measureFrame = MEASURE_FRAME;
-#endif
-	int startFrame = 0;
+	uint32_t startFrame = 0;
 #endif
 	float delta_in_ms = -1.0f;
 	bool fpsQuery = false;
@@ -215,6 +210,7 @@ public:
 	bool viewUpdated = false;
 
 	bool renderFlag = true;
+	bool measureFPSMultipleViewFlag = false;
 
 #if EVAL_QUALITY
 	uint32_t width = 800;
