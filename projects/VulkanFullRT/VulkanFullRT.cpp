@@ -1184,10 +1184,11 @@ public:
 		static bool measuring = false;
 		if (measuring == false) {
 			measuring = true;
+			measureCamCnt = 0;
 #if USE_TIME_BASED_FPS
 			startTime = std::chrono::high_resolution_clock::now();
 #else
-			startFrame = recordCount + 1;
+			recordCount = 0;
 #endif
 			fpsQuery = true;
 			quaternionCamera.setNerfCamera(MEASURE_START_CAM + measureCamCnt);
@@ -1204,7 +1205,7 @@ public:
 #if USE_TIME_BASED_FPS
 					startTime = std::chrono::high_resolution_clock::now();
 #else
-					startFrame = recordCount + 1;
+					recordCount = 0;
 #endif
 					fpsQuery = true;
 					quaternionCamera.setNerfCamera(MEASURE_START_CAM + measureCamCnt);

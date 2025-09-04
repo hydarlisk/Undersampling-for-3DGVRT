@@ -855,7 +855,6 @@ void VulkanRTBase::updateOverlay(std::vector<BaseFrameObject*>& frameObjects)
 		ImGui::EndCombo();
 	}
 	ImGui::Separator();
-	ImGui::Separator();
 #endif
 	if (!measureFPSMultipleViewFlag) {
 		if (ImGui::Button("measure multiple cam fps")) {
@@ -869,7 +868,7 @@ void VulkanRTBase::updateOverlay(std::vector<BaseFrameObject*>& frameObjects)
 #if USE_TIME_BASED_FPS
 			startTime = std::chrono::high_resolution_clock::now();
 #else
-			startFrame = recordCount + 1;
+			recordCount = 0;
 #endif
 			fpsQuery = true;
 		}

@@ -137,7 +137,7 @@ protected:
 	std::chrono::steady_clock::time_point startTime;
 #else
 	int measureFrame = MEASURE_FRAME;
-	uint32_t startFrame = 0;
+	uint32_t startFrame = START_FRAME;
 #endif
 	float delta_in_ms = -1.0f;
 	bool fpsQuery = false;
