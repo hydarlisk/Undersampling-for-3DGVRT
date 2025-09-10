@@ -27,6 +27,7 @@ RTPipeline::RTPipeline(vks::VulkanDevice& device, VkQueue& queue, int swapchainI
 	similVarValidCntBuffers.resize(swapchainImageCnt);
 	finalTransmittanceBuffers.resize(swapchainImageCnt);
 	similarityVarBuffers.resize(swapchainImageCnt);
+	accumDepthBuffers.resize(swapchainImageCnt);
 #endif
 
 	vkCmdTraceRaysKHR = reinterpret_cast<PFN_vkCmdTraceRaysKHR>(vkGetDeviceProcAddr(device, "vkCmdTraceRaysKHR"));
@@ -55,6 +56,7 @@ RTPipeline::~RTPipeline() {
 		similVarValidCntBuffers[i].destroy();
 		finalTransmittanceBuffers[i].destroy();
 		similarityVarBuffers[i].destroy();
+		accumDepthBuffers[i].destroy();
 #endif
 	}
 }
@@ -93,6 +95,11 @@ void RTPipeline::createSimilarityVarBuffers() {
 		bufferName = "tBuffer" + to_string(i);
 		VK_CHECK_RESULT(vulkanDevice.createBuffer(VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
 			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &similarityVarBuffers[i], pushConstants.width * pushConstants.height * sizeof(float) * MAX_SIMILARITY_VAR, nullptr, bufferName));
+
+		// accumulated depth
+		bufferName = "accumDepthBuffer" + to_string(i);
+		VK_CHECK_RESULT(vulkanDevice.createBuffer(VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
+			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &accumDepthBuffers[i], pushConstants.width * pushConstants.height * sizeof(float), nullptr, bufferName));
 	}
 }
 #endif
@@ -115,7 +122,7 @@ void RTPipeline::createDescriptorSets() {
 		vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1 * swapchainImageCnt),
 	#endif
 	#if SIMILARITY_VAR
-		vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 6 * swapchainImageCnt),
+		vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 7 * swapchainImageCnt),
 	#endif
 #endif
 	};
@@ -164,6 +171,8 @@ void RTPipeline::createDescriptorSets() {
 		vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_RAYGEN_BIT_KHR, 14),
 		// Bidning 15: Storage buffer - finalTransmittance Count
 		vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_RAYGEN_BIT_KHR, 15),
+		// Bidning 15: Storage buffer - accumulated Depth
+		vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_RAYGEN_BIT_KHR, 16),
 	#endif
 #endif
 	};
@@ -327,6 +336,7 @@ void RTPipeline::initDescriptorSet(int frameIdx, VulkanSwapChain& swapChain, VkA
 		vks::initializers::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 13, &depthBuffers[frameIdx].descriptor),
 		vks::initializers::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 14, &similVarValidCntBuffers[frameIdx].descriptor),
 		vks::initializers::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 15, &finalTransmittanceBuffers[frameIdx].descriptor),
+		vks::initializers::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 16, &accumDepthBuffers[frameIdx].descriptor),
 	#endif
 #endif
 	};
@@ -358,6 +368,7 @@ void RTPipeline::record(VkCommandBuffer& commandBuffer, uint32_t imageIndex, uin
 		vkCmdFillBuffer(commandBuffer, similVarValidCntBuffers[imageIndex].buffer, 0, similVarValidCntBuffers[imageIndex].size, 0);
 		vkCmdFillBuffer(commandBuffer, finalTransmittanceBuffers[imageIndex].buffer, 0, finalTransmittanceBuffers[imageIndex].size, 0);
 		vkCmdFillBuffer(commandBuffer, similarityVarBuffers[imageIndex].buffer, 0, similarityVarBuffers[imageIndex].size, 0);
+		vkCmdFillBuffer(commandBuffer, accumDepthBuffers[imageIndex].buffer, 0, accumDepthBuffers[imageIndex].size, 0);
 #endif
 		VkMemoryBarrier barrier = vks::initializers::memoryBarrier();
 		barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
@@ -414,9 +425,13 @@ void RTPipeline::updateWeightThreshold(float threshold) {
 	pushConstants.weightThreshold = threshold;
 }
 
+void RTPipeline::updateDepthThreshold(float threshold) {
+	pushConstants.depthThreshold = threshold;
+}
+
 #if SIMILARITY_VAR
 void RTPipeline::captureSimilVarBuffers(uint32_t idx) {
-	DebugManager::getInstance().captureSimilVarBuffers(particleIdBuffers[idx], alphaBuffers[idx], weightBuffers[idx], depthBuffers[idx], similVarValidCntBuffers[idx], finalTransmittanceBuffers[idx]);
+	DebugManager::getInstance().captureSimilVarBuffers(particleIdBuffers[idx], alphaBuffers[idx], weightBuffers[idx], depthBuffers[idx], similVarValidCntBuffers[idx], finalTransmittanceBuffers[idx], accumDepthBuffers[idx]);
 }
 void RTPipeline::captureValidCntBuffer(uint32_t idx) {
 	DebugManager::getInstance().captureSimilVarValidCnt(similVarValidCntBuffers[idx]);

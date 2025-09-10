@@ -80,6 +80,9 @@ layout(std430, binding = 13, set = 0) buffer Depth{
 layout(std430, binding = 14, set = 0) buffer SimilVarValidCnt{
 	uint validCnt[];
 };
+layout(std430, binding = 16, set = 0) buffer AccumDepth{
+	float accumDepth[];
+};
 	#endif
 
 layout(push_constant, std430) uniform pushConstant{
@@ -89,6 +92,7 @@ layout(push_constant, std430) uniform pushConstant{
 	float colorThreshold;
 	float hitThreshold;
 	float weightThreshold;
+	float depthThreshold;
 };
 #endif
 
@@ -184,6 +188,7 @@ void main()
 	float alpha;
 	float weight;
 	uint similVarIdx = 0;
+	float depthSum = 0.0f;
 #endif
 
 	vec2 minMaxT = intersectAABB(uboStatic.aabb, rayOrigin.xyz, rayDirection.xyz);
@@ -240,7 +245,7 @@ void main()
 						id[similarityVarOffset + similVarIdx] = rayHit.particleId;
 						//alphaBuffer[similarityVarOffset + similVarIdx] = alpha;
 						weightBuffer[similarityVarOffset + similVarIdx] = weight;
-						//depthBuffer[similarityVarOffset + similVarIdx] = rayHitDistance;
+						depthSum += rayHitDistance;
 						similVarIdx += 1;
 					}
 				}
@@ -272,6 +277,7 @@ void main()
 	#endif
 	#if SIMILARITY_VAR
 	validCnt[targetPixel.y * width + targetPixel.x] = similVarIdx;
+	accumDepth[targetPixel.y * width + targetPixel.x] = 0.3;
 	#endif
 #else
     imageStore(image, ivec2(gl_LaunchIDEXT.xy), rayRadiance);

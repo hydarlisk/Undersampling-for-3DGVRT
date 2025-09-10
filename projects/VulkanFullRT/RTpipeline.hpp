@@ -28,6 +28,7 @@ class RTPipeline {
 		float colorThreshold;
 		float hitThreshold;
 		float weightThreshold;
+		float depthThreshold;
 	}pushConstants;
 
 #if SIMILARITY_VAR
@@ -41,6 +42,7 @@ class RTPipeline {
 	vector<vks::Buffer> depthBuffers;
 	vector<vks::Buffer> similVarValidCntBuffers;
 	vector<vks::Buffer> similarityVarBuffers;
+	vector<vks::Buffer> accumDepthBuffers;
 #endif
 	vector<vks::Buffer> finalTransmittanceBuffers;
 
@@ -96,6 +98,7 @@ public:
 	void updateColorThreshold(float threshold);
 	void updateHitThreshold(float threshold);
 	void updateWeightThreshold(float threshold);
+	void updateDepthThreshold(float threshold);
 
 	void captureSimilVarBuffers(uint32_t idx);
 	void captureValidCntBuffer(uint32_t idx);

@@ -1154,6 +1154,7 @@ public:
 		rtPipeline->updateColorThreshold(colorThreshold);
 		rtPipeline->updateHitThreshold(hitThreshold);
 		rtPipeline->updateWeightThreshold(weightThreshold);
+		rtPipeline->updateDepthThreshold(depthThreshold);
 #endif 
 		buildCommandBuffer(currentFrame);
 		VulkanRTBase::submitFrame(currentFrame);

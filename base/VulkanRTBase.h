@@ -242,6 +242,7 @@ public:
 	float colorThreshold = INIT_COLOR_THRESHOLD;
 	float hitThreshold = INIT_HIT_THRESHOLD;
 	float weightThreshold = INIT_WEIGHT_THRESHOLD;
+	float depthThreshold = INIT_DEPTH_THRESHOLD;
 	#if STATISTICS
 	vector<uint32_t> curRTMask;
 	uint32_t interpolationCnt = 0;

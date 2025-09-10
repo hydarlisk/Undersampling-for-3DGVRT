@@ -806,6 +806,8 @@ void VulkanRTBase::updateOverlay(std::vector<BaseFrameObject*>& frameObjects)
 	ImGui::SliderFloat("Hit", &hitThreshold, 0.0f, 1.0f);
 	ImGui::Text("- Weight Threshold");
 	ImGui::SliderFloat("Weight", &weightThreshold, 0.0f, 1.0f);
+	ImGui::Text("- Depth Threshold");
+	ImGui::SliderFloat("Depth", &depthThreshold, 0.0f, 10.0f);
 	#endif
 	#if STATISTICS
 	ImGui::Separator();

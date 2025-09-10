@@ -293,7 +293,7 @@ void DebugManager::captureSimilVarValidCnt(vks::Buffer& similVarValidCntBuffers)
 	cnt++;
 }
 
-void DebugManager::captureSimilVarBuffers(vks::Buffer& particleIdBuffer, vks::Buffer& alphaBuffer, vks::Buffer& weightBuffer, vks::Buffer& depthBuffer, vks::Buffer& similVarValidCntBuffer, vks::Buffer& finalTransmittanceBuffer) {
+void DebugManager::captureSimilVarBuffers(vks::Buffer& particleIdBuffer, vks::Buffer& alphaBuffer, vks::Buffer& weightBuffer, vks::Buffer& depthBuffer, vks::Buffer& similVarValidCntBuffer, vks::Buffer& finalTransmittanceBuffer, vks::Buffer& accumDepthBuffer) {
 	vector<uint32_t> particleIdVec(width * height * MAX_SIMILARITY_VAR);
 	vector<float> floatVec(width * height * MAX_SIMILARITY_VAR);
 	
@@ -316,6 +316,10 @@ void DebugManager::captureSimilVarBuffers(vks::Buffer& particleIdBuffer, vks::Bu
 	//final transmittance Buffer
 	vulkanDevice->copyDeviceBufferToHost(floatVec.data(), finalTransmittanceBuffer, *queue);
 	fileName = DEBUG_FILE_PATH + string("similVars/") + "finalTransmittance.csv";
+	writeCSVFile(floatVec, width, fileName);
+
+	vulkanDevice->copyDeviceBufferToHost(floatVec.data(), accumDepthBuffer, *queue);
+	fileName = DEBUG_FILE_PATH + string("similVars/") + "accumDepth.csv";
 	writeCSVFile(floatVec, width, fileName);
 
 	captureSimilVarValidCnt(similVarValidCntBuffer);

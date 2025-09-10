@@ -27,13 +27,15 @@
 #define MAX_SIMILARITY_VAR 10				// Should be managed with 3dgs.glsl
 
 /* Debug */
-#define STATISTICS 0		// Should be managed with undersampling.glsl
+#define STATISTICS 1		// Should be managed with undersampling.glsl
 #define ENABLE_HIT_COUNTS 0	// Should be managed with 3dgs.glsl. 
 #define DUMP_ICOSAHEDRON 0					// Should be managed with 3dgs.glsl ENCLOSING_DENSITY_TRHESHOLD
 
 #define INIT_COLOR_THRESHOLD 0.15
 #define INIT_HIT_THRESHOLD 0.5
 #define INIT_WEIGHT_THRESHOLD 0.1
+#define INIT_DEPTH_THRESHOLD 1
+
 #define REMOVE_DUPLICATE_ANYHIT_BY_SHADER 1 // Should be managed with 3dgs.glsl
 
 //#define WIDTH 800

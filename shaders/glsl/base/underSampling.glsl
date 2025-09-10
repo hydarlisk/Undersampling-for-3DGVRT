@@ -125,6 +125,17 @@ bool hitInfoCheck(uvec2 nearPixel1, uvec2 nearPixel2, uvec2 targetPixel) {
 }
 #endif
 
+bool depthSimilarityCheck(uvec2 nearPixel1, uvec2 nearPixel2, uvec2 targetPixel) {
+    float depth1 = accumDepth[calcIdx(nearPixel1)];
+    float depth2 = accumDepth[calcIdx(nearPixel2)];
+    if (abs(depth1 - depth2) <= depthThreshold) {
+        accumDepth[calcIdx(targetPixel)] = (depth1 + depth2) / 2;
+        return true;
+    }
+
+    return false;
+}
+
 bool similarityCheck(uvec2 nearPixel1, uvec2 nearPixel2, uvec2 targetPixel, out vec4 finalColor) {
     vec4 color1 = imageLoad(image, ivec2(nearPixel1));
     vec4 color2 = imageLoad(image, ivec2(nearPixel2));
@@ -134,7 +145,10 @@ bool similarityCheck(uvec2 nearPixel1, uvec2 nearPixel2, uvec2 targetPixel, out 
 #if SIMILARITY_VAR
     bool hitInfoSimilar = hitInfoCheck(nearPixel1, nearPixel2, targetPixel);
     similar = similar && hitInfoSimilar;
+    bool depthSimilar = depthSimilarityCheck(nearPixel1, nearPixel2, targetPixel);
+    similar = similar && depthSimilar;
 #endif
+    similar = depthSimilar;
     if (similar) finalColor = (color1 + color2) / 2;
     return similar;
 }
