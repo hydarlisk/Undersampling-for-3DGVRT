@@ -113,10 +113,7 @@ void main()
 {	
     const uint globalIdx = gl_GlobalInvocationID.x;
     if (globalIdx < ubo.gNum) {
-		const uint sPosIdx = globalIdx * 3;
-		const uint sRotIdx = globalIdx * 4;
-		const uint sSclIdx = globalIdx * 3;
-
+#if REMOVE_DUMMY_PARTICLE
 		// filter abnormal particle
 		vec3 albedo = vec3(featuresAlbedo[globalIdx * 3], featuresAlbedo[globalIdx * 3 + 1], featuresAlbedo[globalIdx * 3 + 2]);
 
@@ -134,12 +131,14 @@ void main()
 			minSpecular = min(minSpecular, specularStrength);
 		}
 
-#if REMOVE_DUMMY_PARTICLE
 		if (albedoStrength > 3.0f)
 			return;
 		else if (maxSpecular / (minSpecular + 1e-5) > 150.0f)
 			return;
 #endif
+		const uint sPosIdx = globalIdx * 3;
+		const uint sRotIdx = globalIdx * 4;
+		const uint sSclIdx = globalIdx * 3;
 		float density = sigmoid(gDns[globalIdx]);	//activation
         
         if(density < ENCLOSING_DENSITY_TRHESHOLD) return;
