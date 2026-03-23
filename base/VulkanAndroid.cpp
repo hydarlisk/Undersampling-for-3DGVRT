@@ -47,6 +47,7 @@ PFN_vkGetImageSubresourceLayout vkGetImageSubresourceLayout;
 PFN_vkCmdCopyBuffer vkCmdCopyBuffer;
 PFN_vkCmdCopyBufferToImage vkCmdCopyBufferToImage;
 PFN_vkCmdCopyImage vkCmdCopyImage;
+PFN_vkCmdCopyImageToBuffer vkCmdCopyImageToBuffer;
 PFN_vkCmdBlitImage vkCmdBlitImage;
 PFN_vkCmdClearAttachments vkCmdClearAttachments;
 PFN_vkCreateSampler vkCreateSampler;
@@ -137,6 +138,8 @@ PFN_vkQueuePresentKHR vkQueuePresentKHR;
 
 PFN_vkResetCommandBuffer vkResetCommandBuffer;
 
+PFN_vkCmdWriteTimestamp vkCmdWriteTimestamp;
+
 int32_t vks::android::screenDensity;
 
 void *libVulkan;
@@ -213,6 +216,7 @@ namespace vks
 			vkBindImageMemory = reinterpret_cast<PFN_vkBindImageMemory>(vkGetInstanceProcAddr(instance, "vkBindImageMemory"));
 			vkGetImageSubresourceLayout = reinterpret_cast<PFN_vkGetImageSubresourceLayout>(vkGetInstanceProcAddr(instance, "vkGetImageSubresourceLayout"));
 			vkCmdCopyImage = reinterpret_cast<PFN_vkCmdCopyImage>(vkGetInstanceProcAddr(instance, "vkCmdCopyImage"));
+			vkCmdCopyImageToBuffer = reinterpret_cast<PFN_vkCmdCopyImageToBuffer>(vkGetInstanceProcAddr(instance, "vkCmdCopyImageToBuffer"));
 			vkCmdBlitImage = reinterpret_cast<PFN_vkCmdBlitImage>(vkGetInstanceProcAddr(instance, "vkCmdBlitImage"));
 			vkDestroyImage = reinterpret_cast<PFN_vkDestroyImage>(vkGetInstanceProcAddr(instance, "vkDestroyImage"));
 
@@ -313,6 +317,8 @@ namespace vks
             vkQueuePresentKHR = reinterpret_cast<PFN_vkQueuePresentKHR>(vkGetInstanceProcAddr(instance, "vkQueuePresentKHR"));
 
             vkResetCommandBuffer = reinterpret_cast<PFN_vkResetCommandBuffer>(vkGetInstanceProcAddr(instance, "vkResetCommandBuffer"));
+
+			vkCmdWriteTimestamp = reinterpret_cast<PFN_vkCmdWriteTimestamp>(vkGetInstanceProcAddr(instance, "vkCmdWriteTimestamp"));
 		}
 
 		void freeVulkanLibrary()

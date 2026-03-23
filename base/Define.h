@@ -21,14 +21,14 @@
 
 #define EVAL_QUALITY 0
 
-#define UNDERSAMPLING 1						// Should be managed with 3dgs.glsl
+#define UNDERSAMPLING 0						// Should be managed with 3dgs.glsl
 #define SIMILARITY_VAR 1
 
 #define MAX_SIMILARITY_VAR 10				// Should be managed with 3dgs.glsl
 
 /* Debug */
-#define STATISTICS 1		// Should be managed with undersampling.glsl
-#define ENABLE_HIT_COUNTS 0	// Should be managed with 3dgs.glsl. 
+#define STATISTICS 0		// Should be managed with 3dgs.glsl 
+#define ENABLE_HIT_COUNTS 0	// Should be managed with 3dgs.glsl
 #define DUMP_ICOSAHEDRON 0					// Should be managed with 3dgs.glsl ENCLOSING_DENSITY_TRHESHOLD
 
 #define INIT_COLOR_THRESHOLD 0.15
@@ -44,11 +44,11 @@
 #define WIDTH 1920
 #define HEIGHT 1080
 
-#define USE_TIME_BASED_FPS false
+#define USE_TIME_BASED_FPS true
 
 /* cameras */
-#define QUATERNION_CAMERA true
-#define LOAD_NERF_CAMERA true
+#define QUATERNION_CAMERA false
+#define LOAD_NERF_CAMERA false
 #define DYNAMIC_CAMERA false
 
 #define ASSET 3

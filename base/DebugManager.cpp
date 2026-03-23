@@ -192,7 +192,7 @@ void DebugManager::captureRenderingImages(VkImage& image, QuaternionCamera& quat
 #if QUATERNION_CAMERA
 	quaternionCamera.setNextCamera();
 #else
-	camera.setDatasetCamera(camera.dataType, evalCameraIdx, (float)width / height);
+	//camera.setDatasetCamera(camera.dataType, evalCameraIdx, (float)width / height);
 #endif
 }
 

@@ -81,6 +81,7 @@ extern PFN_vkGetImageSubresourceLayout vkGetImageSubresourceLayout;
 extern PFN_vkCmdCopyBuffer vkCmdCopyBuffer;
 extern PFN_vkCmdCopyBufferToImage vkCmdCopyBufferToImage;
 extern PFN_vkCmdCopyImage vkCmdCopyImage;
+extern PFN_vkCmdCopyImageToBuffer vkCmdCopyImageToBuffer;
 extern PFN_vkCmdBlitImage vkCmdBlitImage;
 extern PFN_vkCmdClearAttachments vkCmdClearAttachments;
 extern PFN_vkCreateSampler vkCreateSampler;
@@ -170,6 +171,8 @@ extern PFN_vkAcquireNextImageKHR vkAcquireNextImageKHR;
 extern PFN_vkQueuePresentKHR vkQueuePresentKHR;
 
 extern PFN_vkResetCommandBuffer vkResetCommandBuffer;
+
+extern PFN_vkCmdWriteTimestamp vkCmdWriteTimestamp;
 
 namespace vks
 {

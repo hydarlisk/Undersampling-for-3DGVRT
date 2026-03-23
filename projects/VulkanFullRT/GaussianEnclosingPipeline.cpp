@@ -148,8 +148,12 @@ void GaussianEnclosingPipeline::createPipeline() {
 
 	//load shader
 	VkPipelineShaderStageCreateInfo shaderStage = vks::initializers::pipelineShaderStageCreateInfo(VK_SHADER_STAGE_COMPUTE_BIT);
-	string shaderPath = "./../shaders/glsl/" + projectPath + "particlePrimitives.comp.spv";
+	string shaderPath = vks::tools::getShadersPath() + projectPath + "particlePrimitives.comp.spv";
+#if defined(VK_USE_PLATFORM_ANDROID_KHR)
+	shaderStage.module = vks::tools::loadShader(androidApp->activity->assetManager, shaderPath.c_str(), device);
+#else
 	shaderStage.module = vks::tools::loadShader(shaderPath.c_str(), device);
+#endif
 	assert(shaderStage.module != VK_NULL_HANDLE);
 	computePipelineCreateInfo.stage = shaderStage;
 

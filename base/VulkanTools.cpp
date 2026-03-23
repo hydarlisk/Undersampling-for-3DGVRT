@@ -447,5 +447,20 @@ namespace vks
 			return (value + alignment - 1) & ~(alignment - 1);
 		}
 
+
+
+		std::string getShaderBasePath() {
+#if defined(VK_USE_PLATFORM_ANDROID_KHR)
+			return "shaders/";
+#elif defined(VK_EXAMPLE_SHADERS_DIR)
+			return VK_EXAMPLE_SHADERS_DIR;
+#else
+			return "./../shaders/";
+#endif
+		}
+
+		std::string getShadersPath() {
+			return getShaderBasePath() + "glsl/";
+		}
 	}
 }

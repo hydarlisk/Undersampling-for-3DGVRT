@@ -63,7 +63,7 @@ RTPipeline::~RTPipeline() {
 
 /* Private Functions */
 inline string RTPipeline::getShaderPath(string shaderName) {
-	return "./../shaders/glsl/" + projectPath + shaderName;
+	return vks::tools::getShadersPath() + projectPath + shaderName;
 }
 
 #if SIMILARITY_VAR

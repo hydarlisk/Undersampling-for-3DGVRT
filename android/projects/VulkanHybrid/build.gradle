@@ -2,6 +2,7 @@ apply plugin: 'com.android.application'
 apply from: '../gradle/outputfilename.gradle'
 
 android {
+    namespace "sogang.graphics.vulkanhybrid"
     compileSdkVersion rootProject.ext.compileSdkVersion
     defaultConfig {
         applicationId "sogang.graphics.vulkanhybrid"

@@ -2,6 +2,7 @@ apply plugin: 'com.android.application'
 apply from: '../gradle/outputfilename.gradle'
 
 android {
+    namespace "sogang.graphics.vulkanfullrt"
     compileSdkVersion rootProject.ext.compileSdkVersion
     defaultConfig {
         applicationId "sogang.graphics.vulkanfullrt"
@@ -15,7 +16,7 @@ android {
         externalNativeBuild {
             cmake {
                 cppFlags "-std=c++2a"
-                arguments "-DANDROID_STL=c++_shared", '-DANDROID_TOOLCHAIN=clang'
+                arguments "-DANDROID_STL=c++_shared", '-DANDROID_TOOLCHAIN=clang', '-DANDROID_SUPPORT_FLEXIBLE_PAGE_SIZES=ON'
             }
         }
     }
@@ -39,7 +40,7 @@ android {
     }
     externalNativeBuild {
         cmake {
-            path "CMakeLists.txt"
+            path project.file("CMakeLists.txt")
         }
     }
 }
@@ -64,26 +65,26 @@ task copyTask {
     }
 
     // gltf models
-    copy {
-//        from rootProject.ext.assetPath + 'models/cornellBox'
-//        into 'assets/models/cornellBox'
-//
-//        from rootProject.ext.assetPath + 'models/suntemple_simple'
-//        into 'assets/models/suntemple_simple'
-//
-//        from rootProject.ext.assetPath + 'models/suntemple_etc1s'
-//        into 'assets/models/suntemple_etc1s'
-//
-//        from rootProject.ext.assetPath + 'models/sponza_multi_blas_transparent'
-//        into 'assets/models/sponza_multi_blas_transparent'
-//
-//        from rootProject.ext.assetPath + 'models/sponza_etc1s'
-//        into 'assets/models/sponza_etc1s'
-//
-//       from rootProject.ext.assetPath + 'models/bistroexterior_etc1s'
-//       into 'assets/models/bistroexterior_etc1s'
-        include '*.*'
-    }
+//    copy {
+////        from rootProject.ext.assetPath + 'models/cornellBox'
+////        into 'assets/models/cornellBox'
+////
+////        from rootProject.ext.assetPath + 'models/suntemple_simple'
+////        into 'assets/models/suntemple_simple'
+////
+////        from rootProject.ext.assetPath + 'models/suntemple_etc1s'
+////        into 'assets/models/suntemple_etc1s'
+////
+////        from rootProject.ext.assetPath + 'models/sponza_multi_blas_transparent'
+////        into 'assets/models/sponza_multi_blas_transparent'
+////
+////        from rootProject.ext.assetPath + 'models/sponza_etc1s'
+////        into 'assets/models/sponza_etc1s'
+////
+////       from rootProject.ext.assetPath + 'models/bistroexterior_etc1s'
+////       into 'assets/models/bistroexterior_etc1s'
+//        include '*.*'
+//    }
 
     // ply models
     copy {
@@ -93,13 +94,7 @@ task copyTask {
 
         from rootProject.ext.assetPath + '3DGRTModels/hotdog'
         into 'assets/3DGRTModels/hotdog'
-        include 'hotdog.ply'
-    }
-
-    copy {
-        from rootProject.ext.assetPath + 'cubeMapTextures'
-        into 'assets/cubeMapTextures'
-        include '*.*'
+        include 'hotdog_3dgrt2.ply'
     }
 }
 
