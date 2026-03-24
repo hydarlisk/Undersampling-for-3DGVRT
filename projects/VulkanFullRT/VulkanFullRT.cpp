@@ -29,6 +29,8 @@
 
 #include "DebugManager.hpp"
 
+#include "VulkanKDTree.h"
+
 #define DIR_PATH "VulkanFullRT/"
 
 class VulkanFullRT : public VulkanRTCommon
@@ -86,6 +88,7 @@ public:
 	VkDescriptorSetLayout descriptorSetLayout{ VK_NULL_HANDLE };
 
 	vk3DGRT::Model gModel;
+	KDTreeModel kdTreeModel;
 
 	struct FrameObject : public BaseFrameObject {
 		VkDescriptorSet descriptorSet{ VK_NULL_HANDLE };
@@ -904,13 +907,13 @@ public:
 		uniformDataDynamic.viewInverse = getRotatingCameraPose();
 		uniformDataDynamic.projInverse = glm::inverse(camera.matrices.perspective);
 #else
-#if QUATERNION_CAMERA
+	#if QUATERNION_CAMERA
 		uniformDataDynamic.viewInverse = glm::inverse(quaternionCamera.getViewMatrix());
 		uniformDataDynamic.projInverse = glm::inverse(quaternionCamera.perspective);
-#else
+	#else
 		uniformDataDynamic.viewInverse = glm::inverse(camera.matrices.view);
 		uniformDataDynamic.projInverse = glm::inverse(camera.matrices.perspective);
-#endif
+	#endif
 #endif
 
 		FrameObject currentFrame = frameObjects[getCurrentFrameIndex()];
@@ -970,8 +973,11 @@ public:
 		loadCubemap(getAssetPath() + CUBEMAP_TEXTURE_PATH, VK_FORMAT_R8G8B8A8_UNORM);
 #endif
 
-		//gModel.load3DGRTObject(getAssetPath() + "3DGRTModels/lego/ckpt_last.pt", vulkanDevice);
-		gModel.load3DGRTModel(getAssetPath() + ASSET_PATH + PLY_FILE, vulkanDevice);
+		string dirPath = getAssetPath() + ASSET_PATH;
+		gModel.load3DGRTModel(dirPath + PLY_FILE, vulkanDevice);
+#if KDTREE
+		kdTreeModel.load(dirPath + GLBIN_FILE, dirPath + KDT_FILE);
+#endif
 	}
 
 	bool initVulkan() {

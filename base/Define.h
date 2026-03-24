@@ -26,6 +26,11 @@
 
 #define MAX_SIMILARITY_VAR 10				// Should be managed with 3dgs.glsl
 
+/* kdtree */
+#define KDTREE true
+#define USE_TRI_ACCEL true;
+
+
 /* Debug */
 #define STATISTICS 0		// Should be managed with 3dgs.glsl 
 #define ENABLE_HIT_COUNTS 0	// Should be managed with 3dgs.glsl
@@ -123,6 +128,8 @@
 #elif ASSET == 3
 #define ASSET_PATH "3DGRTModels/hotdog/"
 #define PLY_FILE "hotdog_3dgrt2.ply"
+#define KDT_FILE "hotdog.kdtbin"
+#define GLBIN_FILE "hotdog.glbin"
 
 #elif ASSET == 4
 #define ASSET_PATH "3DGRTModels/bicycle/"
