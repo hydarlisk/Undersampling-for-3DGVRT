@@ -26,10 +26,12 @@
 #if UNDERSAMPLING
 #include "USPipeline.hpp"
 #endif
+#if KDTREE
+#include "KDTreeModel.h"
+#include "KdTreePipeline.hpp"
+#endif
 
 #include "DebugManager.hpp"
-
-#include "VulkanKDTree.h"
 
 #define DIR_PATH "VulkanFullRT/"
 
@@ -70,6 +72,11 @@ public:
 	uint32_t evalQualityDirNum = 0;
 #endif
 
+#if KDTREE
+	KdTreeModel kdTreeModel;
+	KdTreePipeline* kdTreePipeline;
+#endif
+
 	vks::Buffer transformBuffer3DGRT;
 
 	std::vector<VkRayTracingShaderGroupCreateInfoKHR> shaderGroups{};
@@ -88,7 +95,6 @@ public:
 	VkDescriptorSetLayout descriptorSetLayout{ VK_NULL_HANDLE };
 
 	vk3DGRT::Model gModel;
-	KDTreeModel kdTreeModel;
 
 	struct FrameObject : public BaseFrameObject {
 		VkDescriptorSet descriptorSet{ VK_NULL_HANDLE };
@@ -801,14 +807,18 @@ public:
 		vkCmdDispatch(frame.commandBuffer, (width + TB_SIZE_X - 1) / TB_SIZE_X, (height + TB_SIZE_Y - 1) / TB_SIZE_Y, 1);
 #endif
 
-#if UNDERSAMPLING
+#if KDTREE
+		kdTreePipeline->record(frame.commandBuffer, frame.imageIndex, width, height);
+#else
+	#if UNDERSAMPLING
 		rtPipeline->record(frame.commandBuffer, frame.imageIndex, 0);
 		//usPipeline->recordHorizontalPipeline(frame.commandBuffer, swapChain, frame.imageIndex, width, height);
 		rtPipeline->record(frame.commandBuffer, frame.imageIndex, 1);
 		//usPipeline->recordVerticalPipeline(frame.commandBuffer, swapChain, frame.imageIndex, width, height);
 		rtPipeline->record(frame.commandBuffer, frame.imageIndex, 2);
-#else
+	#else
 		rtPipeline->record(frame.commandBuffer, frame.imageIndex, 0);
+	#endif
 #endif
 
 		vks::tools::setImageLayout(
@@ -977,6 +987,7 @@ public:
 		gModel.load3DGRTModel(dirPath + PLY_FILE, vulkanDevice);
 #if KDTREE
 		kdTreeModel.load(dirPath + GLBIN_FILE, dirPath + KDT_FILE);
+		kdTreeModel.uploadToGPU(vulkanDevice, graphicsQueue);
 #endif
 	}
 
@@ -1040,6 +1051,85 @@ public:
 	}
 #endif
 
+	void initKdTreePipeline() {
+		kdTreePipeline = new KdTreePipeline(*vulkanDevice, graphicsQueue, swapChain.imageCount, DIR_PATH);
+		kdTreePipeline->prepare(swapChain, width, height);
+		for (int i = 0; i < swapChain.imageCount; i++) {
+			kdTreePipeline->initDescriptorSet(
+				i,
+				swapChain,
+				frameObjects[i].uniformBuffer,
+				frameObjects[i].uniformBufferStatic,
+				particleDensities,
+				particleSphCoefficients,
+				kdTreeModel
+			);
+		}
+	}
+
+	void initRTPipeline() {
+		gaussianEnclosingPipeline = new GaussianEnclosingPipeline(*vulkanDevice, graphicsQueue, cmdPool, gModel, DIR_PATH);
+		gaussianEnclosingPipeline->prepare(particleDensities, particleSphCoefficients);
+		gaussianEnclosingPipeline->run();
+
+		//DebugManager::getInstance().dumpParticles();
+		// Create the acceleration structures used to render the ray traced scene
+#if LOAD_GLTF
+		createBottomLevelAccelerationStructure();
+		createTopLevelAccelerationStructure();
+#endif
+#if SPLIT_BLAS
+		std::cout << "*** Split BLAS BEGIN ***\n";
+		auto startTime = std::chrono::high_resolution_clock::now();
+		splitBLAS.init(vulkanDevice);
+		splitBLAS.splitBlas(gModel.vertices.storageBuffer, gModel.indices.storageBuffer, graphicsQueue);
+		splitBLAS.initASBuildTimestamp(graphicsQueue);
+		splitBLAS.createAS(graphicsQueue);
+		auto      endTime = std::chrono::high_resolution_clock::now();
+		long long loadTime = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime).count();
+		std::cout << "Time spent for Split BLAS " << loadTime << "ms" << std::endl;
+		std::cout << "*** Split BLAS END ***\n";
+		splitBLAS.printASBuildInfo(deviceProperties);
+#else
+		initASBuildTimestamp();
+		createBottomLevelAccelerationStructure3DGRT();
+		createTopLevelAccelerationStructure3DGRT();
+		printASBuildInfo();
+#endif
+
+#if UNDERSAMPLING && STATISTICS
+		//usPipeline = new USPipeline(*vulkanDevice, graphicsQueue, swapChain.imageCount, DIR_PATH);
+		//usPipeline->prepare(swapChain, width, height);
+		curRTMask.resize(width * height);
+		for (int i = 0; i < frameObjects.size(); i++) {
+			string bufferName = "rtMask" + to_string(i);
+			VK_CHECK_RESULT(vulkanDevice->createBuffer(VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &frameObjects[i].rtMaskBuffer, width * height * 4, nullptr, bufferName.c_str()));
+		}
+#endif
+		// (2) Particle Rendering pass
+		rtPipeline = new RTPipeline(*vulkanDevice, graphicsQueue, swapChain.imageCount, DIR_PATH);
+		rtPipeline->prepare(width, height);
+		for (int i = 0; i < swapChain.imageCount; i++) {
+			rtPipeline->initDescriptorSet(
+				i,
+				swapChain,
+				topLevelAS3DGRT.handle,
+				frameObjects[i].uniformBuffer,
+				frameObjects[i].uniformBufferStatic,
+				particleDensities,
+				particleSphCoefficients
+#if ENABLE_HIT_COUNTS || SIMILARITY_VAR
+				, frameObjects[i].hitCountsBuffer
+#endif
+#if UNDERSAMPLING && STATISTICS
+				, frameObjects[i].rtMaskBuffer
+#endif
+			);
+		}
+
+		createShaderBindingTables(*rtPipeline);
+	}
+
 	void prepare()
 	{
 		VulkanRTCommon::prepare();
@@ -1087,67 +1177,12 @@ public:
 
 		DebugManager::getInstance().setModel(gModel);
 
-		gaussianEnclosingPipeline = new GaussianEnclosingPipeline(*vulkanDevice, graphicsQueue, cmdPool, gModel, DIR_PATH);
-		gaussianEnclosingPipeline->prepare(particleDensities, particleSphCoefficients);
-		gaussianEnclosingPipeline->run();
-
-		DebugManager::getInstance().dumpParticles();
-		// Create the acceleration structures used to render the ray traced scene
-#if LOAD_GLTF
-		createBottomLevelAccelerationStructure();
-		createTopLevelAccelerationStructure();
-#endif
-
-#if SPLIT_BLAS
-		std::cout << "*** Split BLAS BEGIN ***\n";
-		auto startTime = std::chrono::high_resolution_clock::now();
-		splitBLAS.init(vulkanDevice);
-		splitBLAS.splitBlas(gModel.vertices.storageBuffer, gModel.indices.storageBuffer, graphicsQueue);
-		splitBLAS.initASBuildTimestamp(graphicsQueue);
-		splitBLAS.createAS(graphicsQueue);
-		auto      endTime = std::chrono::high_resolution_clock::now();
-		long long loadTime = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime).count();
-		std::cout << "Time spent for Split BLAS " << loadTime << "ms" << std::endl;
-		std::cout << "*** Split BLAS END ***\n";
-		splitBLAS.printASBuildInfo(deviceProperties);
+#if KDTREE
+		initKdTreePipeline();
 #else
-		initASBuildTimestamp();
-		createBottomLevelAccelerationStructure3DGRT();
-		createTopLevelAccelerationStructure3DGRT();
-		printASBuildInfo();
+		initRTPipeline();
 #endif
 
-#if UNDERSAMPLING && STATISTICS
-		//usPipeline = new USPipeline(*vulkanDevice, graphicsQueue, swapChain.imageCount, DIR_PATH);
-		//usPipeline->prepare(swapChain, width, height);
-		curRTMask.resize(width * height);
-		for (int i = 0; i < frameObjects.size(); i++) {
-			string bufferName = "rtMask" + to_string(i);
-			VK_CHECK_RESULT(vulkanDevice->createBuffer(VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &frameObjects[i].rtMaskBuffer, width * height * 4, nullptr, bufferName.c_str()));
-		}
-#endif
-		// (2) Particle Rendering pass
-		rtPipeline = new RTPipeline(*vulkanDevice, graphicsQueue, swapChain.imageCount, DIR_PATH);
-		rtPipeline->prepare(width, height);
-		for (int i = 0; i < swapChain.imageCount; i++) {
-			rtPipeline->initDescriptorSet(
-				i,
-				swapChain,
-				topLevelAS3DGRT.handle,
-				frameObjects[i].uniformBuffer,
-				frameObjects[i].uniformBufferStatic,
-				particleDensities,
-				particleSphCoefficients
-#if ENABLE_HIT_COUNTS || SIMILARITY_VAR
-				, frameObjects[i].hitCountsBuffer
-#endif
-#if UNDERSAMPLING && STATISTICS
-				,frameObjects[i].rtMaskBuffer
-#endif
-			);
-		}
-
-		createShaderBindingTables(*rtPipeline);
 		prepared = true;
 	}
 

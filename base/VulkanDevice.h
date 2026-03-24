@@ -107,8 +107,8 @@ struct VulkanDevice
 	bool            extensionSupported(std::string extension);
 	VkFormat        getSupportedDepthFormat(bool checkSamplingSupport);
 
-	void createAndCopyToDeviceBuffer(void* data, VkBuffer* buffer, VkDeviceMemory* memory, size_t bufferSize, VkQueue queue, VkBufferUsageFlags usageFlags = 0x0, VkMemoryPropertyFlags memoryFlags = 0x0);
-	void createAndCopyToDeviceBuffer(void* data, vks::Buffer& buffer, size_t bufferSize, VkQueue& queue, VkBufferUsageFlags usageFlags = 0x0, VkMemoryPropertyFlags memoryFlags = 0x0);
+	VkResult createAndCopyToDeviceBuffer(void* data, VkBuffer* buffer, VkDeviceMemory* memory, size_t bufferSize, VkQueue queue, VkBufferUsageFlags usageFlags = 0x0, VkMemoryPropertyFlags memoryFlags = 0x0);
+	VkResult createAndCopyToDeviceBuffer(void* data, vks::Buffer& buffer, size_t bufferSize, VkQueue& queue, VkBufferUsageFlags usageFlags = 0x0, VkMemoryPropertyFlags memoryFlags = 0x0);
 	void copyDeviceBufferToHost(void* dst, vks::Buffer& buffer, VkQueue& queue);
 };
 }        // namespace vks

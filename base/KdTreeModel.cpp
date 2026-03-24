@@ -1,11 +1,11 @@
-#include "VulkanKDTree.h"
+#include "KdTreeModel.h"
 #include "vulkanUtils.h"
 
 #include <stdio.h>
 
 using namespace std;
 
-bool KDTreeModel::loadGLBin(string glbinPath) {
+bool KdTreeModel::loadGLBin(string glbinPath) {
 	FILE* fp = fopen(glbinPath.c_str(), "rb");
 	if (fp == NULL) {
 		printf("SceneLoaderForGL : Scene data open error\n");
@@ -13,18 +13,18 @@ bool KDTreeModel::loadGLBin(string glbinPath) {
 		return false;
 	}
 
-	fread(&vntCnt, 4, 1, fp);
+	fread(&vntArrLength, 4, 1, fp);
 	fread(&faceCnt, 4, 1, fp);
 	triCnt = faceCnt / 3;
-	printf("<GL> vntSize: %d, faceSize: %d\n", vntCnt, faceCnt);
-	printf("<GL> numOfTri: %d, numOfVert: %d\n", triCnt, (vntCnt / 8));
-	vntArray.resize(vntCnt);
-	if (vntArray.size() < vntCnt) {
+	vntCnt = vntArrLength / 8;
+	printf("<GL> vntSize: %d, faceSize: %d\n", vntArrLength, faceCnt);
+	printf("<GL> numOfTri: %d, numOfVert: %d\n", triCnt, vntCnt);
+	vntArray.resize(vntArrLength);
+	if (vntArray.size() < vntArrLength) {
 		printf("Mem Alloc Error : vntArray\n");
 		return false;
 	}
-	fread(vntArray.data(), sizeof(float), vntCnt, fp);
-	vntCnt /= 8;
+	fread(vntArray.data(), sizeof(float), vntArrLength, fp);
 
 	faceArray.resize(faceCnt);
 	if (faceArray.size() < faceCnt) {
@@ -52,7 +52,7 @@ void boxMinMax(Aabb& sb, glm::vec3& v) {
 	sb.max.z = max(sb.max.z, v.z);
 }
 
-bool KDTreeModel::makeTriAccData() {
+bool KdTreeModel::makeTriAccData() {
 	sceneBox.min.x = 100000;
 	sceneBox.min.y = 100000;
 	sceneBox.min.z = 100000;
@@ -132,10 +132,10 @@ bool KDTreeModel::makeTriAccData() {
 #endif
 	}
 	sceneBox.print("Scene box");
-	printf("Tri Acc List size : [%dB[%dMB]", triCnt * 48, triCnt * 48 / (1024 * 1024));
+	printf("Tri Acc List size : [%dB][%dMB]", triCnt * 48, triCnt * 48 / (1024 * 1024));
 }
 
-bool KDTreeModel::loadKDTree(std::string kdtbinPath)
+bool KdTreeModel::loadKDTree(std::string kdtbinPath)
 {
 	FILE* fp = fopen(kdtbinPath.c_str(), "rb");
 	if (fp == NULL) {
@@ -166,12 +166,12 @@ bool KDTreeModel::loadKDTree(std::string kdtbinPath)
 
 	fclose(fp);
 
-	printf("Total kd-Tree Size = [%d B][%.2f MB]", (nodeCnt * 2 + triOffsetCnt) * 4, (float)(nodeCnt * 2 + triOffsetCnt) * 4 / 1024 / 1024);
+	printf("Total kd-Tree Size = [%d B][%.2f MB]\n", (nodeCnt * 2 + triOffsetCnt) * 4, (float)(nodeCnt * 2 + triOffsetCnt) * 4 / 1024 / 1024);
 
 	return true;
 }
 
-void KDTreeModel::load(string glbinPath, string kdtbinPath) {
+void KdTreeModel::load(string glbinPath, string kdtbinPath) {
 	if (!loadGLBin(glbinPath)) {
 		vks::tools::exitFatal("loading glbin file failed\n", -1);
 	}
@@ -181,4 +181,16 @@ void KDTreeModel::load(string glbinPath, string kdtbinPath) {
 	if (!loadKDTree(kdtbinPath)) {
 		vks::tools::exitFatal("loading kdtbin file failed\n", -1);
 	}
+}
+
+bool KdTreeModel::uploadToGPU(vks::VulkanDevice* vulkanDevice, VkQueue& queue) {
+	VkFlags usageFlag = VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
+	VkFlags memPropertyFlag = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
+	VK_CHECK_RESULT(vulkanDevice->createAndCopyToDeviceBuffer(vntArray.data(), d_vntArray, vntArrLength * sizeof(float), queue, usageFlag, memPropertyFlag));
+	VK_CHECK_RESULT(vulkanDevice->createAndCopyToDeviceBuffer(faceArray.data(), d_faceArray, faceCnt * sizeof(uint32_t), queue, usageFlag, memPropertyFlag));
+	VK_CHECK_RESULT(vulkanDevice->createAndCopyToDeviceBuffer(kdTreeNode.data(), d_kdTreeNode, nodeCnt * sizeof(uint32_t) * 2, queue, usageFlag, memPropertyFlag));
+	VK_CHECK_RESULT(vulkanDevice->createAndCopyToDeviceBuffer(triOffsetList.data(), d_triOffsetList, triOffsetCnt * sizeof(uint32_t), queue, usageFlag, memPropertyFlag));
+	VK_CHECK_RESULT(vulkanDevice->createAndCopyToDeviceBuffer(triAccList.data(), d_triAccList, triCnt * sizeof(WaldTriangle), queue, usageFlag, memPropertyFlag));
+	printf("upload gaussian data to gpu done\n");
+	return true;
 }

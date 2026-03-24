@@ -1408,8 +1408,8 @@ bool VulkanRTBase::initVulkan()
 #endif
 
 	// If requested, we enable the default validation layers for debugging
-	//if (settings.validation)
-	if (true)
+	if (settings.validation)
+	//if (true)
 	{
 		vks::debug::setupDebugging(instance);
 	}

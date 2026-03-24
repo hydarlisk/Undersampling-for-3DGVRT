@@ -724,7 +724,7 @@ namespace vks
 	}
 
 	// usage example : SamsungVulkanRT project - commit : d726dbef7d8b32105dd4bff945b73df983db3c90
-	void VulkanDevice::createAndCopyToDeviceBuffer(void* data, VkBuffer* buffer, VkDeviceMemory* memory, size_t bufferSize, VkQueue queue, VkBufferUsageFlags usageFlags, VkMemoryPropertyFlags memoryFlags) {
+	VkResult  VulkanDevice::createAndCopyToDeviceBuffer(void* data, VkBuffer* buffer, VkDeviceMemory* memory, size_t bufferSize, VkQueue queue, VkBufferUsageFlags usageFlags, VkMemoryPropertyFlags memoryFlags) {
 		struct StagingBuffer {
 			VkBuffer buffer;
 			VkDeviceMemory memory;
@@ -758,9 +758,11 @@ namespace vks
 		flushCommandBuffer(copyCmd, queue, true);
 		vkDestroyBuffer(logicalDevice, stagingBuffer.buffer, nullptr);
 		vkFreeMemory(logicalDevice, stagingBuffer.memory, nullptr);
+
+		return VK_SUCCESS;
 	}
 
-	void VulkanDevice::createAndCopyToDeviceBuffer(void* data, vks::Buffer& buffer, size_t bufferSize, VkQueue& queue, VkBufferUsageFlags usageFlags, VkMemoryPropertyFlags memoryFlags) {
+	VkResult VulkanDevice::createAndCopyToDeviceBuffer(void* data, vks::Buffer& buffer, size_t bufferSize, VkQueue& queue, VkBufferUsageFlags usageFlags, VkMemoryPropertyFlags memoryFlags) {
 		struct StagingBuffer {
 			VkBuffer buffer;
 			VkDeviceMemory memory;
@@ -792,6 +794,8 @@ namespace vks
 		flushCommandBuffer(copyCmd, queue, true);
 		vkDestroyBuffer(logicalDevice, stagingBuffer.buffer, nullptr);
 		vkFreeMemory(logicalDevice, stagingBuffer.memory, nullptr);
+
+		return VK_SUCCESS;
 	}
 
 	void VulkanDevice::copyDeviceBufferToHost(void* dst, vks::Buffer& buffer, VkQueue& queue) {

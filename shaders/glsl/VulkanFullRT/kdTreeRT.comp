@@ -1,0 +1,118 @@
+#version 460
+
+#include "../base/3dgs.glsl"
+#include "../base/utils.glsl"
+#include "../base/define.glsl"
+
+layout(local_size_x = 32, local_size_y = 32) in;
+
+/***** 3DGS *****/
+layout(binding = 0, set = 0, rgba8) uniform image2D image;
+layout(binding = 1, set = 0) uniform uniformBuffer
+{
+	mat4 viewInverse;
+	mat4 projInverse;
+} uboDynamic;
+layout(binding = 2, set = 0) uniform uniformBufferStatic
+{
+	Aabb aabb;
+	float minTransmittance;
+	float hitMinGaussianResponse;
+	uint sphEvalDegree;
+} uboStatic;
+layout(std140, binding = 3, set = 0) buffer ParticleDensities {
+	ParticleDensity d[];
+} particleDensities;
+layout(std430, binding = 4, set = 0) buffer ParticleSphCoefficients {
+	float c[];
+} particleSphCoefficients;	// [features_albedo(vec3), features_specular(float)]. uboStatic.particleRadiance
+layout(std430, binding = 5, set = 0) buffer KdTreeNodes{
+	uint n[];
+} kdtreeNodes;
+layout(std430, binding = 6, set = 0) buffer TriOffsetList{
+	uint o[];
+} triOffsetList;
+layout(std430, binding = 7, set = 0) buffer Vnt{
+	uint v[];
+} vnt;
+layout(std430, binding = 8, set = 0) buffer Face{
+	uint f[];
+} face;
+layout(std430, binding = 9, set = 0) buffer TriAccList{
+	uint acc[];
+} triAccList;
+
+layout(push_constant, std430) uniform pushConstant{
+	uint width;
+	uint height;
+	uint additionalRT;
+	float colorThreshold;
+	float hitThreshold;
+	float weightThreshold;
+	float depthThreshold;
+};
+
+//#include "../base/gaussianfunctions.glsl"
+
+//void main()
+//{
+//	// set ray origin, direction
+//	const vec2 pixelCenter = vec2(gl_LaunchIDEXT.xy) + vec2(0.5);	// pixel position
+//	const vec2 inUV = pixelCenter/vec2(gl_LaunchSizeEXT.xy);	// pixel position in WdC
+//
+//	vec2 d = inUV * 2.0 - 1.0;	// pixel position in NDC
+//	vec4 rayOrigin = uboDynamic.viewInverse[3];
+//	vec4 target = uboDynamic.projInverse * vec4(d.x, d.y, 1.0f, 1.0f) ;	// (pixel position in EC) / Wc
+//	vec4 rayDirection = normalize(uboDynamic.viewInverse * vec4(target.xyz, 0.0f));
+//
+//	/*** 3dgrt style ***/
+//	vec4 rayRadiance = vec4(0.0f, 0.0f, 0.0f, 1.0f);
+//	float rayTransmittance = 1.0f;
+//	float rayHitDistance = 0.0f;
+//
+//	vec2 minMaxT = intersectAABB(uboStatic.aabb, rayOrigin.xyz, rayDirection.xyz);
+//	const float epsT = EPS_T;
+//
+//	float rayLastHitDistance = max(0.0f, minMaxT.x - epsT);
+//
+//	const uint iterations = ITERATIONS;
+//	uint iter = 0;
+//
+//	while((rayLastHitDistance <= minMaxT.y) && (rayTransmittance > uboStatic.minTransmittance)){
+//		iter++;
+//
+//		// Gather k hits
+//		trace(rayOrigin.xyz, rayDirection.xyz, rayLastHitDistance + epsT, minMaxT.y + epsT);
+//		if(rayPayload.hits[0].particleId == INVALID_PARTICLE_ID){
+//			break;
+//		}
+//
+//		// Process k hits
+//        for(int i = 0; i < MAX_HIT_PER_TRACE; i++){
+//			const RayHit rayHit = rayPayload.hits[nonuniformEXT(i)];
+//
+//			if((rayHit.particleId != INVALID_PARTICLE_ID) && (rayTransmittance > uboStatic.minTransmittance)){
+//				const bool acceptedHit = processHit(
+//					rayOrigin.xyz,
+//					rayDirection.xyz,
+//					rayHit.particleId,
+//					uboStatic.hitMinGaussianResponse,
+//					ALPHA_MIN_THRESHOLD,
+//					uboStatic.sphEvalDegree,
+//					rayTransmittance,
+//					rayRadiance,
+//					rayHitDistance
+//				);
+//
+//				rayLastHitDistance = max(rayLastHitDistance, rayHit.dist);
+//			}
+//		}
+//	}
+//    imageStore(image, ivec2(gl_LaunchIDEXT.xy), rayRadiance);
+//}
+
+
+void main()
+{
+	imageStore(image, ivec2(gl_GlobalInvocationID.xy), vec4(1.0f, 0.0f, 0.0f, 1.0f));
+}

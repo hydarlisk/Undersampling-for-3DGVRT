@@ -2,6 +2,8 @@
 
 #include "glm/glm.hpp"
 
+#include "VulkanDevice.h"
+
 #include <vector>
 #include <string>
 
@@ -34,31 +36,33 @@ struct Aabb {
 	}
 };
 
-class KDTreeModel {
+class KdTreeModel {
 	int vntCnt;
+	int vntArrLength;
 	int faceCnt;
 	vector<float> vntArray;
-	//float* vntArray;
 	vector<uint32_t> faceArray;
-	//uint32_t* faceArray;
-	
 	int triCnt;
-
-	vector<WaldTriangle> triAccList;
-
 	vector<uint32_t> kdTreeNode;
 	int nodeCnt;
 	vector<uint32_t> triOffsetList;
 	int triOffsetCnt;
+	vector<WaldTriangle> triAccList;
 	
 	Aabb sceneBox;
 
+public:
+	vks::Buffer d_vntArray;
+	vks::Buffer d_faceArray;
+	vks::Buffer d_triAccList;
+	vks::Buffer d_kdTreeNode;
+	vks::Buffer d_triOffsetList;
 	
-
 private:
 	bool loadGLBin(string glBinPath);
 	bool makeTriAccData();
 	bool loadKDTree(string kdtbinPath);
 public:
 	void load(string glbinPath, string kdtbinPath);
+	bool uploadToGPU(vks::VulkanDevice* vulkanDevice, VkQueue& queue);
 };
