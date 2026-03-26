@@ -151,8 +151,8 @@ void KdTreePipeline::initDescriptorSet(int frameIdx, VulkanSwapChain& swapChain,
 
 
 void KdTreePipeline::record(VkCommandBuffer& commandBuffer, uint32_t imageIndex, uint32_t width, uint32_t height) {
-	const uint32_t groupSizeX = 32;
-	const uint32_t groupSizeY = 32;
+	const uint32_t groupSizeX = 16;	//must changed with shader
+	const uint32_t groupSizeY = 16;	//must changed with shader
 	uint32_t groupCntX;
 	uint32_t groupCntY;
 

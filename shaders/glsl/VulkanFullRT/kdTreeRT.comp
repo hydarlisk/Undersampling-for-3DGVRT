@@ -4,7 +4,82 @@
 #include "../base/utils.glsl"
 #include "../base/define.glsl"
 
-layout(local_size_x = 32, local_size_y = 32) in;
+layout(local_size_x = 16, local_size_y = 16) in;
+
+#define SHORT_STACK_DEPTH 8
+#define EPSILON 0.000001
+
+#define IS_LEAF(node)				(((node).x & 7) == 3)
+#define OBJECT_SIZE(node)			( (node).x >> 3)
+#define OBJECTLIST_OFFSET(node)	( (node).y)
+
+//////////// Gaussian macro //////////
+//TODO JS: find optimal parameter
+#define MAX_HITS 16
+#define SPH_EVAL_DEGREE 3
+#define GAUSSIAN_DEGREE 4
+#define ALPHA_MIN 0.0113f
+#define OPACITY_THRESHOLD 0.95f
+//////////////////////////////////////
+
+const vec4 debugColors[20] = {
+vec4(1.0f, 0.0f, 0.0f, 1.0f),    // 0: Red
+vec4(0.0f, 1.0f, 0.0f, 1.0f),    // 1: Green
+vec4(0.0f, 0.0f, 1.0f, 1.0f),    // 2: Blue
+vec4(1.0f, 1.0f, 0.0f, 1.0f),    // 3: Yellow
+vec4(1.0f, 0.0f, 1.0f, 1.0f),    // 4: Magenta
+vec4(0.0f, 1.0f, 1.0f, 1.0f),    // 5: Cyan
+vec4(1.0f, 0.5f, 0.0f, 1.0f),    // 6: Orange
+vec4(0.5f, 0.0f, 1.0f, 1.0f),    // 7: Purple
+vec4(0.0f, 1.0f, 0.5f, 1.0f),    // 8: Spring Green
+vec4(1.0f, 0.0f, 0.5f, 1.0f),    // 9: Rose
+vec4(0.5f, 1.0f, 0.0f, 1.0f),    // 10: Chartreuse
+vec4(0.0f, 0.5f, 1.0f, 1.0f),    // 11: Azure
+vec4(0.6f, 0.3f, 0.0f, 1.0f),    // 12: Brown
+vec4(0.3f, 0.6f, 0.0f, 1.0f),    // 13: Olive
+vec4(0.0f, 0.6f, 0.3f, 1.0f),    // 14: Teal
+vec4(0.3f, 0.0f, 0.6f, 1.0f),    // 15: Indigo
+vec4(1.0f, 0.75f, 0.8f, 1.0f),   // 16: Pink
+vec4(0.75f, 1.0f, 0.75f, 1.0f),  // 17: Light Green
+vec4(0.75f, 0.75f, 1.0f, 1.0f),  // 18: Light Blue
+vec4(0.5f, 0.5f, 0.5f, 1.0f)     // 19: Gray
+};
+
+const int rayDirTable[8][3][2] = {
+	{{0,1},{0,1},{0,1}},
+	{{1,0},{0,1},{0,1}},
+	{{0,1},{1,0},{0,1}},
+	{{1,0},{1,0},{0,1}},
+	{{0,1},{0,1},{1,0}},
+	{{1,0},{0,1},{1,0}},
+	{{0,1},{1,0},{1,0}},
+	{{1,0},{1,0},{1,0}}
+};
+
+const int modulo[5] = {0,1,2,0,1};
+const int modulo8[18] = {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,0,1}; 
+
+struct HitRecord{
+    float t;
+    uint triIndex;
+};
+
+struct WaldTriangle{
+	vec4 n;
+	vec4 b;
+	vec4 c;
+};
+
+
+vec2 intersectAABB(const Aabb aabb, vec3 rayOri, vec3 rayDir) {
+    vec3 t0 = (vec3(aabb.minX, aabb.minY, aabb.minZ) - rayOri) / max(rayDir, vec3(1e-6));
+    vec3 t1 = (vec3(aabb.maxX, aabb.maxY, aabb.maxZ) - rayOri) / max(rayDir, vec3(1e-6));
+    vec3 tmax = vec3(max(t0.x, t1.x), max(t0.y, t1.y), max(t0.z, t1.z));
+    vec3 tmin = vec3(min(t0.x, t1.x), min(t0.y, t1.y), min(t0.z, t1.z));
+    float maxOfMin = max(0.0f, max(tmin.x, max(tmin.y, tmin.z)));
+    float minOfMax = min(tmax.x, min(tmax.y, tmax.z));
+    return vec2(maxOfMin, minOfMax);
+}
 
 /***** 3DGS *****/
 layout(binding = 0, set = 0, rgba8) uniform image2D image;
@@ -27,92 +102,232 @@ layout(std430, binding = 4, set = 0) buffer ParticleSphCoefficients {
 	float c[];
 } particleSphCoefficients;	// [features_albedo(vec3), features_specular(float)]. uboStatic.particleRadiance
 layout(std430, binding = 5, set = 0) buffer KdTreeNodes{
-	uint n[];
-} kdtreeNodes;
+	uvec2 n[];
+} kdTreeNodes;
 layout(std430, binding = 6, set = 0) buffer TriOffsetList{
 	uint o[];
 } triOffsetList;
-layout(std430, binding = 7, set = 0) buffer Vnt{
-	uint v[];
-} vnt;
+layout(std430, binding = 7, set = 0) buffer Vertex{
+	float v[];
+} vertex;
 layout(std430, binding = 8, set = 0) buffer Face{
 	uint f[];
 } face;
 layout(std430, binding = 9, set = 0) buffer TriAccList{
-	uint acc[];
+	WaldTriangle acc[];
 } triAccList;
 
-layout(push_constant, std430) uniform pushConstant{
+layout(push_constant, std140) uniform pushConstant{
 	uint width;
 	uint height;
-	uint additionalRT;
-	float colorThreshold;
-	float hitThreshold;
-	float weightThreshold;
-	float depthThreshold;
 };
 
-//#include "../base/gaussianfunctions.glsl"
+struct KdStack{
+	float t_far;
+	uint nodeIdx;
+};
 
-//void main()
-//{
-//	// set ray origin, direction
-//	const vec2 pixelCenter = vec2(gl_LaunchIDEXT.xy) + vec2(0.5);	// pixel position
-//	const vec2 inUV = pixelCenter/vec2(gl_LaunchSizeEXT.xy);	// pixel position in WdC
-//
-//	vec2 d = inUV * 2.0 - 1.0;	// pixel position in NDC
-//	vec4 rayOrigin = uboDynamic.viewInverse[3];
-//	vec4 target = uboDynamic.projInverse * vec4(d.x, d.y, 1.0f, 1.0f) ;	// (pixel position in EC) / Wc
-//	vec4 rayDirection = normalize(uboDynamic.viewInverse * vec4(target.xyz, 0.0f));
-//
-//	/*** 3dgrt style ***/
-//	vec4 rayRadiance = vec4(0.0f, 0.0f, 0.0f, 1.0f);
-//	float rayTransmittance = 1.0f;
-//	float rayHitDistance = 0.0f;
-//
-//	vec2 minMaxT = intersectAABB(uboStatic.aabb, rayOrigin.xyz, rayDirection.xyz);
-//	const float epsT = EPS_T;
-//
-//	float rayLastHitDistance = max(0.0f, minMaxT.x - epsT);
-//
-//	const uint iterations = ITERATIONS;
-//	uint iter = 0;
-//
-//	while((rayLastHitDistance <= minMaxT.y) && (rayTransmittance > uboStatic.minTransmittance)){
-//		iter++;
-//
-//		// Gather k hits
-//		trace(rayOrigin.xyz, rayDirection.xyz, rayLastHitDistance + epsT, minMaxT.y + epsT);
-//		if(rayPayload.hits[0].particleId == INVALID_PARTICLE_ID){
-//			break;
-//		}
-//
-//		// Process k hits
-//        for(int i = 0; i < MAX_HIT_PER_TRACE; i++){
-//			const RayHit rayHit = rayPayload.hits[nonuniformEXT(i)];
-//
-//			if((rayHit.particleId != INVALID_PARTICLE_ID) && (rayTransmittance > uboStatic.minTransmittance)){
-//				const bool acceptedHit = processHit(
-//					rayOrigin.xyz,
-//					rayDirection.xyz,
-//					rayHit.particleId,
-//					uboStatic.hitMinGaussianResponse,
-//					ALPHA_MIN_THRESHOLD,
-//					uboStatic.sphEvalDegree,
-//					rayTransmittance,
-//					rayRadiance,
-//					rayHitDistance
-//				);
-//
-//				rayLastHitDistance = max(rayLastHitDistance, rayHit.dist);
-//			}
-//		}
-//	}
-//    imageStore(image, ivec2(gl_LaunchIDEXT.xy), rayRadiance);
-//}
+shared KdStack sharedStack[gl_WorkGroupSize.x * gl_WorkGroupSize.y * SHORT_STACK_DEPTH];
 
+void isectBranch(uint triIdx, vec3 rayOri, vec3 rayDir, inout HitRecord localHits[MAX_HITS], inout uint localHitCnt){
+	int k;
+	float nd, f;
+	float hu, hv;
+	float lambda, mue;
+//#ifdef USE_TRI_ACCEL
+//	WaldTriangle acc = triAccList.acc[triIdx];
+//	k = int(acc.n.w);
+//	k1 = modulo[k+1];
+//	k2 = modulo[k+2];
+//
+//	nd = 1.0f / (rayDir[k] + acc.n.x * rayDir[k1] + acc.n.y * rayDir[k2];
+//	f = acc.n.z - (rayOri[k] + acc.n.x * rayOri[k1] + acc.n.y * rayOri[k2];
+//	f = f * nd;
+//
+//	if(isnan(f) || f < EPSILON) return;
+//
+//	hu = rayOri[k1] + f * rayDir[k1];
+//	hv = rayOri[k2] + f * rayDir[k2];
+//
+//	lambda = hu * acc.b.u + hv * acc.b.v + acc.b.z;
+//	mue = hu * acc.c.u + hv * acc.c.v + acc.c.z;
+//
+//	if(lambda < 0.0f) return;
+//	if(mue < 0.0f) return;
+//	if((1.0f - lambda - mue) < 0.0f) return;
+//
+//	localHits[localHitCnt].t = f;
+//	localHits[localHitCnt].triIndex = triIdx;
+//	localHitCnt++;
+//#else
+	vec3 v0, v1, v2;
 
-void main()
-{
-	imageStore(image, ivec2(gl_GlobalInvocationID.xy), vec4(1.0f, 0.0f, 0.0f, 1.0f));
+	uint startOffset = triIdx * 3 * 8;
+	v0 = vec3(vertex.v[startOffset], vertex.v[startOffset+1],vertex.v[startOffset+2]);
+	v1 = vec3(vertex.v[startOffset+8], vertex.v[startOffset+9],vertex.v[startOffset+10]);
+	v2 = vec3(vertex.v[startOffset+16], vertex.v[startOffset+17],vertex.v[startOffset+18]);
+
+	vec3 e1 = v1 - v0;
+	vec3 e2 = v2 - v0;
+	vec3 pvec = cross(rayDir, e2);
+	float det = dot(e1, pvec);
+
+	//ray is parallel to plane
+	if(det < EPSILON && det > -EPSILON){
+		return;
+	}
+
+	float invDet = 1.0f / det;
+	vec3 tvec = rayOri - v0;
+	float u = dot(tvec, pvec) * invDet;
+	if(u < 0.0f || u > 1.0f){
+		return;
+	}
+
+	vec3 qvec = cross(tvec, e1);
+	float v = dot(rayDir, qvec) * invDet;
+	if(v < 0.0f || u + v > 1.0f){
+		return;
+	}
+
+	f = dot(e2, qvec) * invDet;
+	if(f < EPSILON) return;
+
+	localHits[localHitCnt].t = f;
+	localHits[localHitCnt].triIndex = triIdx;
+	localHitCnt++;
+//#endif
+}
+
+//TODO: vec4 to vec3
+vec4 traceKdTree(int quad, vec3 rayOri, vec3 rayDir, out float accumOpacity){
+	uint baseStack = (gl_LocalInvocationIndex) * SHORT_STACK_DEPTH;
+
+	uint nodeIdx = 0;
+	uint stackIdx = 0;
+	
+	int sf = 0;
+	int sb = SHORT_STACK_DEPTH - 1;
+	
+
+//	bvec3 isZero = equal(rayDir.xyz, vec3(0.0));
+//	vec3 safeDir = mix(rayDir.xyz, vec3(EPSILON), isZero);
+//	vec3 rcpRayDir = 1.0f / safeDir;
+
+	vec3 rcpRayDir = 1.0f / rayDir;
+	if(any(isnan(rcpRayDir))){
+		return vec4(0.0f, 0.0f, 0.0f, 1.0f);
+	}
+
+	vec2 t_nearFar = intersectAABB(uboStatic.aabb, rayOri, rayDir);
+	float t_sceneFar = t_nearFar.y;
+	if((t_nearFar.y < t_nearFar.x) || (t_nearFar.y < 0.0f) || t_nearFar.x < 0.0f){
+		return vec4(0.0f, 0.0f, 0.0f, 1.0f);
+	}
+
+	uint frontChildIdx = 0;
+	uint backChildIdx = 0;
+
+	float d;
+	uvec2 i2;
+
+	vec3 accumColor = vec3(0.0f, 0.0f, 0.0f);
+
+	while(true){
+		//internal node traversal
+		for(i2 = kdTreeNodes.n[nodeIdx]; !IS_LEAF(i2); i2 = kdTreeNodes.n[nodeIdx]){
+			float nodeSplit = uintBitsToFloat(i2.y);
+			uint dim = i2.x & 3;
+
+			d = (nodeSplit - rayOri[dim]) * rcpRayDir[dim];
+
+//			int s = int((dim == 0) ? (rayDir[0] < 0) : (dim == 1) ? (rayDir[1] < 0) : (rayDir[2] < 0));
+//            frontChildIdx = (i2.x >> 3) + s;
+//            backChildIdx  = (i2.x >> 3) + (s ^ 1);
+			frontChildIdx = ((i2.x >> 3) + rayDirTable[quad][dim][0]);
+			backChildIdx = ((i2.x >> 3) + rayDirTable[quad][dim][1]);
+			nodeIdx = backChildIdx;
+			if(d < t_nearFar.x) continue;
+			nodeIdx = frontChildIdx;
+			if(d > t_nearFar.y) continue;
+
+			sharedStack[baseStack + stackIdx].t_far = t_nearFar.y;
+			sharedStack[baseStack + stackIdx].nodeIdx = backChildIdx;
+			t_nearFar.y = d;
+
+			if(stackIdx == sb){
+//				sf = modulo8[sf+1];
+//				sb = modulo8[sb+1];
+				sf = (sf+1) & (SHORT_STACK_DEPTH - 1);
+				sb = (sb+1) & (SHORT_STACK_DEPTH - 1);
+			}
+//			stackIdx = modulo8[stackIdx + 1];
+			stackIdx = (stackIdx + 1) & (SHORT_STACK_DEPTH - 1);
+		}
+		//leaf intersection
+		uint baseOffset = OBJECTLIST_OFFSET(i2);
+		uint endOffset = OBJECT_SIZE(i2) + baseOffset;
+		HitRecord localHits[MAX_HITS];
+		uint localHitCnt = 0;
+		for(uint i = baseOffset; i < endOffset; i++){
+			uint triIdx = triOffsetList.o[i];
+			uint tmp = localHitCnt;
+			isectBranch(triIdx, rayOri, rayDir, localHits, localHitCnt);
+		}
+
+		if(localHitCnt > 0){
+			accumColor = debugColors[localHits[0].triIndex % 20].xyz;
+			break;
+		}
+
+		if(t_nearFar.y >= t_sceneFar){
+			break;
+		}
+
+		if(stackIdx == sf){
+			sf = 0;
+			sb = SHORT_STACK_DEPTH - 1;
+			stackIdx = 0;
+			nodeIdx = 0;
+
+			t_nearFar.x = t_nearFar.y;
+			t_nearFar.y = t_sceneFar;
+			continue;
+		}
+
+		//stack pop
+		if(stackIdx == 0){
+			stackIdx = SHORT_STACK_DEPTH - 1;
+		}
+		else{
+			--stackIdx;
+		}
+		nodeIdx = sharedStack[baseStack + stackIdx].nodeIdx;
+		t_nearFar.x = t_nearFar.y;
+		t_nearFar.y = sharedStack[baseStack+stackIdx].t_far;
+	}
+
+	return vec4(accumColor, 1.0f);
+}
+
+void main(){
+//TODO: pushconstant
+//	if(gl_GlobalInvocationID.x > 1920 || gl_GlobalInvocationID.y > 1080) return;
+	const vec2 pixelCenter = vec2(gl_GlobalInvocationID.xy) + vec2(0.5);	// pixel position
+	const vec2 inUV = pixelCenter/vec2((gl_NumWorkGroups * gl_WorkGroupSize).xy);	// pixel position in WdC
+//	const vec2 inUV = pixelCenter/vec2(1920,1080);	// pixel position in WdC
+	vec2 d = inUV * 2.0 - 1.0;	// pixel position in NDC
+	vec4 rayOrigin = uboDynamic.viewInverse[3];
+	vec4 target = uboDynamic.projInverse * vec4(d.x, d.y, 1.0f, 1.0f);	// (pixel position in EC) / Wc
+	vec4 rayDir = normalize(uboDynamic.viewInverse * vec4(target.xyz, 0.0f));
+	int quad = 0;
+	if(rayDir.x < 0) quad = 1;
+	if(rayDir.y < 0) quad |= 1 << 1;
+	if(rayDir.z < 0) quad |= 1 << 2;
+	float accumOpacity = 0;
+
+	vec4 res = traceKdTree(quad, rayOrigin.xyz, rayDir.xyz, accumOpacity);
+
+//	imageStore(image, ivec2(gl_GlobalInvocationID.xy), vec4(1.0f, 0.0f, 0.0f, 1.0f));
+	imageStore(image, ivec2(gl_GlobalInvocationID.xy), res);
 }

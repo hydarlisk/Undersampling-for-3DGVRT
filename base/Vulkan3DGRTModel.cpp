@@ -7,7 +7,6 @@ namespace vk3DGRT {
 	bool PLYLoader::loadPLYModel(const char *filename, SplatSet & output)
 	{
 		auto startTime = std::chrono::high_resolution_clock::now();
-
 #if defined(__ANDROID__)
 		AAsset* asset = AAssetManager_open(androidApp->activity->assetManager, filename, AASSET_MODE_STREAMING);
 		if (!asset) {
@@ -127,22 +126,6 @@ namespace vk3DGRT {
 	void Model::load3DGRTModel(std::string filename, vks::VulkanDevice* device)
 	{
 		if (filename.find_last_of(".") != std::string::npos) {
-
-			// Can't load .pt file in C++ since the model file is exported using pickle module
-			// 
-			//if (filename.substr(filename.find_last_of(".") + 1) == "pt")	// Case 0: checkpoint.pt file
-			//{
-			//
-			//	try {
-			//		std::filesystem::path path = std::filesystem::current_path() / "ckpt_last.pt";
-			//		torch::jit::script::Module module = torch::jit::load(path.string());
-			//	}
-			//	catch (const c10::Error& e) {
-			//		std::cerr << e.what() << std::endl;
-			//		vks::tools::exitFatal("Error loading the model: \"" + filename, -1);
-			//		return;
-			//	}
-			//}
 			if (filename.substr(filename.find_last_of(".") + 1) == "ply") // .ply file
 			{
 				PLYLoader plyLoader;
