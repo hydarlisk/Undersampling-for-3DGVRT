@@ -125,14 +125,17 @@ vec3 radianceFromSpH(uint deg, const vec3 sphCoefficients[SPH_MAX_NUM_COEFFS], c
     return clamped ? max(rad, vec3(0.0f)) : rad;
 }
 
-vec3 getSHCoeff(uint gaussianID, uint coeffIdx) {
-    uint base = (gaussianID * SPH_MAX_NUM_COEFFS + coeffIdx) * 3;
-    return vec3(particleSphCoefficients.c[base],
-        particleSphCoefficients.c[base + 1],
-        particleSphCoefficients.c[base + 2]);
-}
 vec3 radianceFromSpH_Direct(uint deg, uint gaussianID, vec3 rdir) {
-    vec3 rad = SH_C0 * getSHCoeff(gaussianID, 0);
+    uint base = gaussianID * SPH_MAX_NUM_COEFFS * 3;
+
+#define GET_SH_COEFF(gBase, cidx) \
+    vec3(particleSphCoefficients.c[(gBase) + (cidx) * 3],   \
+        particleSphCoefficients.c[(gBase) + (cidx) * 3 + 1],   \
+        particleSphCoefficients.c[(gBase) + (cidx) * 3 + 2])
+
+    vec3 rad = SH_C0 * GET_SH_COEFF(base, 0);
+
+
 
     if (deg > 0) {
         const float x = rdir.x;
@@ -140,30 +143,30 @@ vec3 radianceFromSpH_Direct(uint deg, uint gaussianID, vec3 rdir) {
         const float z = rdir.z;
 
         // 1도 성분
-        rad = rad - SH_C1 * y * getSHCoeff(gaussianID, 1)
-            + SH_C1 * z * getSHCoeff(gaussianID, 2)
-            - SH_C1 * x * getSHCoeff(gaussianID, 3);
+        rad = rad - SH_C1 * y * GET_SH_COEFF(base, 1);
+            + SH_C1 * z * GET_SH_COEFF(base, 2)
+            - SH_C1 * x * GET_SH_COEFF(base, 3);
 
         if (deg > 1) {
             const float xx = x * x, yy = y * y, zz = z * z;
             const float xy = x * y, yz = y * z, xz = x * z;
-
+            
             // 2도 성분
-            rad = rad + SH_C2[0] * xy * getSHCoeff(gaussianID, 4)
-                + SH_C2[1] * yz * getSHCoeff(gaussianID, 5)
-                + SH_C2[2] * (2.0f * zz - xx - yy) * getSHCoeff(gaussianID, 6)
-                + SH_C2[3] * xz * getSHCoeff(gaussianID, 7)
-                + SH_C2[4] * (xx - yy) * getSHCoeff(gaussianID, 8);
+            rad = rad + SH_C2[0] * xy * GET_SH_COEFF(base, 4)
+                + SH_C2[1] * yz * GET_SH_COEFF(base, 5)
+                + SH_C2[2] * (2.0f * zz - xx - yy) * GET_SH_COEFF(base, 6)
+                + SH_C2[3] * xz * GET_SH_COEFF(base, 7)
+                + SH_C2[4] * (xx - yy) * GET_SH_COEFF(base, 8);
 
             if (deg > 2) {
                 // 3도 성분
-                rad = rad + SH_C3[0] * y * (3.0f * xx - yy) * getSHCoeff(gaussianID, 9)
-                    + SH_C3[1] * xy * z * getSHCoeff(gaussianID, 10)
-                    + SH_C3[2] * y * (4.0f * zz - xx - yy) * getSHCoeff(gaussianID, 11)
-                    + SH_C3[3] * z * (2.0f * zz - 3.0f * xx - 3.0f * yy) * getSHCoeff(gaussianID, 12)
-                    + SH_C3[4] * x * (4.0f * zz - xx - yy) * getSHCoeff(gaussianID, 13)
-                    + SH_C3[5] * z * (xx - yy) * getSHCoeff(gaussianID, 14)
-                    + SH_C3[6] * x * (xx - 3.0f * yy) * getSHCoeff(gaussianID, 15);
+                rad = rad + SH_C3[0] * y * (3.0f * xx - yy) * GET_SH_COEFF(base, 9)
+                    + SH_C3[1] * xy * z * GET_SH_COEFF(base, 10)
+                    + SH_C3[2] * y * (4.0f * zz - xx - yy) * GET_SH_COEFF(base, 11)
+                    + SH_C3[3] * z * (2.0f * zz - 3.0f * xx - 3.0f * yy) * GET_SH_COEFF(base, 12)
+                    + SH_C3[4] * x * (4.0f * zz - xx - yy) * GET_SH_COEFF(base, 13)
+                    + SH_C3[5] * z * (xx - yy) * GET_SH_COEFF(base, 14)
+                    + SH_C3[6] * x * (xx - 3.0f * yy) * GET_SH_COEFF(base, 15);
             }
         }
     }
@@ -216,7 +219,7 @@ bool processHit(
 
 	//const bool acceptHit = (gres > minParticleKernelDensity) && (galpha > minParticleAlpha);
 	bool acceptHit = (gres > minParticleKernelDensity) && (galpha > minParticleAlpha);
-    acceptHit = true;
+    //acceptHit = true;
 	//bool acceptHit = (gres > minParticleKernelDensity) && (galpha > minParticleAlpha);
 	if (acceptHit) {
         const float weight = galpha * (transmittance);
@@ -225,18 +228,16 @@ bool processHit(
         weightOut = weight;
 #endif
 		const vec3 grds = particleScale * grd * dot(grd, -1 * gro);
-		const float hitT = sqrt(dot(grds, grds));
 
-		vec3 sphCoefficients[SPH_MAX_NUM_COEFFS];
+		/*vec3 sphCoefficients[SPH_MAX_NUM_COEFFS];
 		fetchParticleSphCoefficients(
 			particleIdx,
 			sphCoefficients);
-		const vec3 grad = radianceFromSpH(sphEvalDegree, sphCoefficients, rayDirection, true);
-        //const vec3 grad = radianceFromSpH_Direct(sphEvalDegree, particleIdx, rayDirection);
+		const vec3 grad = radianceFromSpH(sphEvalDegree, sphCoefficients, rayDirection, true);*/
+        const vec3 grad = radianceFromSpH_Direct(sphEvalDegree, particleIdx, rayDirection);
 
 		radiance += grad * weight;
 		transmittance *= (1 - galpha);
-		depth += hitT * weight;
 	}
 
 	return acceptHit;
