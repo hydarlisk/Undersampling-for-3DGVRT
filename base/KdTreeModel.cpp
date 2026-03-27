@@ -1,6 +1,7 @@
 #include "KdTreeModel.h"
 #include "VulkanUtils.h"
 
+#include "Logger.h"
 #include <stdio.h>
 
 using namespace std;

@@ -11,6 +11,8 @@
 #include "vulkan/vulkan.h"
 #include "VulkanInitializers.hpp"
 
+#include "Logger.h"
+
 #include <math.h>
 #include <stdlib.h>
 #include <string>
