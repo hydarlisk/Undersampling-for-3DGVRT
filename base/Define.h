@@ -27,8 +27,8 @@
 #define MAX_SIMILARITY_VAR 10				// Should be managed with 3dgs.glsl
 
 /* kdtree */
-#define KDTREE true
-#define USE_TRI_ACCEL true;
+#define KDTREE 1
+#define USE_TRI_ACCEL 0
 
 
 /* Debug */

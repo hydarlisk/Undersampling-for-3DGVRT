@@ -49,5 +49,6 @@ namespace vk3DGRT {
 
 		void load3DGRTModel(std::string filename, vks::VulkanDevice* device);
 		void allocateAttributeBuffers(vks::VulkanDevice* vulkanDevice, VkQueue queue);
+		void deallocAttributeBuffers(vks::VulkanDevice* vulkanDevice, VkQueue queue);
 	};
 }

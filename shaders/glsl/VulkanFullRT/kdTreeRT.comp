@@ -4,7 +4,7 @@
 #include "../base/utils.glsl"
 #include "../base/define.glsl"
 
-layout(local_size_x = 16, local_size_y = 16) in;
+layout(local_size_x = 8, local_size_y = 8) in;	//must changed with dispatch
 
 #define SHORT_STACK_DEPTH 8
 #define EPSILON 0.000001
@@ -15,7 +15,7 @@ layout(local_size_x = 16, local_size_y = 16) in;
 
 //////////// Gaussian macro //////////
 //TODO JS: find optimal parameter
-#define MAX_HITS 16
+#define MAX_HITS 4
 #define SPH_EVAL_DEGREE 3
 #define GAUSSIAN_DEGREE 4
 #define ALPHA_MIN 0.0113f
@@ -70,17 +70,6 @@ struct WaldTriangle{
 	vec4 c;
 };
 
-
-vec2 intersectAABB(const Aabb aabb, vec3 rayOri, vec3 rayDir) {
-    vec3 t0 = (vec3(aabb.minX, aabb.minY, aabb.minZ) - rayOri) / max(rayDir, vec3(1e-6));
-    vec3 t1 = (vec3(aabb.maxX, aabb.maxY, aabb.maxZ) - rayOri) / max(rayDir, vec3(1e-6));
-    vec3 tmax = vec3(max(t0.x, t1.x), max(t0.y, t1.y), max(t0.z, t1.z));
-    vec3 tmin = vec3(min(t0.x, t1.x), min(t0.y, t1.y), min(t0.z, t1.z));
-    float maxOfMin = max(0.0f, max(tmin.x, max(tmin.y, tmin.z)));
-    float minOfMax = min(tmax.x, min(tmax.y, tmax.z));
-    return vec2(maxOfMin, minOfMax);
-}
-
 /***** 3DGS *****/
 layout(binding = 0, set = 0, rgba8) uniform image2D image;
 layout(binding = 1, set = 0) uniform uniformBuffer
@@ -129,7 +118,10 @@ struct KdStack{
 
 shared KdStack sharedStack[gl_WorkGroupSize.x * gl_WorkGroupSize.y * SHORT_STACK_DEPTH];
 
+#include "../base/gaussianfunctions.glsl"
+
 void isectBranch(uint triIdx, vec3 rayOri, vec3 rayDir, inout HitRecord localHits[MAX_HITS], inout uint localHitCnt){
+//	if(localHitCnt > MAX_HITS) return;
 	int k;
 	float nd, f;
 	float hu, hv;
@@ -199,6 +191,19 @@ void isectBranch(uint triIdx, vec3 rayOri, vec3 rayDir, inout HitRecord localHit
 //#endif
 }
 
+void sortHits(inout HitRecord hits[MAX_HITS], uint count) {
+    //if (count > 25) printf("local sort count: %d\n", count);
+    for (int i = 1; i < count; i++) {
+        HitRecord key = hits[i];
+        int j = i - 1;
+        while (j >= 0 && hits[j].t > key.t) {
+            hits[j + 1] = hits[j];
+            j = j - 1;
+        }
+        hits[j + 1] = key;
+    }
+}
+
 //TODO: vec4 to vec3
 vec4 traceKdTree(int quad, vec3 rayOri, vec3 rayDir, out float accumOpacity){
 	uint baseStack = (gl_LocalInvocationIndex) * SHORT_STACK_DEPTH;
@@ -209,7 +214,6 @@ vec4 traceKdTree(int quad, vec3 rayOri, vec3 rayDir, out float accumOpacity){
 	int sf = 0;
 	int sb = SHORT_STACK_DEPTH - 1;
 	
-
 //	bvec3 isZero = equal(rayDir.xyz, vec3(0.0));
 //	vec3 safeDir = mix(rayDir.xyz, vec3(EPSILON), isZero);
 //	vec3 rcpRayDir = 1.0f / safeDir;
@@ -220,8 +224,9 @@ vec4 traceKdTree(int quad, vec3 rayOri, vec3 rayDir, out float accumOpacity){
 	}
 
 	vec2 t_nearFar = intersectAABB(uboStatic.aabb, rayOri, rayDir);
+	t_nearFar.x = max(t_nearFar.x, 0);
 	float t_sceneFar = t_nearFar.y;
-	if((t_nearFar.y < t_nearFar.x) || (t_nearFar.y < 0.0f) || t_nearFar.x < 0.0f){
+	if((t_nearFar.y < t_nearFar.x) || (t_nearFar.y < 0.0f)){
 		return vec4(0.0f, 0.0f, 0.0f, 1.0f);
 	}
 
@@ -231,8 +236,9 @@ vec4 traceKdTree(int quad, vec3 rayOri, vec3 rayDir, out float accumOpacity){
 	float d;
 	uvec2 i2;
 
-	vec3 accumColor = vec3(0.0f, 0.0f, 0.0f);
-
+	vec3 rayRadiance = vec3(0.0f, 0.0f, 0.0f);
+	float rayTransmittance = 1.0f;
+	float rayHitDistance = 0.0f;
 	while(true){
 		//internal node traversal
 		for(i2 = kdTreeNodes.n[nodeIdx]; !IS_LEAF(i2); i2 = kdTreeNodes.n[nodeIdx]){
@@ -253,6 +259,7 @@ vec4 traceKdTree(int quad, vec3 rayOri, vec3 rayDir, out float accumOpacity){
 
 			sharedStack[baseStack + stackIdx].t_far = t_nearFar.y;
 			sharedStack[baseStack + stackIdx].nodeIdx = backChildIdx;
+			memoryBarrierShared();
 			t_nearFar.y = d;
 
 			if(stackIdx == sb){
@@ -271,16 +278,51 @@ vec4 traceKdTree(int quad, vec3 rayOri, vec3 rayDir, out float accumOpacity){
 		uint localHitCnt = 0;
 		for(uint i = baseOffset; i < endOffset; i++){
 			uint triIdx = triOffsetList.o[i];
-			uint tmp = localHitCnt;
 			isectBranch(triIdx, rayOri, rayDir, localHits, localHitCnt);
-		}
+			if(localHitCnt >= MAX_HITS || (i == endOffset - 1 && localHitCnt > 0)){
+//				rayRadiance = debugColors[(localHits[i].triIndex % 20)].xyz;
+//				return vec4(rayRadiance, 1.0f);
 
-		if(localHitCnt > 0){
-			accumColor = debugColors[localHits[0].triIndex % 20].xyz;
-			break;
-		}
+				sortHits(localHits, localHitCnt);
+				for(int j = 0; j < localHitCnt; j++){
+					const bool acceptedHit = processHit(
+						rayOri,
+						rayDir,
+						localHits[j].triIndex / 20u,
+						uboStatic.hitMinGaussianResponse,
+						ALPHA_MIN_THRESHOLD,
+						uboStatic.sphEvalDegree,
+						rayTransmittance,
+						rayRadiance,
+						rayHitDistance
+					);
 
-		if(t_nearFar.y >= t_sceneFar){
+					if(rayTransmittance < uboStatic.minTransmittance)
+						return vec4(rayRadiance, 1.0f);
+				}
+			}
+		}
+//
+//		if(localHitCnt > 0){
+////			rayRadiance = debugColors[localHits[0].triIndex % 20].xyz;
+////			break;
+//		    sortHits(localHits, localHitCnt);
+//			for(int i = 0; i < localHitCnt; i++){
+//				const bool acceptedHit = processHit(
+//					rayOri,
+//					rayDir,
+//					localHits[i].triIndex / 20u,
+//					uboStatic.hitMinGaussianResponse,
+//					ALPHA_MIN_THRESHOLD,
+//					uboStatic.sphEvalDegree,
+//					rayTransmittance,
+//					rayRadiance,
+//					rayHitDistance
+//				);
+//			}
+//		}
+
+		if(rayTransmittance <= uboStatic.minTransmittance || t_nearFar.y >= t_sceneFar){
 			break;
 		}
 
@@ -302,17 +344,18 @@ vec4 traceKdTree(int quad, vec3 rayOri, vec3 rayDir, out float accumOpacity){
 		else{
 			--stackIdx;
 		}
+		memoryBarrierShared();
 		nodeIdx = sharedStack[baseStack + stackIdx].nodeIdx;
 		t_nearFar.x = t_nearFar.y;
 		t_nearFar.y = sharedStack[baseStack+stackIdx].t_far;
 	}
 
-	return vec4(accumColor, 1.0f);
+	return vec4(rayRadiance, 1.0f);
 }
 
 void main(){
 //TODO: pushconstant
-//	if(gl_GlobalInvocationID.x > 1920 || gl_GlobalInvocationID.y > 1080) return;
+	if(gl_GlobalInvocationID.x > 1920 || gl_GlobalInvocationID.y > 1080) return;
 	const vec2 pixelCenter = vec2(gl_GlobalInvocationID.xy) + vec2(0.5);	// pixel position
 	const vec2 inUV = pixelCenter/vec2((gl_NumWorkGroups * gl_WorkGroupSize).xy);	// pixel position in WdC
 //	const vec2 inUV = pixelCenter/vec2(1920,1080);	// pixel position in WdC

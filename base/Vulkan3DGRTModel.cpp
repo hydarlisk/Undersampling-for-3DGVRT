@@ -203,5 +203,16 @@ namespace vk3DGRT {
 		VK_CHECK_RESULT(vulkanDevice->createBuffer(VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &featuresSpecular.storageBuffer, sizeof(float) * featuresSpecular.count));
 		vulkanDevice->copyBuffer(splatSet.f_rest.data(), &featuresSpecular.storageBuffer, queue);
 	}
+
+	void Model::deallocAttributeBuffers(vks::VulkanDevice* vulkanDevice, VkQueue queue) {
+		positions.storageBuffer.destroy();
+		rotations.storageBuffer.destroy();
+		scales.storageBuffer.destroy();
+		densities.storageBuffer.destroy();
+		vertices.storageBuffer.destroy();
+		indices.storageBuffer.destroy();
+		featuresAlbedo.storageBuffer.destroy();
+		featuresSpecular.storageBuffer.destroy();
+	}
 }
 

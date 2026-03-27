@@ -20,6 +20,33 @@
 
 namespace vks
 {	
+
+	void checkVulkanLimits(VkPhysicalDevice device) {
+		VkPhysicalDeviceProperties properties;
+		vkGetPhysicalDeviceProperties(device, &properties);
+
+		std::cout << "--- Vulkan Compute Limits ---" << std::endl;
+		std::cout << "Device Name: " << properties.deviceName << std::endl;
+
+		// 1. Shared Memory 최대 크기 (바이트 단위)
+		// 이 값이 32768(32KB) 또는 49152(48KB) 등으로 나옵니다.
+		std::cout << "Max Shared Memory Size: " << properties.limits.maxComputeSharedMemorySize << " bytes" << std::endl;
+
+		// 2. 워크그룹당 최대 스레드 수
+		// 보통 1024가 나오는데, 16x16=256은 충분히 안전 범위입니다.
+		std::cout << "Max Compute Workgroup Invocations: " << properties.limits.maxComputeWorkGroupInvocations << std::endl;
+
+		// 3. 워크그룹 각 차원의 최대 크기
+		std::cout << "Max Compute Workgroup Size: ("
+			<< properties.limits.maxComputeWorkGroupSize[0] << ", "
+			<< properties.limits.maxComputeWorkGroupSize[1] << ", "
+			<< properties.limits.maxComputeWorkGroupSize[2] << ")" << std::endl;
+
+		// 4. (참고) 디바이스 로컬 메모리 타입 확인 (선택 사항)
+		// 가우시안 데이터가 들어가는 SSBO의 최대 크기 제한
+		std::cout << "Max Storage Buffer Range: " << properties.limits.maxStorageBufferRange << " bytes" << std::endl;
+		std::cout << "-----------------------------" << std::endl;
+	}
 	/**
 	* Default constructor
 	*
@@ -58,7 +85,9 @@ namespace vks
 				}
 			}
 		}
+		checkVulkanLimits(physicalDevice);
 	}
+
 
 	/** 
 	* Default destructor

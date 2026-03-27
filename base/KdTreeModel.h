@@ -3,6 +3,7 @@
 #include "glm/glm.hpp"
 
 #include "VulkanDevice.h"
+#include "VulkanUtils.h"
 
 #include <vector>
 #include <string>
@@ -65,4 +66,6 @@ private:
 public:
 	void load(string glbinPath, string kdtbinPath);
 	bool uploadToGPU(vks::VulkanDevice* vulkanDevice, VkQueue& queue);
+
+	vks::utils::Aabb getAabb();
 };

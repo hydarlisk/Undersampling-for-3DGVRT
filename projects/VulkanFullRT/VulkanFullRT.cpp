@@ -988,6 +988,7 @@ public:
 #if KDTREE
 		kdTreeModel.load(dirPath + GLBIN_FILE, dirPath + KDT_FILE);
 		kdTreeModel.uploadToGPU(vulkanDevice, graphicsQueue);
+		uniformDataStatic.aabb = kdTreeModel.getAabb();
 #endif
 	}
 
@@ -1051,7 +1052,12 @@ public:
 	}
 #endif
 
+#if KDTREE
 	void initKdTreePipeline() {
+		gaussianEnclosingPipeline = new GaussianEnclosingPipeline(*vulkanDevice, graphicsQueue, cmdPool, gModel, DIR_PATH);
+		gaussianEnclosingPipeline->prepare(particleDensities, particleSphCoefficients);
+		gaussianEnclosingPipeline->run();
+		gModel.deallocAttributeBuffers(vulkanDevice, graphicsQueue);
 		kdTreePipeline = new KdTreePipeline(*vulkanDevice, graphicsQueue, swapChain.imageCount, DIR_PATH);
 		kdTreePipeline->prepare(swapChain, width, height);
 		for (int i = 0; i < swapChain.imageCount; i++) {
@@ -1066,6 +1072,7 @@ public:
 			);
 		}
 	}
+#endif
 
 	void initRTPipeline() {
 		gaussianEnclosingPipeline = new GaussianEnclosingPipeline(*vulkanDevice, graphicsQueue, cmdPool, gModel, DIR_PATH);
@@ -1130,10 +1137,8 @@ public:
 		createShaderBindingTables(*rtPipeline);
 	}
 
-	void prepare()
-	{
+	void prepare(){
 		VulkanRTCommon::prepare();
-
 #ifdef __ANDROID__
 		vkGetFenceStatus = reinterpret_cast<PFN_vkGetFenceStatus>(vkGetDeviceProcAddr(device, "vkGetFenceStatus"));
 		vkCmdWriteTimestamp = reinterpret_cast<PFN_vkCmdWriteTimestamp>(vkGetDeviceProcAddr(device, "vkCmdWriteTimestamp"));
@@ -1145,8 +1150,7 @@ public:
 		createCommandBuffers();
 
 		int i = 0;
-		for (FrameObject& frame : frameObjects)
-		{
+		for (FrameObject& frame : frameObjects){
 			createBaseFrameObjects(frame, i);
 			pBaseFrameObjects.push_back(&frame);
 

@@ -174,7 +174,7 @@ void main()
 	vec4 rayDirection = normalize(uboDynamic.viewInverse * vec4(target.xyz, 0.0f));
 
 	/*** 3dgrt style ***/
-	vec4 rayRadiance = vec4(0.0f, 0.0f, 0.0f, 1.0f);
+	vec3 rayRadiance = vec3(0.0f, 0.0f, 0.0f);
 	float rayTransmittance = 1.0f;
 	float rayHitDistance = 0.0f;
 
@@ -205,7 +205,7 @@ void main()
 		uint particleId = rayPayload.hits[0].particleId;
 		float hue = 0.55 + (float(particleId % 1000) / 1000.0) * 0.1;
 		//float hue = float(particleId % 360) / 360.0;
-		rayRadiance.xyz = hsv2rgb(vec3(hue, 0.6, 0.9));
+		rayRadiance = hsv2rgb(vec3(hue, 0.6, 0.9));
 	}
 #else
 	while((rayLastHitDistance <= minMaxT.y) && (rayTransmittance > uboStatic.minTransmittance)){
@@ -267,7 +267,7 @@ void main()
 	
 
 #if UNDERSAMPLING
-	imageStore(image, ivec2(targetPixel), rayRadiance);
+	imageStore(image, ivec2(targetPixel), vec4(rayRadiance, 1.0f));
 	#if STATISTICS
 	rtMask[targetPixel.y * width + targetPixel.x] = 1;
 	finalTransmittance[targetPixel.y * width + targetPixel.x] = 1 - rayTransmittance;
@@ -280,7 +280,7 @@ void main()
 	accumDepth[targetPixel.y * width + targetPixel.x] = 0.3;
 	#endif
 #else
-    imageStore(image, ivec2(gl_LaunchIDEXT.xy), rayRadiance);
+    imageStore(image, ivec2(gl_LaunchIDEXT.xy), vec4(rayRadiance, 1.0f));
 	#if ENABLE_HIT_COUNTS
 	rayHitCounts.cnts[gl_LaunchIDEXT.y * gl_LaunchSizeEXT.x + gl_LaunchIDEXT.x] = hitCnts;
 	#endif

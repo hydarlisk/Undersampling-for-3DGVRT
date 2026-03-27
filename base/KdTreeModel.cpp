@@ -1,15 +1,25 @@
 #include "KdTreeModel.h"
-#include "vulkanUtils.h"
+#include "VulkanUtils.h"
 
 #include <stdio.h>
 
 using namespace std;
 
+vks::utils::Aabb KdTreeModel::getAabb() {
+	vks::utils::Aabb ret;
+	ret.minX = sceneBox.min.x;
+	ret.minY = sceneBox.min.y;
+	ret.minZ = sceneBox.min.z;
+	ret.maxX = sceneBox.max.x;
+	ret.maxY = sceneBox.max.y;
+	ret.maxZ = sceneBox.max.z;
+	return ret;
+}
 bool KdTreeModel::loadGLBin(string glbinPath) {
 	FILE* fp = fopen(glbinPath.c_str(), "rb");
 	if (fp == NULL) {
 		printf("SceneLoaderForGL : Scene data open error\n");
-		printf("total Path : %s\n", glbinPath);
+		printf("total Path : %s\n", glbinPath.c_str());
 		return false;
 	}
 
@@ -133,6 +143,8 @@ bool KdTreeModel::makeTriAccData() {
 	}
 	sceneBox.print("Scene box");
 	printf("Tri Acc List size : [%dB][%dMB]", triCnt * 48, triCnt * 48 / (1024 * 1024));
+
+	return true;
 }
 
 bool KdTreeModel::loadKDTree(std::string kdtbinPath)
@@ -140,7 +152,7 @@ bool KdTreeModel::loadKDTree(std::string kdtbinPath)
 	FILE* fp = fopen(kdtbinPath.c_str(), "rb");
 	if (fp == NULL) {
 		printf("SceneLoaderForGL : Scene data open error\n");
-		printf("total Path : %s\n", kdtbinPath);
+		printf("total Path : %s\n", kdtbinPath.c_str());
 		return false;
 	}
 

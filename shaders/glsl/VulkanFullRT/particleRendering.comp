@@ -169,7 +169,7 @@ void main()
 					ALPHA_MIN_THRESHOLD,
 					uboStatic.sphEvalDegree,
 					rayTransmittance,
-					rayRadiance,
+					rayRadiance.xyz,
 					rayHitDistance
 #if SIMILARITY_VAR
 					,alpha

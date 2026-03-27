@@ -6,8 +6,9 @@
  */
 
 vec2 intersectAABB(const Aabb aabb, vec3 rayOri, vec3 rayDir) {
-    vec3 t0 = (vec3(aabb.minX, aabb.minY, aabb.minZ) - rayOri) / max(rayDir, vec3(1e-6));
-    vec3 t1 = (vec3(aabb.maxX, aabb.maxY, aabb.maxZ) - rayOri) / max(rayDir, vec3(1e-6));
+    vec3 rayDirRcp = 1 / rayDir;
+    vec3 t0 = (vec3(aabb.minX, aabb.minY, aabb.minZ) - rayOri) * rayDirRcp;
+    vec3 t1 = (vec3(aabb.maxX, aabb.maxY, aabb.maxZ) - rayOri) * rayDirRcp;
     vec3 tmax = vec3(max(t0.x, t1.x), max(t0.y, t1.y), max(t0.z, t1.z));
     vec3 tmin = vec3(min(t0.x, t1.x), min(t0.y, t1.y), min(t0.z, t1.z));
     float maxOfMin = max(0.0f, max(tmin.x, max(tmin.y, tmin.z)));
@@ -63,7 +64,8 @@ void fetchParticleDensity(
     out vec3 particleScale,
     out mat3 particleRotation,
     out float particleDensity) {
-    const ParticleDensity particleData = particleDensities.d[nonuniformEXT(particleIdx)];
+    //const ParticleDensity particleData = particleDensities.d[nonuniformEXT(particleIdx)];
+    const ParticleDensity particleData = particleDensities.d[particleIdx];
 
     particlePosition = particleData.position;
     particleScale = particleData.scale;
@@ -79,9 +81,12 @@ void fetchParticleSphCoefficients(
     for (uint i = 0; i < SPH_MAX_NUM_COEFFS; i++) {
         uint offset = i * 3;	// each has 3 elements
         sphCoefficients[i] = vec3(
-            particleSphCoefficients.c[nonuniformEXT(particleOffset + offset + 0)],
-            particleSphCoefficients.c[nonuniformEXT(particleOffset + offset + 1)],
-            particleSphCoefficients.c[nonuniformEXT(particleOffset + offset + 2)]);
+            //particleSphCoefficients.c[nonuniformEXT(particleOffset + offset + 0)],
+            //particleSphCoefficients.c[nonuniformEXT(particleOffset + offset + 1)],
+            //particleSphCoefficients.c[nonuniformEXT(particleOffset + offset + 2)]);
+            particleSphCoefficients.c[particleOffset + offset + 0],
+            particleSphCoefficients.c[particleOffset + offset + 1],
+            particleSphCoefficients.c[particleOffset + offset + 2]);
     }
 }
 
@@ -120,6 +125,53 @@ vec3 radianceFromSpH(uint deg, const vec3 sphCoefficients[SPH_MAX_NUM_COEFFS], c
     return clamped ? max(rad, vec3(0.0f)) : rad;
 }
 
+vec3 getSHCoeff(uint gaussianID, uint coeffIdx) {
+    uint base = (gaussianID * SPH_MAX_NUM_COEFFS + coeffIdx) * 3;
+    return vec3(particleSphCoefficients.c[base],
+        particleSphCoefficients.c[base + 1],
+        particleSphCoefficients.c[base + 2]);
+}
+vec3 radianceFromSpH_Direct(uint deg, uint gaussianID, vec3 rdir) {
+    vec3 rad = SH_C0 * getSHCoeff(gaussianID, 0);
+
+    if (deg > 0) {
+        const float x = rdir.x;
+        const float y = rdir.y;
+        const float z = rdir.z;
+
+        // 1도 성분
+        rad = rad - SH_C1 * y * getSHCoeff(gaussianID, 1)
+            + SH_C1 * z * getSHCoeff(gaussianID, 2)
+            - SH_C1 * x * getSHCoeff(gaussianID, 3);
+
+        if (deg > 1) {
+            const float xx = x * x, yy = y * y, zz = z * z;
+            const float xy = x * y, yz = y * z, xz = x * z;
+
+            // 2도 성분
+            rad = rad + SH_C2[0] * xy * getSHCoeff(gaussianID, 4)
+                + SH_C2[1] * yz * getSHCoeff(gaussianID, 5)
+                + SH_C2[2] * (2.0f * zz - xx - yy) * getSHCoeff(gaussianID, 6)
+                + SH_C2[3] * xz * getSHCoeff(gaussianID, 7)
+                + SH_C2[4] * (xx - yy) * getSHCoeff(gaussianID, 8);
+
+            if (deg > 2) {
+                // 3도 성분
+                rad = rad + SH_C3[0] * y * (3.0f * xx - yy) * getSHCoeff(gaussianID, 9)
+                    + SH_C3[1] * xy * z * getSHCoeff(gaussianID, 10)
+                    + SH_C3[2] * y * (4.0f * zz - xx - yy) * getSHCoeff(gaussianID, 11)
+                    + SH_C3[3] * z * (2.0f * zz - 3.0f * xx - 3.0f * yy) * getSHCoeff(gaussianID, 12)
+                    + SH_C3[4] * x * (4.0f * zz - xx - yy) * getSHCoeff(gaussianID, 13)
+                    + SH_C3[5] * z * (xx - yy) * getSHCoeff(gaussianID, 14)
+                    + SH_C3[6] * x * (xx - 3.0f * yy) * getSHCoeff(gaussianID, 15);
+            }
+        }
+    }
+
+    rad += 0.5f;
+    return max(rad, vec3(0.0f)); // clamped=true 고정 처리
+}
+
 bool processHit(
 	vec3 rayOrigin,
 	vec3 rayDirection,
@@ -128,7 +180,7 @@ bool processHit(
 	float minParticleAlpha,
 	uint sphEvalDegree,
 	inout float transmittance,
-	inout vec4 radiance,
+	inout vec3 radiance,
 	inout float depth
 #if SIMILARITY_VAR
     ,out float alphaOut
@@ -147,7 +199,8 @@ bool processHit(
         particleRotation,
         particleDensity);
 
-	const vec3 giscl   = vec3(1 / particleScale.x, 1 / particleScale.y, 1 / particleScale.z);
+	//const vec3 giscl   = vec3(1 / particleScale.x, 1 / particleScale.y, 1 / particleScale.z);
+	const vec3 giscl   = 1 / particleScale;
     const vec3 gposc   = (rayOrigin - particlePosition);
     const vec3 gposcr  = (particleRotation * gposc);
     const vec3 gro     = giscl * gposcr;
@@ -155,20 +208,23 @@ bool processHit(
     const vec3 grdu    = giscl * rayDirR;
     const vec3 grd     = safeNormalize(grdu);
 
-	const vec3 gcrod = SURFEL_PRIMITIVE ? gro + grd * -gro.z / grd.z : cross(grd, gro);
+	const vec3 gcrod = cross(grd, gro);
 	const float grayDist = dot(gcrod, gcrod);
 
 	const float gres = particleResponse(grayDist);
 	const float galpha = min(0.99f, gres * particleDensity);
 
-	const bool acceptHit = (gres > minParticleKernelDensity) && (galpha > minParticleAlpha);
+	//const bool acceptHit = (gres > minParticleKernelDensity) && (galpha > minParticleAlpha);
+	bool acceptHit = (gres > minParticleKernelDensity) && (galpha > minParticleAlpha);
+    acceptHit = true;
+	//bool acceptHit = (gres > minParticleKernelDensity) && (galpha > minParticleAlpha);
 	if (acceptHit) {
         const float weight = galpha * (transmittance);
 #if SIMILARITY_VAR
         alphaOut = galpha;
         weightOut = weight;
 #endif
-		const vec3 grds = particleScale * grd * (SURFEL_PRIMITIVE ? -gro.z / grd.z : dot(grd, -1 * gro));
+		const vec3 grds = particleScale * grd * dot(grd, -1 * gro);
 		const float hitT = sqrt(dot(grds, grds));
 
 		vec3 sphCoefficients[SPH_MAX_NUM_COEFFS];
@@ -176,16 +232,11 @@ bool processHit(
 			particleIdx,
 			sphCoefficients);
 		const vec3 grad = radianceFromSpH(sphEvalDegree, sphCoefficients, rayDirection, true);
+        //const vec3 grad = radianceFromSpH_Direct(sphEvalDegree, particleIdx, rayDirection);
 
-		radiance += vec4(grad * weight, 0.0f);
+		radiance += grad * weight;
 		transmittance *= (1 - galpha);
 		depth += hitT * weight;
-
-//#if ENABLE_NORMALS
-//		const float ellispoidSqRadius = 9.0f;
-//		const vec3 particleScaleRotated = (particleRotation * particleScale);
-//		normal += weight * (SURFEL_PRIMITIVE ? vec3(0, 0, (grd.z > 0 ? 1 : -1) * particleScaleRotated.z) : safeNormalize((gro + grd * (dot(grd, -1 * gro) - sqrt(ellispoidSqRadius - grayDist))) * particleScaleRotated));
-//#endif
 	}
 
 	return acceptHit;

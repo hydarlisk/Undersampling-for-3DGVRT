@@ -47,7 +47,7 @@ public:
 	std::vector<VkImage> images;
 	std::vector<SwapChainBuffer> buffers;
 	uint32_t queueNodeIndex = UINT32_MAX;
-	const uint32_t MAX_FRAMES_IN_FLIGHT = 3;
+	const uint32_t MAX_FRAMES_IN_FLIGHT = 2;
 
 #if defined(VK_USE_PLATFORM_WIN32_KHR)
 	void initSurface(void* platformHandle, void* platformWindow);
