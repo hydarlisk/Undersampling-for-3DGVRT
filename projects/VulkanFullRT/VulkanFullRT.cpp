@@ -942,9 +942,11 @@ public:
 		enabledBufferDeviceAddresFeatures.bufferDeviceAddress = VK_TRUE;
 		enabledBufferDeviceAddresFeatures.pNext = &physicalDeviceHostQueryResetFeatures;
 
+#if !SNAPDRAGON
 		enabledRayTracingPipelineFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_FEATURES_KHR;
 		enabledRayTracingPipelineFeatures.rayTracingPipeline = VK_TRUE;
 		enabledRayTracingPipelineFeatures.pNext = &enabledBufferDeviceAddresFeatures;
+#endif
 
 		enabledAccelerationStructureFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_FEATURES_KHR;
 		enabledAccelerationStructureFeatures.accelerationStructure = VK_TRUE;

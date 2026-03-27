@@ -26,10 +26,11 @@
 
 #define MAX_SIMILARITY_VAR 10				// Should be managed with 3dgs.glsl
 
+#define SNAPDRAGON 1
+
 /* kdtree */
 #define KDTREE 1
 #define USE_TRI_ACCEL 0
-
 
 /* Debug */
 #define STATISTICS 0		// Should be managed with 3dgs.glsl 

@@ -117,9 +117,11 @@ void VulkanRTCommon::enableExtensions()
 {
 	// Ray tracing related extensions required by this sample
 	enabledDeviceExtensions.push_back(VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME);
+#if !SNAPDRAGON
 	if (!rayQueryOnly) {
 		enabledDeviceExtensions.push_back(VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME);
 	}
+#endif
 
 	// Required by VK_KHR_acceleration_structure
 	enabledDeviceExtensions.push_back(VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME);
