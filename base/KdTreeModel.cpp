@@ -2,6 +2,11 @@
 #include "VulkanUtils.h"
 
 #include "Logger.h"
+
+#if defined(__ANDROID__)
+#include "VulkanAndroid.h"
+#endif
+
 #include <stdio.h>
 
 using namespace std;
@@ -17,6 +22,47 @@ vks::utils::Aabb KdTreeModel::getAabb() {
 	return ret;
 }
 bool KdTreeModel::loadGLBin(string glbinPath) {
+#if defined(__ANDROID__)
+	AAsset* asset = AAssetManager_open(androidApp->activity->assetManager, glbinPath.c_str(), AASSET_MODE_STREAMING);
+	if (!asset) {
+		LOGE("Error: failed to open asset: %s\n", glbinPath.c_str());
+		return false;
+	}
+
+	size_t assetLength = AAsset_getLength(asset);
+	std::vector<uint8_t> buffer(assetLength);
+	AAsset_read(asset, buffer.data(), assetLength);
+	AAsset_close(asset);
+	uint8_t* cursor = buffer.data();
+	uint8_t* endPtr = buffer.data() + assetLength;
+
+	if (cursor + 4 > endPtr) return false;
+	uint32_t vntArrLength;
+	memcpy(&vntArrLength, cursor, 4);
+	cursor += 4;
+
+	if (cursor + 4 > endPtr) return false;
+	uint32_t faceCnt;
+	memcpy(&faceCnt, cursor, 4);
+	cursor += 4;
+
+	int triCnt = faceCnt / 3;
+	int vntCnt = vntArrLength / 8;
+    LOGI("<GL> vntSize: %d, faceSize: %d\n", vntArrLength, faceCnt);
+    LOGI("<GL> numOfTri: %d, numOfVert: %d\n", triCnt, vntCnt);
+
+	vntArray.resize(vntArrLength);
+	size_t vntByteSize = sizeof(float) * vntArrLength;
+	if (cursor + vntByteSize > endPtr) return false;
+
+	memcpy(vntArray.data(), cursor, vntByteSize);
+	cursor += vntByteSize;
+
+	faceArray.resize(faceCnt);
+	for (int i = 0; i < faceCnt; i++) {
+		faceArray[i] = i;
+	} 
+#else
 	FILE* fp = fopen(glbinPath.c_str(), "rb");
 	if (fp == NULL) {
 		printf("SceneLoaderForGL : Scene data open error\n");
@@ -49,6 +95,7 @@ bool KdTreeModel::loadGLBin(string glbinPath) {
 
 	fflush(fp);
 	fclose(fp);
+#endif
 
 	return true;
 }
@@ -150,6 +197,56 @@ bool KdTreeModel::makeTriAccData() {
 
 bool KdTreeModel::loadKDTree(std::string kdtbinPath)
 {
+#if defined(__ANDROID__)
+	AAsset* asset = AAssetManager_open(androidApp->activity->assetManager, kdtbinPath.c_str(), AASSET_MODE_STREAMING);
+	if (!asset) {
+		LOGE("Error: failed to open asset: %s\n", kdtbinPath.c_str());
+		return false;
+	}
+
+	size_t assetLength = AAsset_getLength(asset);
+	std::vector<uint8_t> buffer(assetLength);
+	AAsset_read(asset, buffer.data(), assetLength);
+	AAsset_close(asset);
+	uint8_t* cursor = buffer.data();
+	uint8_t* endPtr = buffer.data() + assetLength;
+
+	if (cursor + sizeof(int) > endPtr) return false;
+	int nodeCnt;
+	memcpy(&nodeCnt, cursor, sizeof(int));
+	cursor += sizeof(int);
+
+	kdTreeNode.resize(nodeCnt * 2);
+	size_t nodeByteSize = sizeof(uint32_t) * nodeCnt * 2;
+
+	if (cursor + nodeByteSize > endPtr) {
+		LOGE("Error: Unexpected EOF while reading kdTreeNodes\n");
+		return false;
+	}
+	memcpy(kdTreeNode.data(), cursor, nodeByteSize);
+	cursor += nodeByteSize;
+
+	if (cursor + sizeof(int) > endPtr) return false;
+	int triOffsetCnt;
+	memcpy(&triOffsetCnt, cursor, sizeof(int));
+	cursor += sizeof(int);
+
+    LOGI("tri offset list size %d * 4 = %d B\n", triOffsetCnt, triOffsetCnt * 4);
+
+	triOffsetList.resize(triOffsetCnt);
+	size_t triOffsetByteSize = sizeof(uint32_t) * triOffsetCnt;
+
+	if (cursor + triOffsetByteSize > endPtr) {
+        LOGI("Error: Unexpected EOF while reading triOffsetList\n");
+		return false;
+	}
+	memcpy(triOffsetList.data(), cursor, triOffsetByteSize);
+	cursor += triOffsetByteSize;
+
+    LOGV("Total kd-Tree Size = [%zu B][%.2f MB]\n",
+		(nodeCnt * 2 + triOffsetCnt) * 4,
+		(float)(nodeCnt * 2 + triOffsetCnt) * 4 / 1024.0f / 1024.0f);
+#else
 	FILE* fp = fopen(kdtbinPath.c_str(), "rb");
 	if (fp == NULL) {
 		printf("SceneLoaderForGL : Scene data open error\n");
@@ -181,6 +278,7 @@ bool KdTreeModel::loadKDTree(std::string kdtbinPath)
 
 	printf("Total kd-Tree Size = [%d B][%.2f MB]\n", (nodeCnt * 2 + triOffsetCnt) * 4, (float)(nodeCnt * 2 + triOffsetCnt) * 4 / 1024 / 1024);
 
+#endif
 	return true;
 }
 

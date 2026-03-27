@@ -94,7 +94,7 @@ task copyTask {
 
         from rootProject.ext.assetPath + '3DGRTModels/hotdog'
         into 'assets/3DGRTModels/hotdog'
-        include 'hotdog_3dgrt2.ply'
+        include 'hotdog_3dgrt2.ply', 'hotdog.glbin', 'hotdog.kdtbin'
     }
 }
 
