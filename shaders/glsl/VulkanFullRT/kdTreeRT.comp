@@ -4,9 +4,9 @@
 #include "../base/utils.glsl"
 #include "../base/define.glsl"
 
-layout(local_size_x = 8, local_size_y = 8) in;	//must changed with dispatch
+layout(local_size_x = 8, local_size_y = 8) in;	//must changed with dispatch, kdTreePipeline class initializer
 
-#define SHORT_STACK_DEPTH 8
+#define SHORT_STACK_DEPTH 8						//must changed with kdTreePipeline class initializer
 #define EPSILON 0.000001
 
 #define IS_LEAF(node)				(((node).x & 7) == 3)
@@ -22,28 +22,28 @@ layout(local_size_x = 8, local_size_y = 8) in;	//must changed with dispatch
 #define OPACITY_THRESHOLD 0.95f
 //////////////////////////////////////
 
-const vec4 debugColors[20] = {
-vec4(1.0f, 0.0f, 0.0f, 1.0f),    // 0: Red
-vec4(0.0f, 1.0f, 0.0f, 1.0f),    // 1: Green
-vec4(0.0f, 0.0f, 1.0f, 1.0f),    // 2: Blue
-vec4(1.0f, 1.0f, 0.0f, 1.0f),    // 3: Yellow
-vec4(1.0f, 0.0f, 1.0f, 1.0f),    // 4: Magenta
-vec4(0.0f, 1.0f, 1.0f, 1.0f),    // 5: Cyan
-vec4(1.0f, 0.5f, 0.0f, 1.0f),    // 6: Orange
-vec4(0.5f, 0.0f, 1.0f, 1.0f),    // 7: Purple
-vec4(0.0f, 1.0f, 0.5f, 1.0f),    // 8: Spring Green
-vec4(1.0f, 0.0f, 0.5f, 1.0f),    // 9: Rose
-vec4(0.5f, 1.0f, 0.0f, 1.0f),    // 10: Chartreuse
-vec4(0.0f, 0.5f, 1.0f, 1.0f),    // 11: Azure
-vec4(0.6f, 0.3f, 0.0f, 1.0f),    // 12: Brown
-vec4(0.3f, 0.6f, 0.0f, 1.0f),    // 13: Olive
-vec4(0.0f, 0.6f, 0.3f, 1.0f),    // 14: Teal
-vec4(0.3f, 0.0f, 0.6f, 1.0f),    // 15: Indigo
-vec4(1.0f, 0.75f, 0.8f, 1.0f),   // 16: Pink
-vec4(0.75f, 1.0f, 0.75f, 1.0f),  // 17: Light Green
-vec4(0.75f, 0.75f, 1.0f, 1.0f),  // 18: Light Blue
-vec4(0.5f, 0.5f, 0.5f, 1.0f)     // 19: Gray
-};
+//const vec4 debugColors[20] = {
+//vec4(1.0f, 0.0f, 0.0f, 1.0f),    // 0: Red
+//vec4(0.0f, 1.0f, 0.0f, 1.0f),    // 1: Green
+//vec4(0.0f, 0.0f, 1.0f, 1.0f),    // 2: Blue
+//vec4(1.0f, 1.0f, 0.0f, 1.0f),    // 3: Yellow
+//vec4(1.0f, 0.0f, 1.0f, 1.0f),    // 4: Magenta
+//vec4(0.0f, 1.0f, 1.0f, 1.0f),    // 5: Cyan
+//vec4(1.0f, 0.5f, 0.0f, 1.0f),    // 6: Orange
+//vec4(0.5f, 0.0f, 1.0f, 1.0f),    // 7: Purple
+//vec4(0.0f, 1.0f, 0.5f, 1.0f),    // 8: Spring Green
+//vec4(1.0f, 0.0f, 0.5f, 1.0f),    // 9: Rose
+//vec4(0.5f, 1.0f, 0.0f, 1.0f),    // 10: Chartreuse
+//vec4(0.0f, 0.5f, 1.0f, 1.0f),    // 11: Azure
+//vec4(0.6f, 0.3f, 0.0f, 1.0f),    // 12: Brown
+//vec4(0.3f, 0.6f, 0.0f, 1.0f),    // 13: Olive
+//vec4(0.0f, 0.6f, 0.3f, 1.0f),    // 14: Teal
+//vec4(0.3f, 0.0f, 0.6f, 1.0f),    // 15: Indigo
+//vec4(1.0f, 0.75f, 0.8f, 1.0f),   // 16: Pink
+//vec4(0.75f, 1.0f, 0.75f, 1.0f),  // 17: Light Green
+//vec4(0.75f, 0.75f, 1.0f, 1.0f),  // 18: Light Blue
+//vec4(0.5f, 0.5f, 0.5f, 1.0f)     // 19: Gray
+//};
 
 const int rayDirTable[8][3][2] = {
 	{{0,1},{0,1},{0,1}},
@@ -205,7 +205,7 @@ void sortHits(inout HitRecord hits[MAX_HITS], uint count) {
 }
 
 //TODO: vec4 to vec3
-vec4 traceKdTree(int quad, vec3 rayOri, vec3 rayDir, out float accumOpacity){
+vec3 traceKdTree(int quad, vec3 rayOri, vec3 rayDir, out float accumOpacity){
 	uint baseStack = (gl_LocalInvocationIndex) * SHORT_STACK_DEPTH;
 
 	uint nodeIdx = 0;
@@ -220,14 +220,14 @@ vec4 traceKdTree(int quad, vec3 rayOri, vec3 rayDir, out float accumOpacity){
 
 	vec3 rcpRayDir = 1.0f / rayDir;
 	if(any(isnan(rcpRayDir))){
-		return vec4(0.0f, 0.0f, 0.0f, 1.0f);
+		return vec3(0.0f, 0.0f, 0.0f);
 	}
 
 	vec2 t_nearFar = intersectAABB(uboStatic.aabb, rayOri, rayDir);
 	t_nearFar.x = max(t_nearFar.x, 0);
 	float t_sceneFar = t_nearFar.y;
 	if((t_nearFar.y < t_nearFar.x) || (t_nearFar.y < 0.0f)){
-		return vec4(0.0f, 0.0f, 0.0f, 1.0f);
+		return vec3(0.0f, 0.0f, 0.0f);
 	}
 
 	uint frontChildIdx = 0;
@@ -298,29 +298,10 @@ vec4 traceKdTree(int quad, vec3 rayOri, vec3 rayDir, out float accumOpacity){
 					);
 
 					if(rayTransmittance < uboStatic.minTransmittance)
-						return vec4(rayRadiance, 1.0f);
+						return rayRadiance;
 				}
 			}
 		}
-//
-//		if(localHitCnt > 0){
-////			rayRadiance = debugColors[localHits[0].triIndex % 20].xyz;
-////			break;
-//		    sortHits(localHits, localHitCnt);
-//			for(int i = 0; i < localHitCnt; i++){
-//				const bool acceptedHit = processHit(
-//					rayOri,
-//					rayDir,
-//					localHits[i].triIndex / 20u,
-//					uboStatic.hitMinGaussianResponse,
-//					ALPHA_MIN_THRESHOLD,
-//					uboStatic.sphEvalDegree,
-//					rayTransmittance,
-//					rayRadiance,
-//					rayHitDistance
-//				);
-//			}
-//		}
 
 		if(rayTransmittance <= uboStatic.minTransmittance || t_nearFar.y >= t_sceneFar){
 			break;
@@ -350,15 +331,14 @@ vec4 traceKdTree(int quad, vec3 rayOri, vec3 rayDir, out float accumOpacity){
 		t_nearFar.y = sharedStack[baseStack+stackIdx].t_far;
 	}
 
-	return vec4(rayRadiance, 1.0f);
+	return rayRadiance;
 }
 
 void main(){
-//TODO: pushconstant
-	if(gl_GlobalInvocationID.x > 1920 || gl_GlobalInvocationID.y > 1080) return;
+	if(gl_GlobalInvocationID.x > width || gl_GlobalInvocationID.y > height) return;
+
 	const vec2 pixelCenter = vec2(gl_GlobalInvocationID.xy) + vec2(0.5);	// pixel position
 	const vec2 inUV = pixelCenter/vec2((gl_NumWorkGroups * gl_WorkGroupSize).xy);	// pixel position in WdC
-//	const vec2 inUV = pixelCenter/vec2(1920,1080);	// pixel position in WdC
 	vec2 d = inUV * 2.0 - 1.0;	// pixel position in NDC
 	vec4 rayOrigin = uboDynamic.viewInverse[3];
 	vec4 target = uboDynamic.projInverse * vec4(d.x, d.y, 1.0f, 1.0f);	// (pixel position in EC) / Wc
@@ -369,8 +349,8 @@ void main(){
 	if(rayDir.z < 0) quad |= 1 << 2;
 	float accumOpacity = 0;
 
-	vec4 res = traceKdTree(quad, rayOrigin.xyz, rayDir.xyz, accumOpacity);
+	vec3 res = traceKdTree(quad, rayOrigin.xyz, rayDir.xyz, accumOpacity);
 
 //	imageStore(image, ivec2(gl_GlobalInvocationID.xy), vec4(1.0f, 0.0f, 0.0f, 1.0f));
-	imageStore(image, ivec2(gl_GlobalInvocationID.xy), res);
+	imageStore(image, ivec2(gl_GlobalInvocationID.xy), vec4(res, 1.0f));
 }

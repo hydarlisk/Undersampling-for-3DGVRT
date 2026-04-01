@@ -16,8 +16,9 @@ KdTreePipeline::KdTreePipeline(vks::VulkanDevice& device, VkQueue& queue, int sw
 	descriptorSets.resize(swapchainImageCnt);
 
 	//TODO
-	uint32_t sharedDataSize = min((uint32_t)1024, (uint32_t)(vulkanDevice.properties.limits.maxComputeSharedMemorySize / sizeof(glm::vec4)));
-	assert(sharedDataSize >= 1024);
+	// gl_WorkGroupSize.x * gl_WorkGroupSize.y * SHORT_STACK_DEPTH * 8(sizeof(float) + sizeof(uint32_t))
+	uint32_t sharedDataSize = min(4096u, (uint32_t)(vulkanDevice.properties.limits.maxComputeSharedMemorySize));
+	assert(sharedDataSize >= 4096);
 }
 
 KdTreePipeline::~KdTreePipeline() {
@@ -93,8 +94,8 @@ void KdTreePipeline::createDescriptorSets(VulkanSwapChain& swapChain) {
 
 void KdTreePipeline::createPipelineLayout() {
 	VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = vks::initializers::pipelineLayoutCreateInfo(&descriptorSetLayout, 1);
-	//pipelineLayoutCreateInfo.pushConstantRangeCount = 1;
-	//pipelineLayoutCreateInfo.pPushConstantRanges = &pushConstantRange;
+	pipelineLayoutCreateInfo.pushConstantRangeCount = 1;
+	pipelineLayoutCreateInfo.pPushConstantRanges = &pushConstantRange;
 	VK_CHECK_RESULT(vkCreatePipelineLayout(device, &pipelineLayoutCreateInfo, nullptr, &pipelineLayout));
 }
 
@@ -156,11 +157,14 @@ void KdTreePipeline::record(VkCommandBuffer& commandBuffer, uint32_t imageIndex,
 	uint32_t groupCntX;
 	uint32_t groupCntY;
 
-	//VkMemoryBarrier barrier = vks::initializers::memoryBarrier();
-	//barrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
-	//barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
-	//vkCmdPipelineBarrier(commandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-	//	VK_FLAGS_NONE, 1, &barrier, 0, nullptr, 0, nullptr);
+	uint32_t pushConstant[2] = { width, height };
+	vkCmdPushConstants(commandBuffer, pipelineLayout, VK_SHADER_STAGE_COMPUTE_BIT, 0, 16, pushConstant);
+
+	VkMemoryBarrier barrier = vks::initializers::memoryBarrier();
+	barrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
+	barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+	vkCmdPipelineBarrier(commandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+		VK_FLAGS_NONE, 1, &barrier, 0, nullptr, 0, nullptr);
 
 	groupCntX = (width + groupSizeX - 1) / groupSizeX;
 	groupCntY = (height + groupSizeY - 1) / groupSizeY;
