@@ -15,6 +15,8 @@ layout(local_size_x = 8, local_size_y = 8) in;	//must changed with dispatch, kdT
 
 //////////// Gaussian macro //////////
 //TODO JS: find optimal parameter
+#define MAX_TRI_PER_LEAF 64
+
 #define MAX_HITS 4
 #define SPH_EVAL_DEGREE 3
 #define GAUSSIAN_DEGREE 4
@@ -102,7 +104,10 @@ layout(std430, binding = 7, set = 0) buffer Vertex{
 layout(std430, binding = 8, set = 0) buffer Face{
 	uint f[];
 } face;
-layout(std430, binding = 9, set = 0) buffer TriAccList{
+layout(std430, binding = 9, set = 0) buffer HitRecords{
+	HitRecord hr[];
+} hitRecords;
+layout(std430, binding = 10, set = 0) buffer TriAccList{
 	WaldTriangle acc[];
 } triAccList;
 
@@ -120,8 +125,8 @@ shared KdStack sharedStack[gl_WorkGroupSize.x * gl_WorkGroupSize.y * SHORT_STACK
 
 #include "../base/gaussianfunctions.glsl"
 
-void isectBranch(uint triIdx, vec3 rayOri, vec3 rayDir, inout HitRecord localHits[MAX_HITS], inout uint localHitCnt){
-//	if(localHitCnt > MAX_HITS) return;
+//void isectBranch(uint triIdx, vec3 rayOri, vec3 rayDir, inout HitRecord localHits[MAX_HITS], inout uint localHitCnt){
+void isectBranch(uint triIdx, vec3 rayOri, vec3 rayDir, uint baseOffset, inout uint localHitCnt){
 	int k;
 	float nd, f;
 	float hu, hv;
@@ -185,28 +190,45 @@ void isectBranch(uint triIdx, vec3 rayOri, vec3 rayDir, inout HitRecord localHit
 	f = dot(e2, qvec) * invDet;
 	if(f < EPSILON) return;
 
-	localHits[localHitCnt].t = f;
-	localHits[localHitCnt].triIndex = triIdx;
+
+	hitRecords.hr[baseOffset + localHitCnt].t = f;
+	hitRecords.hr[baseOffset + localHitCnt].triIndex = triIdx;
+//	localHits[localHitCnt].t = f;
+//	localHits[localHitCnt].triIndex = triIdx;
 	localHitCnt++;
 //#endif
 }
 
-void sortHits(inout HitRecord hits[MAX_HITS], uint count) {
+void sortHits(uint baseOffset, uint count) {
     //if (count > 25) printf("local sort count: %d\n", count);
     for (int i = 1; i < count; i++) {
-        HitRecord key = hits[i];
+        HitRecord key = hitRecords.hr[baseOffset + i];
         int j = i - 1;
-        while (j >= 0 && hits[j].t > key.t) {
-            hits[j + 1] = hits[j];
+        while (j >= 0 && hitRecords.hr[baseOffset + j].t > key.t) {
+            hitRecords.hr[baseOffset + j + 1] = hitRecords.hr[baseOffset + j];
             j = j - 1;
         }
-        hits[j + 1] = key;
+        hitRecords.hr[baseOffset + j + 1] = key;
     }
 }
+
+//void sortHits(inout HitRecord hits[MAX_HITS], uint count) {
+//    //if (count > 25) printf("local sort count: %d\n", count);
+//    for (int i = 1; i < count; i++) {
+//        HitRecord key = hits[i];
+//        int j = i - 1;
+//        while (j >= 0 && hits[j].t > key.t) {
+//            hits[j + 1] = hits[j];
+//            j = j - 1;
+//        }
+//        hits[j + 1] = key;
+//    }
+//}
 
 //TODO: vec4 to vec3
 vec3 traceKdTree(int quad, vec3 rayOri, vec3 rayDir, out float accumOpacity){
 	uint baseStack = (gl_LocalInvocationIndex) * SHORT_STACK_DEPTH;
+	uint baseSortOffset = (gl_GlobalInvocationID.x + gl_GlobalInvocationID.y * gl_WorkGroupSize.x * gl_NumWorkGroups.x) * MAX_TRI_PER_LEAF;
 
 	uint nodeIdx = 0;
 	uint stackIdx = 0;
@@ -274,32 +296,56 @@ vec3 traceKdTree(int quad, vec3 rayOri, vec3 rayDir, out float accumOpacity){
 		//leaf intersection
 		uint baseOffset = OBJECTLIST_OFFSET(i2);
 		uint endOffset = OBJECT_SIZE(i2) + baseOffset;
-		HitRecord localHits[MAX_HITS];
+//		HitRecord localHits[MAX_HITS];
 		uint localHitCnt = 0;
 		for(uint i = baseOffset; i < endOffset; i++){
 			uint triIdx = triOffsetList.o[i];
-			isectBranch(triIdx, rayOri, rayDir, localHits, localHitCnt);
-			if(localHitCnt >= MAX_HITS || (i == endOffset - 1 && localHitCnt > 0)){
+			isectBranch(triIdx, rayOri, rayDir, baseSortOffset, localHitCnt);
+//			isectBranch(triIdx, rayOri, rayDir, localHits, localHitCnt);
+//			if(localHitCnt >= MAX_HITS || (i == endOffset - 1 && localHitCnt > 0)){
+////				rayRadiance = debugColors[(localHits[i].triIndex % 20)].xyz;
+////				return vec4(rayRadiance, 1.0f);
+//
+//				sortHits(localHits, localHitCnt);
+//				for(int j = 0; j < localHitCnt; j++){
+//					const bool acceptedHit = processHit(
+//						rayOri,
+//						rayDir,
+//						localHits[j].triIndex / 20u,
+//						uboStatic.hitMinGaussianResponse,
+//						ALPHA_MIN_THRESHOLD,
+//						uboStatic.sphEvalDegree,
+//						rayTransmittance,
+//						rayRadiance,
+//						rayHitDistance
+//					);
+//
+//					if(rayTransmittance < uboStatic.minTransmittance)
+//						return rayRadiance;
+//				}
+//			}
+		}
+
+		if(localHitCnt > 0){
 //				rayRadiance = debugColors[(localHits[i].triIndex % 20)].xyz;
 //				return vec4(rayRadiance, 1.0f);
 
-				sortHits(localHits, localHitCnt);
-				for(int j = 0; j < localHitCnt; j++){
-					const bool acceptedHit = processHit(
-						rayOri,
-						rayDir,
-						localHits[j].triIndex / 20u,
-						uboStatic.hitMinGaussianResponse,
-						ALPHA_MIN_THRESHOLD,
-						uboStatic.sphEvalDegree,
-						rayTransmittance,
-						rayRadiance,
-						rayHitDistance
-					);
+			sortHits(baseSortOffset, localHitCnt);
+			for(int j = 0; j < localHitCnt; j++){
+				const bool acceptedHit = processHit(
+					rayOri,
+					rayDir,
+					hitRecords.hr[baseSortOffset + j].triIndex / 20u,
+					uboStatic.hitMinGaussianResponse,
+					ALPHA_MIN_THRESHOLD,
+					uboStatic.sphEvalDegree,
+					rayTransmittance,
+					rayRadiance,
+					rayHitDistance
+				);
 
-					if(rayTransmittance < uboStatic.minTransmittance)
-						return rayRadiance;
-				}
+				if(rayTransmittance < uboStatic.minTransmittance)
+					return rayRadiance;
 			}
 		}
 

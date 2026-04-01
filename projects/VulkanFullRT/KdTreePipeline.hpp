@@ -16,6 +16,8 @@
 using namespace std;
 
 class KdTreePipeline {
+	vector<vks::Buffer> sortingBuffers;
+
 	vector<VkDescriptorSet> descriptorSets;
 
 	VkPushConstantRange pushConstantRange;

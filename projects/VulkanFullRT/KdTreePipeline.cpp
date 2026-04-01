@@ -8,17 +8,24 @@
 
 #include "KdTreePipeline.hpp"
 
+#define GROUP_WIDTH 8
+#define GROUP_HEIGHT 8
+#define SHORT_STACK_DEPTH 8
+#define MAX_TRI_PER_LEAF 64
+
 using namespace std;
 
 KdTreePipeline::KdTreePipeline(vks::VulkanDevice& device, VkQueue& queue, int swapchainImageCnt, string projectPath) : vulkanDevice(device), device(device.logicalDevice), queue(queue){
 	this->swapchainImageCnt = swapchainImageCnt;
 	this->projectPath = projectPath;
 	descriptorSets.resize(swapchainImageCnt);
+	sortingBuffers.resize(swapchainImageCnt);
 
 	//TODO
 	// gl_WorkGroupSize.x * gl_WorkGroupSize.y * SHORT_STACK_DEPTH * 8(sizeof(float) + sizeof(uint32_t))
-	uint32_t sharedDataSize = min(4096u, (uint32_t)(vulkanDevice.properties.limits.maxComputeSharedMemorySize));
-	assert(sharedDataSize >= 4096);
+	uint32_t requiredSize = GROUP_WIDTH * GROUP_HEIGHT * SHORT_STACK_DEPTH * 8;
+	uint32_t sharedDataSize = min(requiredSize, (uint32_t)(vulkanDevice.properties.limits.maxComputeSharedMemorySize));
+	assert(sharedDataSize >= requiredSize);
 }
 
 KdTreePipeline::~KdTreePipeline() {
@@ -39,13 +46,13 @@ string KdTreePipeline::getShaderPath(string shaderName) {
 }
 
 void KdTreePipeline::createBuffers(uint32_t width, uint32_t height) {
-	//for (int i = 0; i < swapchainImageCnt; i++) {
-	//	VK_CHECK_RESULT(vulkanDevice.createBuffer(
-	//		VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
-	//		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-	//		&rtMaskBuffers[i],
-	//		width * height * sizeof(uint32_t)));
-	//}
+	for (int i = 0; i < swapchainImageCnt; i++) {
+		VK_CHECK_RESULT(vulkanDevice.createBuffer(
+			VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
+			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+			&sortingBuffers[i],
+			width * height * (sizeof(uint32_t) + sizeof(float)) * MAX_TRI_PER_LEAF));
+	}
 }
 
 void KdTreePipeline::createDescriptorSets(VulkanSwapChain& swapChain) {
@@ -53,33 +60,35 @@ void KdTreePipeline::createDescriptorSets(VulkanSwapChain& swapChain) {
 	vector<VkDescriptorPoolSize> poolSizes = {
 		vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1 * swapchainImageCnt),	// output
 		vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 2 * swapchainImageCnt),
-		vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 7 * swapchainImageCnt) // 
+		vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 8 * swapchainImageCnt) // 
 	};
 	VkDescriptorPoolCreateInfo descriptorPoolCreateInfo = vks::initializers::descriptorPoolCreateInfo(poolSizes, swapchainImageCnt);
 
 	VK_CHECK_RESULT(vkCreateDescriptorPool(device, &descriptorPoolCreateInfo, nullptr, &descriptorPool));
-
+	int binding = 0;
 	std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings = {
 		// Binding 0: Ray tracing result image
-		vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, VK_SHADER_STAGE_COMPUTE_BIT, 0),
+		vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, VK_SHADER_STAGE_COMPUTE_BIT, binding++),
 		// Binding 1: Uniform buffer Dynamic
-		vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT, 1),
+		vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT, binding++),
 		// Binding 2: Uniform buffer Static
-		vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT, 2),
+		vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT, binding++),
 		// Binding 3: Storage buffer - Particle Densities
-		vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT, 3),
+		vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT, binding++),
 		// Binding 4: Storage buffer - Particle Sph Coefficients
-		vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT, 4),
+		vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT, binding++),
 		// Binding 5: Storage buffer - KdTree
-		vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT, 5),
+		vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT, binding++),
 		// Binding 6: Storage buffer - Triangle Offset List
-		vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT, 6),
+		vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT, binding++),
 		// Binding 7: Storage buffer - Vertex Buffer
-		vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT, 7),
+		vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT, binding++),
 		// Binding 8: Storage buffer - Index Buffer
-		vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT, 8),
-		// Binding 9: Storage buffer - Triangle Acceleration List
-		vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT, 9),
+		vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT, binding++),
+		// Binding 9: Storage buffer - Leaf Triangle Sorting Buffer
+		vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT, binding++),
+		// Binding 10: Storage buffer - Triangle Acceleration List
+		vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT, binding++),
 	};
 
 	VkDescriptorSetLayoutCreateInfo descriptorSetLayoutCI = vks::initializers::descriptorSetLayoutCreateInfo(setLayoutBindings);
@@ -143,7 +152,9 @@ void KdTreePipeline::initDescriptorSet(int frameIdx, VulkanSwapChain& swapChain,
 		vks::initializers::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, dIdx++, &kdTreeModel.d_vntArray.descriptor),
 		// Binding 8: Storage buffer - Index Buffer
 		vks::initializers::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, dIdx++, &kdTreeModel.d_faceArray.descriptor),
-		// Binding 9: Storage buffer - Triangle Acceleration List
+		// Binding 9: Storage buffer - Leaf Triangle Sorting Buffer
+		vks::initializers::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, dIdx++, &sortingBuffers[frameIdx].descriptor),
+		// Binding 10: Storage buffer - Triangle Acceleration List
 		vks::initializers::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, dIdx++, &kdTreeModel.d_triAccList.descriptor),
 	};
 
@@ -152,8 +163,8 @@ void KdTreePipeline::initDescriptorSet(int frameIdx, VulkanSwapChain& swapChain,
 
 
 void KdTreePipeline::record(VkCommandBuffer& commandBuffer, uint32_t imageIndex, uint32_t width, uint32_t height) {
-	const uint32_t groupSizeX = 8;	//must changed with shader
-	const uint32_t groupSizeY = 8;	//must changed with shader
+	const uint32_t groupSizeX = GROUP_WIDTH;	//must changed with shader
+	const uint32_t groupSizeY = GROUP_HEIGHT;	//must changed with shader
 	uint32_t groupCntX;
 	uint32_t groupCntY;
 
