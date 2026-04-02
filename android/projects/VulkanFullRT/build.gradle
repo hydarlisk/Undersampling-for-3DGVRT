@@ -2,7 +2,6 @@ apply plugin: 'com.android.application'
 apply from: '../gradle/outputfilename.gradle'
 
 android {
-    namespace "sogang.graphics.vulkanfullrt"
     compileSdkVersion rootProject.ext.compileSdkVersion
     defaultConfig {
         applicationId "sogang.graphics.vulkanfullrt"
@@ -16,7 +15,7 @@ android {
         externalNativeBuild {
             cmake {
                 cppFlags "-std=c++2a"
-                arguments "-DANDROID_STL=c++_shared", '-DANDROID_TOOLCHAIN=clang', '-DANDROID_SUPPORT_FLEXIBLE_PAGE_SIZES=ON'
+                arguments "-DANDROID_STL=c++_shared", '-DANDROID_TOOLCHAIN=clang'
             }
         }
     }
