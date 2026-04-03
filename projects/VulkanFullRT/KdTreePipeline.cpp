@@ -103,6 +103,7 @@ void KdTreePipeline::createDescriptorSets(VulkanSwapChain& swapChain) {
 
 void KdTreePipeline::createPipelineLayout() {
 	VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = vks::initializers::pipelineLayoutCreateInfo(&descriptorSetLayout, 1);
+	VkPushConstantRange pushConstantRange = vks::initializers::pushConstantRange(VK_SHADER_STAGE_COMPUTE_BIT, sizeof(uint32_t) * 2, 0);
 	pipelineLayoutCreateInfo.pushConstantRangeCount = 1;
 	pipelineLayoutCreateInfo.pPushConstantRanges = &pushConstantRange;
 	VK_CHECK_RESULT(vkCreatePipelineLayout(device, &pipelineLayoutCreateInfo, nullptr, &pipelineLayout));
@@ -122,7 +123,7 @@ void KdTreePipeline::createPipeline() {
 void KdTreePipeline::prepare(VulkanSwapChain& swapChain, uint32_t width, uint32_t height) {
 	createBuffers(width, height);
 	createDescriptorSets(swapChain);
-	pushConstantRange = vks::initializers::pushConstantRange(VK_SHADER_STAGE_COMPUTE_BIT, 0, 4);
+	pushConstantRange = vks::initializers::pushConstantRange(VK_SHADER_STAGE_COMPUTE_BIT, 8, 0);
 	createPipelineLayout();
 	createPipeline();
 }
@@ -169,7 +170,7 @@ void KdTreePipeline::record(VkCommandBuffer& commandBuffer, VulkanSwapChain& swa
 	uint32_t groupCntY;
 
 	uint32_t pushConstant[2] = { width, height };
-	vkCmdPushConstants(commandBuffer, pipelineLayout, VK_SHADER_STAGE_COMPUTE_BIT, 0, 16, pushConstant);
+	vkCmdPushConstants(commandBuffer, pipelineLayout, VK_SHADER_STAGE_COMPUTE_BIT, 0, 8, pushConstant);
 
 	//VkMemoryBarrier barrier = vks::initializers::memoryBarrier();
 	//barrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
