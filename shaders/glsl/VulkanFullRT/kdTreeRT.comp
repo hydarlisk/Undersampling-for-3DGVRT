@@ -335,7 +335,7 @@ vec3 traceKdTree(int quad, vec3 rayOri, vec3 rayDir, out float accumOpacity){
 				const bool acceptedHit = processHit(
 					rayOri,
 					rayDir,
-					hitRecords.hr[baseSortOffset + j].triIndex / 20u,
+					floatBitsToUint(vertex.v[hitRecords.hr[baseSortOffset + j].triIndex * 3 * 8 + 6]),
 					uboStatic.hitMinGaussianResponse,
 					ALPHA_MIN_THRESHOLD,
 					uboStatic.sphEvalDegree,
