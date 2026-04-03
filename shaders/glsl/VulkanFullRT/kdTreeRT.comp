@@ -16,6 +16,7 @@ layout(local_size_x = 8, local_size_y = 8) in;	//must changed with dispatch, kdT
 //////////// Gaussian macro //////////
 //TODO JS: find optimal parameter
 #define MAX_TRI_PER_LEAF 64
+#define VERTEX_SIZE 4
 
 #define SORTING_ALGORITHM 0	//0: insertion, 1: selection, 2: merge, 3: heap
 
@@ -161,10 +162,10 @@ void isectBranch(uint triIdx, vec3 rayOri, vec3 rayDir, uint baseOffset, inout u
 //#else
 	vec3 v0, v1, v2;
 
-	uint startOffset = triIdx * 3 * 8;
+	uint startOffset = triIdx * 3 * VERTEX_SIZE;
 	v0 = vec3(vertex.v[startOffset], vertex.v[startOffset+1],vertex.v[startOffset+2]);
-	v1 = vec3(vertex.v[startOffset+8], vertex.v[startOffset+9],vertex.v[startOffset+10]);
-	v2 = vec3(vertex.v[startOffset+16], vertex.v[startOffset+17],vertex.v[startOffset+18]);
+	v1 = vec3(vertex.v[startOffset+VERTEX_SIZE], vertex.v[startOffset+VERTEX_SIZE + 1],vertex.v[startOffset+VERTEX_SIZE + 2]);
+	v2 = vec3(vertex.v[startOffset+VERTEX_SIZE * 2], vertex.v[startOffset+VERTEX_SIZE + 1],vertex.v[startOffset+VERTEX_SIZE + 2]);
 
 	vec3 e1 = v1 - v0;
 	vec3 e2 = v2 - v0;
@@ -443,7 +444,7 @@ vec3 traceKdTree(int quad, vec3 rayOri, vec3 rayDir, out float accumOpacity){
 				const bool acceptedHit = processHit(
 					rayOri,
 					rayDir,
-					floatBitsToUint(vertex.v[hitRecords.hr[baseSortOffset + j].triIndex * 3 * 8 + 6]),
+					uint(floatBitsToInt(vertex.v[hitRecords.hr[baseSortOffset + j].triIndex * 3 * VERTEX_SIZE + 3])),
 					uboStatic.hitMinGaussianResponse,
 					ALPHA_MIN_THRESHOLD,
 					uboStatic.sphEvalDegree,

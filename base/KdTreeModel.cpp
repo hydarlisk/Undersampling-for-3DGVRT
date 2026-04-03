@@ -47,7 +47,7 @@ bool KdTreeModel::loadGLBin(string glbinPath) {
 	cursor += 4;
 
 	int triCnt = faceCnt / 3;
-	int vntCnt = vntArrLength / 8;
+	int vntCnt = vntArrLength / VERTEX_SIZE;
     LOGI("<GL> vntSize: %d, faceSize: %d\n", vntArrLength, faceCnt);
     LOGI("<GL> numOfTri: %d, numOfVert: %d\n", triCnt, vntCnt);
 
@@ -71,9 +71,9 @@ bool KdTreeModel::loadGLBin(string glbinPath) {
 	}
 
 	fread(&vntArrLength, 4, 1, fp);
-	fread(&faceCnt, 4, 1, fp);
+	faceCnt = vntArrLength / VERTEX_SIZE;
 	triCnt = faceCnt / 3;
-	vntCnt = vntArrLength / 8;
+	vntCnt = vntArrLength / VERTEX_SIZE;
 	printf("<GL> vntSize: %d, faceSize: %d\n", vntArrLength, faceCnt);
 	printf("<GL> numOfTri: %d, numOfVert: %d\n", triCnt, vntCnt);
 	vntArray.resize(vntArrLength);
@@ -133,15 +133,15 @@ bool KdTreeModel::makeTriAccData() {
 #endif
 	for (int i = 0; i < faceCnt; i+=3) {
 		//calc sceneBox
-		A.x = vntArray[i * 8 + 0];
-		A.y = vntArray[i * 8 + 1];
-		A.z = vntArray[i * 8 + 2];
-		B.x = vntArray[(i + 1) * 8 + 0];
-		B.y = vntArray[(i + 1) * 8 + 1];
-		B.z = vntArray[(i + 1) * 8 + 2];
-		C.x = vntArray[(i + 2) * 8 + 0];
-		C.y = vntArray[(i + 2) * 8 + 1];
-		C.z = vntArray[(i + 2) * 8 + 2];
+		A.x = vntArray[i * VERTEX_SIZE + 0];
+		A.y = vntArray[i * VERTEX_SIZE + 1];
+		A.z = vntArray[i * VERTEX_SIZE + 2];
+		B.x = vntArray[(i + 1) * VERTEX_SIZE + 0];
+		B.y = vntArray[(i + 1) * VERTEX_SIZE + 1];
+		B.z = vntArray[(i + 1) * VERTEX_SIZE + 2];
+		C.x = vntArray[(i + 2) * VERTEX_SIZE + 0];
+		C.y = vntArray[(i + 2) * VERTEX_SIZE + 1];
+		C.z = vntArray[(i + 2) * VERTEX_SIZE + 2];
 		boxMinMax(sceneBox, A);
 		boxMinMax(sceneBox, B);
 		boxMinMax(sceneBox, C);
@@ -187,11 +187,11 @@ bool KdTreeModel::makeTriAccData() {
 		triAccList[triIdx].c_nu = r * tmpc[v];
 		triAccList[triIdx].c_nv = r * -tmpc[u];
 		triAccList[triIdx].c_d = r * (tmpc[u] * tmpA[v] - tmpc[v] * tmpA[u]);
+		printf("Tri Acc List size : [%dB][%dMB]", triCnt * 48, triCnt * 48 / (1024 * 1024));
 #endif
 	}
 	sceneBox.print("Scene box");
-	printf("Tri Acc List size : [%dB][%dMB]", triCnt * 48, triCnt * 48 / (1024 * 1024));
-
+	
 	return true;
 }
 
@@ -297,17 +297,17 @@ void KdTreeModel::load(string glbinPath, string kdtbinPath) {
 bool KdTreeModel::uploadToGPU(vks::VulkanDevice* vulkanDevice, VkQueue& queue) {
 	VkFlags usageFlag = VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
 	VkFlags memPropertyFlag = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
-	LOGV("before upload vntArray");
+	LOGV("before upload vntArray\n");
 	VK_CHECK_RESULT(vulkanDevice->createAndCopyToDeviceBuffer(vntArray.data(), d_vntArray, vntArrLength * sizeof(float), queue, usageFlag, memPropertyFlag));
-	LOGV("upload vntArray done");
+	LOGV("upload vntArray done\n");
 	VK_CHECK_RESULT(vulkanDevice->createAndCopyToDeviceBuffer(faceArray.data(), d_faceArray, faceCnt * sizeof(uint32_t), queue, usageFlag, memPropertyFlag));
-	LOGV("upload faceArray done");
+	LOGV("upload faceArray done\n");
 	VK_CHECK_RESULT(vulkanDevice->createAndCopyToDeviceBuffer(kdTreeNode.data(), d_kdTreeNode, nodeCnt * sizeof(uint32_t) * 2, queue, usageFlag, memPropertyFlag));
-	LOGV("upload kdtreeNode done");
+	LOGV("upload kdtreeNode done\n");
 	VK_CHECK_RESULT(vulkanDevice->createAndCopyToDeviceBuffer(triOffsetList.data(), d_triOffsetList, triOffsetCnt * sizeof(uint32_t), queue, usageFlag, memPropertyFlag));
-	LOGV("upload tri offset list done");
+	LOGV("upload tri offset list done\n");
 	VK_CHECK_RESULT(vulkanDevice->createAndCopyToDeviceBuffer(triAccList.data(), d_triAccList, triCnt * sizeof(WaldTriangle), queue, usageFlag, memPropertyFlag));
-	LOGV("upload tri acc list done");
-	printf("upload gaussian data to gpu done\n");
+	LOGV("upload tri acc list done\n");
+	LOGV("upload gaussian data to gpu done\n");
 	return true;
 }

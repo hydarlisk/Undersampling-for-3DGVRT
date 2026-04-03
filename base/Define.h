@@ -31,6 +31,7 @@
 /* kdtree */
 #define KDTREE 1
 #define USE_TRI_ACCEL 0
+#define VERTEX_SIZE 4
 
 /* Debug */
 #define STATISTICS 0		// Should be managed with 3dgs.glsl 
