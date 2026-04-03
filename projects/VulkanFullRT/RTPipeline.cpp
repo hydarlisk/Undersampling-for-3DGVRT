@@ -316,7 +316,9 @@ void RTPipeline::initDescriptorSet(int frameIdx, VulkanSwapChain& swapChain, VkA
 		vks::initializers::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 2, &uniformBuffer.descriptor),
 		// Binding 3: Uniform data Static
 		vks::initializers::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 3, &uniformBufferStatic.descriptor),
+		// Binding 4: Particle Densities
 		vks::initializers::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 4, &particleDensities.descriptor),
+		// Binding 5: Particle Sph Coefficients
 		vks::initializers::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 5, &particleSphCoefficients.descriptor),
 #if SPLIT_BLAS
 		vks::initializers::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 6, &splitBLAS.d_splittedPrimitiveIdsDeviceAddress.descriptor),
@@ -411,6 +413,11 @@ void RTPipeline::record(VkCommandBuffer& commandBuffer, uint32_t imageIndex, uin
 		localWidth,
 		localHeight,
 		1);
+}
+
+void RTPipeline::updateSwapchainImage(VkDescriptorImageInfo& info, int idx) {
+	VkWriteDescriptorSet resultImageWrite = vks::initializers::writeDescriptorSet(descriptorSets[idx], VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, &info);
+	vkUpdateDescriptorSets(device, 1, &resultImageWrite, 0, VK_NULL_HANDLE);
 }
 
 void RTPipeline::updateColorThreshold(float threshold) {

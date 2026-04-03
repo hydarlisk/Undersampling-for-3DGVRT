@@ -808,7 +808,7 @@ public:
 #endif
 
 #if KDTREE
-		kdTreePipeline->record(frame.commandBuffer, frame.imageIndex, width, height);
+		kdTreePipeline->record(frame.commandBuffer, swapChain, frame.imageIndex, width, height);
 #else
 	#if UNDERSAMPLING
 		rtPipeline->record(frame.commandBuffer, frame.imageIndex, 0);
@@ -926,7 +926,7 @@ public:
 	#endif
 #endif
 
-		FrameObject currentFrame = frameObjects[getCurrentFrameIndex()];
+		FrameObject& currentFrame = frameObjects[getCurrentFrameIndex()];
 		memcpy(currentFrame.uniformBuffer.mapped, &uniformDataDynamic, sizeof(uniformDataDynamic));
 	}
 
@@ -1207,6 +1207,13 @@ public:
 		rtPipeline->updateWeightThreshold(weightThreshold);
 		rtPipeline->updateDepthThreshold(depthThreshold);
 #endif 
+		VkDescriptorImageInfo storageImageDescriptor{ VK_NULL_HANDLE, swapChain.buffers[currentFrame.imageIndex].view, VK_IMAGE_LAYOUT_GENERAL };
+#if KDTREE == 0
+		rtPipeline->updateSwapchainImage(storageImageDescriptor, getCurrentFrameIndex());
+#else
+		kdTreePipeline->updateSwapchainImage(storageImageDescriptor, getCurrentFrameIndex());
+#endif
+		
 		buildCommandBuffer(currentFrame);
 		VulkanRTBase::submitFrame(currentFrame);
 #if EVAL_QUALITY

@@ -178,6 +178,8 @@ void main()
 	float rayTransmittance = 1.0f;
 	float rayHitDistance = 0.0f;
 
+	uint hitCount = 0;
+
 #ifdef ENABLE_NORMALS
 	vec3 rayNormal = vec3(0.0f);
 #endif
@@ -262,6 +264,9 @@ void main()
 #endif
 			}
 		}
+		#if MOBILE
+		if(iter >= iterations) break;
+		#endif
 	}
 #endif
 	

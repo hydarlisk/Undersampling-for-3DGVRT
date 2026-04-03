@@ -95,6 +95,8 @@ public:
 	);
 	void initShaderBindingTable(VkStridedDeviceAddressRegionKHR* raygen, VkStridedDeviceAddressRegionKHR* miss, VkStridedDeviceAddressRegionKHR* hit);
 	void record(VkCommandBuffer& commandBuffer, uint32_t imageIndex, uint32_t additionalRTFlag);
+
+	void updateSwapchainImage(VkDescriptorImageInfo& info, int idx);
 	void updateColorThreshold(float threshold);
 	void updateHitThreshold(float threshold);
 	void updateWeightThreshold(float threshold);

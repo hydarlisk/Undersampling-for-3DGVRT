@@ -3,8 +3,22 @@
  *
  * Abura Soba, 2025
  */
-
 #include "DebugManager.hpp"
+
+#if __ANDROID__
+void DebugManager::prepare(VkInstance instance, vks::VulkanDevice* device, VkQueue* queue, uint32_t width, uint32_t height) {};
+void DebugManager::setModel(vk3DGRT::Model& gModel) {};
+void DebugManager::captureImage(VkImage& image) {};
+void DebugManager::captureRTMask(vks::Buffer& rtMask) {};
+void DebugManager::captureHitCnt(vks::Buffer& hitCountsBuffer) {};
+void DebugManager::captureRenderingImages(VkImage& image, QuaternionCamera& quaternionCamera, uint32_t camIdx, uint32_t evalQualityDirNum) {};
+void DebugManager::captureSimilVarBuffers(vks::Buffer& particleIdBuffer, vks::Buffer& alphaBuffer, vks::Buffer& weightBuffer, vks::Buffer& depthBuffer, vks::Buffer& similVarValidCntBuffer, vks::Buffer& finalTransmittanceBuffer, vks::Buffer& accumDepthBuffer) {};
+void DebugManager::captureSimilVarValidCnt(vks::Buffer& similVarValidCntBuffers) {};
+void DebugManager::dumpParticles() {};
+void DebugManager::dumpIcosahedron() {};
+DebugManager::~DebugManager() {};
+#else
+
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "stb_image_write.h"
 
@@ -12,7 +26,9 @@
 
 #include <iostream>
 #include <algorithm>
+#if defined(VK_USE_PLATFORM_ANDROID_KHR)
 #include <filesystem>
+#endif
 
 using namespace std;
 
@@ -384,3 +400,5 @@ void DebugManager::dumpIcosahedron() {
 	objFile.close();
 	cout << "dump done\n";
 }
+
+#endif

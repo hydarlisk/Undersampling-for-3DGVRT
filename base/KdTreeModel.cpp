@@ -297,11 +297,17 @@ void KdTreeModel::load(string glbinPath, string kdtbinPath) {
 bool KdTreeModel::uploadToGPU(vks::VulkanDevice* vulkanDevice, VkQueue& queue) {
 	VkFlags usageFlag = VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
 	VkFlags memPropertyFlag = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
+	LOGV("before upload vntArray");
 	VK_CHECK_RESULT(vulkanDevice->createAndCopyToDeviceBuffer(vntArray.data(), d_vntArray, vntArrLength * sizeof(float), queue, usageFlag, memPropertyFlag));
+	LOGV("upload vntArray done");
 	VK_CHECK_RESULT(vulkanDevice->createAndCopyToDeviceBuffer(faceArray.data(), d_faceArray, faceCnt * sizeof(uint32_t), queue, usageFlag, memPropertyFlag));
+	LOGV("upload faceArray done");
 	VK_CHECK_RESULT(vulkanDevice->createAndCopyToDeviceBuffer(kdTreeNode.data(), d_kdTreeNode, nodeCnt * sizeof(uint32_t) * 2, queue, usageFlag, memPropertyFlag));
+	LOGV("upload kdtreeNode done");
 	VK_CHECK_RESULT(vulkanDevice->createAndCopyToDeviceBuffer(triOffsetList.data(), d_triOffsetList, triOffsetCnt * sizeof(uint32_t), queue, usageFlag, memPropertyFlag));
+	LOGV("upload tri offset list done");
 	VK_CHECK_RESULT(vulkanDevice->createAndCopyToDeviceBuffer(triAccList.data(), d_triAccList, triCnt * sizeof(WaldTriangle), queue, usageFlag, memPropertyFlag));
+	LOGV("upload tri acc list done");
 	printf("upload gaussian data to gpu done\n");
 	return true;
 }

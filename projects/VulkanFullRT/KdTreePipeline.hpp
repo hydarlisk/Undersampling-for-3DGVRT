@@ -46,5 +46,7 @@ public:
 	
 	void prepare(VulkanSwapChain& swapChain, uint32_t width, uint32_t height);
 	void initDescriptorSet(int frameIdx, VulkanSwapChain& swapChain, vks::Buffer& uniformBuffer, vks::Buffer& uniformBufferStatic, vks::Buffer& particleDensities, vks::Buffer& particleSphCoefficients, KdTreeModel& kdTreeModel);
-	void record(VkCommandBuffer& commandBuffer, uint32_t imageIndex, uint32_t width, uint32_t height);
+	void record(VkCommandBuffer& commandBuffer, VulkanSwapChain& swapChain, uint32_t imageIndex, uint32_t width, uint32_t height);
+
+	void updateSwapchainImage(VkDescriptorImageInfo& info, int idx);
 };

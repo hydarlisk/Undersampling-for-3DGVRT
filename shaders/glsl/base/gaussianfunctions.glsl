@@ -219,8 +219,7 @@ bool processHit(
 
 	//const bool acceptHit = (gres > minParticleKernelDensity) && (galpha > minParticleAlpha);
 	bool acceptHit = (gres > minParticleKernelDensity) && (galpha > minParticleAlpha);
-    //acceptHit = true;
-	//bool acceptHit = (gres > minParticleKernelDensity) && (galpha > minParticleAlpha);
+    
 	if (acceptHit) {
         const float weight = galpha * (transmittance);
 #if SIMILARITY_VAR

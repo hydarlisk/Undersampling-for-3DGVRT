@@ -14,9 +14,14 @@
 #define LOGD(...) ((void)__android_log_print(ANDROID_LOG_DEBUG,   LOG_TAG, __VA_ARGS__))
 #define LOGE(...) ((void)__android_log_print(ANDROID_LOG_ERROR,   LOG_TAG, __VA_ARGS__))
 #else
-#define LOGV(...) ((void)(printf(__VA_ARGS__), printf("\n")))
-#define LOGI(...) ((void)(printf(__VA_ARGS__), printf("\n")))
-#define LOGW(...) ((void)(printf(__VA_ARGS__), printf("\n")))
-#define LOGD(...) ((void)(printf(__VA_ARGS__), printf("\n")))
+#define LOGV(...) ((void)(printf(__VA_ARGS__)))
+#define LOGI(...) ((void)(printf(__VA_ARGS__)))
+#define LOGW(...) ((void)(printf(__VA_ARGS__)))
+#define LOGD(...) ((void)(printf(__VA_ARGS__)))
 #define LOGE(...) ((void)(fprintf(stderr, "[E][%s] ", "vulkan"), fprintf(stderr, __VA_ARGS__), fprintf(stderr, "\n")))
+//#define LOGV(...) ((void)(printf(__VA_ARGS__), printf("\n")))
+//#define LOGI(...) ((void)(printf(__VA_ARGS__), printf("\n")))
+//#define LOGW(...) ((void)(printf(__VA_ARGS__), printf("\n")))
+//#define LOGD(...) ((void)(printf(__VA_ARGS__), printf("\n")))
+//#define LOGE(...) ((void)(fprintf(stderr, "[E][%s] ", "vulkan"), fprintf(stderr, __VA_ARGS__), fprintf(stderr, "\n")))
 #endif

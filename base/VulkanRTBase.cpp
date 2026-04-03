@@ -1013,7 +1013,6 @@ void VulkanRTBase::prepareFrame()
 void VulkanRTBase::prepareFrame(BaseFrameObject& frame)
 {
 	// Ensure command buffer execution has finished
-	//VK_CHECK_RESULT(vkWaitForFences(device, 1, &frame.renderCompleteFence, VK_TRUE, UINT64_MAX));
 	VkResult res = vkWaitForFences(device, 1, &frame.renderCompleteFence, VK_TRUE, UINT64_MAX);
 
 #if UNDERSAMPLING && STATISTICS
@@ -1446,32 +1445,41 @@ bool VulkanRTBase::initVulkan()
 			selectedDevice = index;
 		}
 	}
-
-	std::cout << "*** Find an adequate physical device BEGIN ***\n";
+#endif
+	LOGV("*** Find an adequate physical device BEGIN ***\n");
 	if (true) {
 		bool isAdequate = false;
-		std::cout << "Available Vulkan devices" << "\n";
-		std::cout << "----------------------------------------------------\n";
+		LOGV("Available Vulkan devices\n");
+		LOGV("----------------------------------------------------\n");
+
 		for (uint32_t i = 0; i < gpuCount; i++) {
 			VkPhysicalDeviceProperties deviceProperties;
 			vkGetPhysicalDeviceProperties(physicalDevices[i], &deviceProperties);
-			std::cout << "\tDevice [" << i << "] : " << deviceProperties.deviceName << std::endl;
-			std::cout << "\t\tType: " << vks::tools::physicalDeviceTypeString(deviceProperties.deviceType) << "\n";
-			std::cout << "\t\tAPI: " << VK_API_VERSION_MAJOR(deviceProperties.apiVersion) << "." << VK_API_VERSION_MINOR(deviceProperties.apiVersion) << "." << VK_API_VERSION_PATCH(deviceProperties.apiVersion) << "\n";
+
+			LOGV("\tDevice [%u] : %s\n", i, deviceProperties.deviceName);
+			LOGV("\t\tType: %s\n", vks::tools::physicalDeviceTypeString(deviceProperties.deviceType).c_str());
+			LOGV("\t\tAPI: %u.%u.%u\n",
+				VK_API_VERSION_MAJOR(deviceProperties.apiVersion),
+				VK_API_VERSION_MINOR(deviceProperties.apiVersion),
+				VK_API_VERSION_PATCH(deviceProperties.apiVersion));
+
 			bool result = sg::checkDeviceExtensionSupport(physicalDevices[i], enabledDeviceExtensions);
 			if (result) {
 				selectedDevice = i;
 				isAdequate = true;
-				std::cout << "\t===> Adequate device found!\n";
-				std::cout << "----------------------------------------------------\n";
+				LOGV("\t===> Adequate device found!\n");
+				LOGV("----------------------------------------------------\n");
 				break;
 			}
-			std::cout << "----------------------------------------------------\n";
+			LOGV("----------------------------------------------------\n");
 		}
-		if (!isAdequate) exit(-1);
+
+		if (!isAdequate) {
+			LOGV("Error: Could not find an adequate physical device.\n");
+			exit(-1);
+		}
 	}
-	std::cout << "*** Find an adequate physical device END ***\n";
-#endif
+	LOGV("*** Find an adequate physical device END ***\n");
 
 	physicalDevice = physicalDevices[selectedDevice];
 
@@ -3532,6 +3540,7 @@ void VulkanRTBase::getEnabledExtensions() {}
 
 void VulkanRTBase::windowResize()
 {
+	LOGE("window Resize");
 	if (!prepared)
 	{
 		return;
@@ -4073,8 +4082,12 @@ void VulkanRTBase::setCamera(uint32_t camIdx)
 #elif ASSET == 3
 	switch (camIdx) {
 	case 0:
-		camera.setTranslation(glm::vec3(2.342167, -2.793516, 2.678495));
-		camera.setRotation(glm::vec3(-38.874973, 395.777435, 0.000000));
+		camera.setTranslation(glm::vec3(15.617894, -18.716290, 137.325378));
+		camera.setRotation(glm::vec3(-80.224968, 400.252350, 0.000000));
+		/*camera.setTranslation(glm::vec3(2.846058, -3.325616, 25.185352));
+		camera.setRotation(glm::vec3(-80.249969, 400.227356, 0.000000));*/
+		//camera.setTranslation(glm::vec3(2.342167, -2.793516, 2.678495));
+		//camera.setRotation(glm::vec3(-38.874973, 395.777435, 0.000000));
 		break;
 	case 1:
 		camera.setTranslation(glm::vec3(3.004905, 2.292550, 3.581825));

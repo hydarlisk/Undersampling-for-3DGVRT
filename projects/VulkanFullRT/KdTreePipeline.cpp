@@ -162,7 +162,7 @@ void KdTreePipeline::initDescriptorSet(int frameIdx, VulkanSwapChain& swapChain,
 }
 
 
-void KdTreePipeline::record(VkCommandBuffer& commandBuffer, uint32_t imageIndex, uint32_t width, uint32_t height) {
+void KdTreePipeline::record(VkCommandBuffer& commandBuffer, VulkanSwapChain& swapChain, uint32_t imageIndex, uint32_t width, uint32_t height) {
 	const uint32_t groupSizeX = GROUP_WIDTH;	//must changed with shader
 	const uint32_t groupSizeY = GROUP_HEIGHT;	//must changed with shader
 	uint32_t groupCntX;
@@ -171,15 +171,20 @@ void KdTreePipeline::record(VkCommandBuffer& commandBuffer, uint32_t imageIndex,
 	uint32_t pushConstant[2] = { width, height };
 	vkCmdPushConstants(commandBuffer, pipelineLayout, VK_SHADER_STAGE_COMPUTE_BIT, 0, 16, pushConstant);
 
-	VkMemoryBarrier barrier = vks::initializers::memoryBarrier();
-	barrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
-	barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
-	vkCmdPipelineBarrier(commandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-		VK_FLAGS_NONE, 1, &barrier, 0, nullptr, 0, nullptr);
+	//VkMemoryBarrier barrier = vks::initializers::memoryBarrier();
+	//barrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
+	//barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+	//vkCmdPipelineBarrier(commandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+	//	VK_FLAGS_NONE, 1, &barrier, 0, nullptr, 0, nullptr);
 
 	groupCntX = (width + groupSizeX - 1) / groupSizeX;
 	groupCntY = (height + groupSizeY - 1) / groupSizeY;
 	vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, pipeline);
 	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, pipelineLayout, 0, 1, &descriptorSets[imageIndex], 0, 0);
 	vkCmdDispatch(commandBuffer, groupCntX, groupCntY, 1);
+}
+
+void KdTreePipeline::updateSwapchainImage(VkDescriptorImageInfo& info, int idx) {
+	VkWriteDescriptorSet resultImageWrite = vks::initializers::writeDescriptorSet(descriptorSets[idx], VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, &info);
+	vkUpdateDescriptorSets(device, 0, &resultImageWrite, 0, VK_NULL_HANDLE);
 }
