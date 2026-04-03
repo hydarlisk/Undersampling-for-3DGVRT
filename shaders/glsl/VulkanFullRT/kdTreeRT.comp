@@ -17,6 +17,8 @@ layout(local_size_x = 8, local_size_y = 8) in;	//must changed with dispatch, kdT
 //TODO JS: find optimal parameter
 #define MAX_TRI_PER_LEAF 64
 
+#define SORTING_ALGORITHM 0	//0: insertion, 1: selection, 2: merge, 3: heap
+
 #define MAX_HITS 4
 #define SPH_EVAL_DEGREE 3
 #define GAUSSIAN_DEGREE 4
@@ -199,8 +201,9 @@ void isectBranch(uint triIdx, vec3 rayOri, vec3 rayDir, uint baseOffset, inout u
 //#endif
 }
 
+#if SORTING_ALGORITHM == 0
+//insertion sort
 void sortHits(uint baseOffset, uint count) {
-    //if (count > 25) printf("local sort count: %d\n", count);
     for (int i = 1; i < count; i++) {
         HitRecord key = hitRecords.hr[baseOffset + i];
         int j = i - 1;
@@ -211,7 +214,112 @@ void sortHits(uint baseOffset, uint count) {
         hitRecords.hr[baseOffset + j + 1] = key;
     }
 }
+#elif SORTING_ALGORITHM == 1
+//selection sort
+void sortHits(uint baseOffset, uint count) {
+    for (uint i = 0; i < count - 1; i++) {
+        uint minIdx = i;
+        for (uint j = i + 1; j < count; j++) {
+            if (hitRecords.hr[baseOffset + j].t < hitRecords.hr[baseOffset + minIdx].t) {
+                minIdx = j;
+            }
+        }
 
+        if (minIdx != i) {
+            HitRecord temp = hitRecords.hr[baseOffset + i];
+            hitRecords.hr[baseOffset + i] = hitRecords.hr[baseOffset + minIdx];
+            hitRecords.hr[baseOffset + minIdx] = temp;
+        }
+    }
+}
+#elif SORTING_ALGORITHM == 2
+//merge sort
+void sortHits(uint baseOffset, uint count) {
+    if (count <= 1u || count > MAX_HITS) return;
+
+    HitRecord temp[MAX_TRI_PER_LEAF];
+
+    for (uint currSize = 1u; currSize < count; currSize = 2u * currSize) {
+        for (uint leftStart = 0u; leftStart < count - 1u; leftStart += 2u * currSize) {
+            
+            uint mid = leftStart + currSize - 1u;
+            uint rightEnd = min(leftStart + 2u * currSize - 1u, count - 1u);
+
+            if (mid >= rightEnd) continue;
+
+            uint i = leftStart;
+            uint j = mid + 1u;
+            uint k = leftStart;
+
+            while (i <= mid && j <= rightEnd) {
+                if (hitRecords.hr[baseOffset + i].t <= hitRecords.hr[baseOffset + j].t) {
+                    temp[k] = hitRecords.hr[baseOffset + i];
+                    i++;
+                } else {
+                    temp[k] = hitRecords.hr[baseOffset + j];
+                    j++;
+                }
+                k++;
+            }
+            while (i <= mid) {
+                temp[k] = hitRecords.hr[baseOffset + i];
+                i++; k++;
+            }
+            while (j <= rightEnd) {
+                temp[k] = hitRecords.hr[baseOffset + j];
+                j++; k++;
+            }
+            for (uint x = leftStart; x <= rightEnd; x++) {
+                hitRecords.hr[baseOffset + x] = temp[x];
+            }
+        }
+    }
+}
+#elif SORTING_ALGORITHM == 3
+//heap sort
+void siftDown(uint baseOffset, uint start, uint end) {
+    uint root = start;
+
+    while (root * 2u + 1u <= end) {
+        uint child = root * 2u + 1u;
+        uint swapIdx = root;
+
+        if (hitRecords.hr[baseOffset + swapIdx].t < hitRecords.hr[baseOffset + child].t) {
+            swapIdx = child;
+        }
+        if (child + 1u <= end && hitRecords.hr[baseOffset + swapIdx].t < hitRecords.hr[baseOffset + child + 1u].t) {
+            swapIdx = child + 1u;
+        }
+
+        if (swapIdx == root) {
+            return;
+        } else {
+            HitRecord temp = hitRecords.hr[baseOffset + root];
+            hitRecords.hr[baseOffset + root] = hitRecords.hr[baseOffset + swapIdx];
+            hitRecords.hr[baseOffset + swapIdx] = temp;
+            root = swapIdx;
+        }
+    }
+}
+
+void sortHits(uint baseOffset, uint count) {
+    if (count <= 1u) return;
+
+    for (int i = int(count / 2u) - 1; i >= 0; i--) {
+        siftDown(baseOffset, uint(i), count - 1u);
+    }
+
+    for (uint i = count - 1u; i > 0u; i--) {
+        HitRecord temp = hitRecords.hr[baseOffset + 0];
+        hitRecords.hr[baseOffset + 0] = hitRecords.hr[baseOffset + i];
+        hitRecords.hr[baseOffset + i] = temp;
+
+        siftDown(baseOffset, 0u, i - 1u);
+    }
+}
+#endif
+
+/* use registers for sorting */
 //void sortHits(inout HitRecord hits[MAX_HITS], uint count) {
 //    //if (count > 25) printf("local sort count: %d\n", count);
 //    for (int i = 1; i < count; i++) {
