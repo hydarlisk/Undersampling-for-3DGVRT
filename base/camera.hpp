@@ -30,6 +30,10 @@ private:
 
 	void updateViewMatrix()
 	{
+#if LOAD_NERF_CAMERA
+		updated = true;
+		return;
+#endif
 		glm::mat4 currentMatrix = matrices.view;
 
 #if defined(Y_IS_UP)
