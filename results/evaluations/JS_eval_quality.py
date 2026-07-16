@@ -14,15 +14,16 @@ ssim = StructuralSimilarityIndexMeasure(data_range=1.0)
 lpips = LearnedPerceptualImagePatchSimilarity(net_type='vgg')
 
 # 비교 대상 폴더
-ref_dir = 'GroundTruth/hotdog'
-cmp_dir = '0814~/non'
+# ref_dir = 'GroundTruth/hotdog_val'
+ref_dir = 'D:\\kjs\\scene\\gaussian\\data\\raw\\nerf_synthetic2\\nerf_synthetic\\hotdog\\val'
+cmp_dir = 'outputs/hotdog'
 # cmp_dirs = ['hotdog/3dgrt', cmp_dir+'FRT', cmp_dir+'us_150', cmp_dir+'us_298']
 cmp_dirs = [os.path.join(cmp_dir, d) for d in os.listdir(cmp_dir) if os.path.isdir(os.path.join(cmp_dir, d))]
 
 print(cmp_dirs)
 
 # 이미지 개수
-num_images = 200  # ← 필요한 만큼 수정하세요
+num_images = 1  # ← 필요한 만큼 수정하세요
 
 # 결과 저장용
 results = {cmp: {'psnr': [], 'ssim': [], 'lpips': []} for cmp in cmp_dirs}
@@ -37,8 +38,12 @@ for i in tqdm(range(num_images)):
 
     ref_img = read_image(ref_path).float() / 255.0  # [0,1] 정규화
     ref_img = ref_img.unsqueeze(0)  # [1, C, H, W]
+
+    # 💡 수정된 부분: 투명 배경을 검은색으로 렌더링
     if ref_img.shape[1] == 4:
-        ref_img = ref_img[:, :3]
+        rgb = ref_img[:, :3]
+        alpha = ref_img[:, 3:4] # Broadcasting을 위해 채널 차원 유지 [1, 1, H, W]
+        ref_img = rgb * alpha   # 알파 값을 곱해 투명한 영역을 0(검정)으로 만듦
 
     # load cmp imgs and compare with ref imgs
     for cmp in cmp_dirs:

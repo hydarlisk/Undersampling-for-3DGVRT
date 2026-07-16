@@ -15,7 +15,8 @@
 
 #define ANY_HIT 0	// This macro should be managed with Define.h
 
-#define ITERATIONS 6
+#define MOBILE 1
+#define ITERATIONS 8
 
 struct RayOption {
 	bool shadowRay;

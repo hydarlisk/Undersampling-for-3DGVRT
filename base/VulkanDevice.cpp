@@ -25,23 +25,23 @@ namespace vks
 		VkPhysicalDeviceProperties properties;
 		vkGetPhysicalDeviceProperties(device, &properties);
 
-		LOGV("--- Vulkan Compute Limits ---");
-		LOGV("Device Name: %s", properties.deviceName);
+		LOGV("--- Vulkan Compute Limits ---\n");
+		LOGV("Device Name: %s\n", properties.deviceName);
 
 		// 1. Shared Memory 최대 크기
-		LOGV("Max Shared Memory Size: %u bytes", properties.limits.maxComputeSharedMemorySize);
+		LOGV("Max Shared Memory Size: %u bytes\n", properties.limits.maxComputeSharedMemorySize);
 
 		// 2. 워크그룹당 최대 스레드 수
-		LOGV("Max Compute Workgroup Invocations: %u", properties.limits.maxComputeWorkGroupInvocations);
+		LOGV("Max Compute Workgroup Invocations: %u\n", properties.limits.maxComputeWorkGroupInvocations);
 
 		// 3. 워크그룹 각 차원의 최대 크기
-		LOGV("Max Compute Workgroup Size: (%u, %u, %u)",
+		LOGV("Max Compute Workgroup Size: (%u, %u, %u)\n",
 			properties.limits.maxComputeWorkGroupSize[0],
 			properties.limits.maxComputeWorkGroupSize[1],
 			properties.limits.maxComputeWorkGroupSize[2]);
 
 		// 4. Storage Buffer 최대 크기
-		LOGV("Max Storage Buffer Range: %u bytes", properties.limits.maxStorageBufferRange);
+		LOGV("Max Storage Buffer Range: %u bytes\n", properties.limits.maxStorageBufferRange);
 		LOGV("-----------------------------");
 	}
 	/**

@@ -873,6 +873,9 @@ void VulkanRTBase::updateOverlay(std::vector<BaseFrameObject*>& frameObjects)
 			recordCount = 0;
 #endif
 			fpsQuery = true;
+#if defined(VK_USE_PLATFORM_ANDROID_KHR)
+			LOGD("measure start\n");
+#endif
 		}
 		//ImGui::button
 	}

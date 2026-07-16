@@ -52,6 +52,7 @@ private:
 
 		fovy = 2 * atan(height / (2 * fy));
 		fovy *= RAD2DEGREE;
+		printf("loaded camera fovy in degree: %f\n", fovy);
 	}
 
 	void c2wTow2cRT(CameraFrame& frame) {

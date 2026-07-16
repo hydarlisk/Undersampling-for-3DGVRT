@@ -39,7 +39,7 @@ void GaussianEnclosingPipeline::createUniformBuffer() {
 
 	uniformData.numOfGaussians = gModel.splatSet.size();
 	uniformData.kernelMinResponse = KERNEL_MIN_RESPONSE;	// these values should be managed as config val
-	uniformData.opts = vks::utils::MOGRenderNone;
+	uniformData.opts = vks::utils::MOGRenderAdaptiveKernelClamping;
 	uniformData.degree = KERNEL_DEGREE;
 
 	// mapping

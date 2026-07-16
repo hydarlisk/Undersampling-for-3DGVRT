@@ -87,13 +87,53 @@ task copyTask {
 
     // ply models
     copy {
+//        from rootProject.ext.assetPath + '3DGRTModels/hotdog'
+//        into 'assets/3DGRTModels/hotdog'
+//        include 'hotdog2_3dgrt.ply', 'transforms_val.json'
+
+//        from rootProject.ext.assetPath + '3DGRTModels/mic'
+//        into 'assets/3DGRTModels/mic'
+//        include 'mic_3dgrt.ply', 'transforms_val.json'
+//
+//        from rootProject.ext.assetPath + '3DGRTModels/ship'
+//        into 'assets/3DGRTModels/ship'
+//        include 'ship_3dgrt.ply', 'transforms_val.json'
+//
 //        from rootProject.ext.assetPath + '3DGRTModels/lego'
 //        into 'assets/3DGRTModels/lego'
-//        include 'lego.ply'
-
-        from rootProject.ext.assetPath + '3DGRTModels/hotdog'
-        into 'assets/3DGRTModels/hotdog'
-        include 'hotdog_3dgrt2.ply', 'hotdog.glbin', 'hotdog.kdtbin'
+//        include 'lego_3dgrt.ply', 'transforms_val.json'
+//
+        from rootProject.ext.assetPath + '3DGRTModels/drums'
+        into 'assets/3DGRTModels/drums'
+        include 'drums_3dgrt.ply', 'transforms_val.json'
+//
+//        from rootProject.ext.assetPath + '3DGRTModels/chair'
+//        into 'assets/3DGRTModels/chair'
+//        include 'chair_3dgrt.ply', 'transforms_val.json'
+//
+//        from rootProject.ext.assetPath + '3DGRTModels/room'
+//        into 'assets/3DGRTModels/room'
+//        include 'room_3dgrt.ply', 'transforms_val.json'
+//
+//        from rootProject.ext.assetPath + '3DGRTModels/counter'
+//        into 'assets/3DGRTModels/counter'
+//        include 'counter_3dgrt.ply', 'transforms_val.json'
+//
+//        from rootProject.ext.assetPath + '3DGRTModels/kitchen'
+//        into 'assets/3DGRTModels/kitchen'
+//        include 'kitchen_3dgrt.ply', 'transforms_val.json'
+//
+//        from rootProject.ext.assetPath + '3DGRTModels/bonsai'
+//        into 'assets/3DGRTModels/bonsai'
+//        include 'bonsai_3dgrt.ply', 'transforms_val.json'
+//
+//        from rootProject.ext.assetPath + '3DGRTModels/bicycle'
+//        into 'assets/3DGRTModels/bicycle'
+//        include 'bicycle_3dgrt.ply', 'transforms_val.json'
+//
+//        from rootProject.ext.assetPath + '3DGRTModels/garden'
+//        into 'assets/3DGRTModels/garden'
+//        include 'garden_3dgrt.ply', 'transforms_val.json'
     }
 }
 

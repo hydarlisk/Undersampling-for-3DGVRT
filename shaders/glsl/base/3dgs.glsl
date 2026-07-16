@@ -12,7 +12,7 @@
 #define STATISTICS 0            // Should be managed with Define.h
 #define ENABLE_HIT_COUNTS 0		// Should be managed with Define.h
 #define CHECK_BVH 0
-#define ENCLOSING_DENSITY_TRHESHOLD 0
+#define ENCLOSING_DENSITY_TRHESHOLD 0.0113f
 
 #define REMOVE_DUPLICATE_ANYHIT_BY_SHADER 1		//Should be managed with Define.h
 #define NUM_OF_GAUSSIANS 1024 // This macro should be managed with Define.h

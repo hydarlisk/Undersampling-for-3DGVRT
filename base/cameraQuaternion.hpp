@@ -141,6 +141,7 @@ public:
     void setDatasetCamera(DatasetType type, uint32_t idx, float aspect) {
         if (type == nerf) {
             setPerspective(FOV_Y, aspect, znear, zfar);
+            //setPerspective(cameraLoader.fovy, aspect, znear, zfar);
             setNerfCamera(idx);
         }
     }

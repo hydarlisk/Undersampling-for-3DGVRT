@@ -143,8 +143,8 @@ void main()
         
         if(density < ENCLOSING_DENSITY_TRHESHOLD) return;
 
-//		const uint saveIdx = atomicAdd(particleCounts, 1);
-		const uint saveIdx = globalIdx;
+		const uint saveIdx = atomicAdd(particleCounts, 1);
+//		const uint saveIdx = globalIdx;
 		const uint sVertIdx = icosaHedronNumVrt * saveIdx * 3;
         const uint sTriIdx  = icosaHedronNumTri * saveIdx * 3;
 

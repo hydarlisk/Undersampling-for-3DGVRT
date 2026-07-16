@@ -215,6 +215,13 @@ public:
 #if EVAL_QUALITY
 	uint32_t width = 800;
 	uint32_t height = 800;
+
+	//room
+	//uint32_t width = 1557;
+	//uint32_t height = 1038;
+	//counter
+	/*uint32_t width = 1558;
+	uint32_t height = 1038;*/
 #else
 	uint32_t width = WIDTH;
 	uint32_t height = HEIGHT;
