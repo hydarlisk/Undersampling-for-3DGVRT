@@ -1295,6 +1295,11 @@ public:
 	}
 	#endif
 #endif
+#if DEBUG_TOTAL_ISECTCNT
+	void captureIsectCntBuffer() {
+		rtPipeline->captureIsectCntBuffer(getPrevFrameIndex());
+	}
+#endif
 
 	virtual void render()
 	{
@@ -1333,6 +1338,13 @@ public:
 			captureValidCntBufferFlag = false;
 		}
 	#endif
+#endif
+#if DEBUG_TOTAL_ISECTCNT
+		//KEY_Y
+		if (captureIsectCntFlag) {
+			captureIsectCntBuffer();
+			captureIsectCntFlag = false;
+		}
 #endif
 	}
 };

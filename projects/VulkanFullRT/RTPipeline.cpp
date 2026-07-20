@@ -29,6 +29,9 @@ RTPipeline::RTPipeline(vks::VulkanDevice& device, VkQueue& queue, int swapchainI
 	similarityVarBuffers.resize(swapchainImageCnt);
 	accumDepthBuffers.resize(swapchainImageCnt);
 #endif
+#if DEBUG_TOTAL_ISECTCNT
+	isectCntBuffers.resize(swapchainImageCnt);
+#endif
 
 	vkCmdTraceRaysKHR = reinterpret_cast<PFN_vkCmdTraceRaysKHR>(vkGetDeviceProcAddr(device, "vkCmdTraceRaysKHR"));
 	vkCreateRayTracingPipelinesKHR = reinterpret_cast<PFN_vkCreateRayTracingPipelinesKHR>(vkGetDeviceProcAddr(device, "vkCreateRayTracingPipelinesKHR"));
@@ -104,6 +107,17 @@ void RTPipeline::createSimilarityVarBuffers() {
 }
 #endif
 
+#if DEBUG_TOTAL_ISECTCNT
+void RTPipeline::createIsectCntBuffer() {
+	VkFlags transferSrc = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+	for (int i = 0; i < swapchainImageCnt; i++) {
+		string bufferName = "isectCntBuffer" + to_string(i);
+		VK_CHECK_RESULT(vulkanDevice.createBuffer(VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | transferSrc,
+			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &isectCntBuffers[i], pushConstants.width * pushConstants.height * sizeof(uint32_t), nullptr, bufferName));
+	}
+}
+#endif
+
 void RTPipeline::createDescriptorSets() {
 	std::vector<VkDescriptorPoolSize> poolSizes = {
 		// ray tracing pipeline
@@ -124,6 +138,9 @@ void RTPipeline::createDescriptorSets() {
 	#if SIMILARITY_VAR
 		vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 7 * swapchainImageCnt),
 	#endif
+#endif
+#if DEUBG_TOTAL_ISECTCNT
+		vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1 * swapchainImageCnt),
 #endif
 	};
 	VkDescriptorPoolCreateInfo descriptorPoolCreateInfo = vks::initializers::descriptorPoolCreateInfo(poolSizes, swapchainImageCnt); // ray tracing pipeline
@@ -174,6 +191,9 @@ void RTPipeline::createDescriptorSets() {
 		// Bidning 15: Storage buffer - accumulated Depth
 		vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_RAYGEN_BIT_KHR, 16),
 	#endif
+#endif
+#if DEBUG_TOTAL_ISECTCNT
+		vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_RAYGEN_BIT_KHR, 17),
 #endif
 	};
 
@@ -270,6 +290,9 @@ void RTPipeline::prepare(uint32_t width, uint32_t height) {
 #if UNDERSAMPLING && SIMILARITY_VAR
 	createSimilarityVarBuffers();
 #endif
+#if DEBUG_TOTAL_ISECTCNT
+	createIsectCntBuffer();
+#endif
 	createDescriptorSets();
 	createPipelineLayout();
 	pushConstantRange = vks::initializers::pushConstantRange(VK_SHADER_STAGE_COMPUTE_BIT, sizeof(PushConstants), 0);
@@ -340,6 +363,9 @@ void RTPipeline::initDescriptorSet(int frameIdx, VulkanSwapChain& swapChain, VkA
 		vks::initializers::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 15, &finalTransmittanceBuffers[frameIdx].descriptor),
 		vks::initializers::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 16, &accumDepthBuffers[frameIdx].descriptor),
 	#endif
+#endif
+#if DEBUG_TOTAL_ISECTCNT
+		vks::initializers::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 17, &isectCntBuffers[frameIdx].descriptor),
 #endif
 	};
 
@@ -442,5 +468,10 @@ void RTPipeline::captureSimilVarBuffers(uint32_t idx) {
 }
 void RTPipeline::captureValidCntBuffer(uint32_t idx) {
 	DebugManager::getInstance().captureSimilVarValidCnt(similVarValidCntBuffers[idx]);
+}
+#endif
+#if DEBUG_TOTAL_ISECTCNT
+void RTPipeline::captureIsectCntBuffer(uint32_t idx) {
+	DebugManager::getInstance().captureIsectCntBuffer(isectCntBuffers[idx]);
 }
 #endif

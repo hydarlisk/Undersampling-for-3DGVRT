@@ -17,6 +17,12 @@
 #define REMOVE_DUPLICATE_ANYHIT_BY_SHADER 1		//Should be managed with Define.h
 #define NUM_OF_GAUSSIANS 1024 // This macro should be managed with Define.h
 
+#define DEBUG_TOTAL_ISECTCNT 1
+#if DEBUG_TOTAL_ISECTCNT
+#undef REMOVE_DUPLICATE_ANYHIT_BY_SHADER
+#define REMOVE_DUPLICATE_ANYHIT_BY_SHADER 0
+#endif
+
 #if ENABLE_HIT_COUNTS
 #undef UNDERSAMPLING
 #define UNDERSAMPLING 0
@@ -87,4 +93,7 @@ struct RayHit {
 
 struct RayPayload {
 	RayHit hits[MAX_HIT_PER_TRACE];
+#if DEBUG_TOTAL_ISECTCNT
+	int isectCnt;
+#endif
 };

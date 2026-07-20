@@ -45,11 +45,17 @@
 
 #define REMOVE_DUPLICATE_ANYHIT_BY_SHADER 1 // Should be managed with 3dgs.glsl
 
-//#define WIDTH 800
-//#define HEIGHT 800
+#define DEBUG_TOTAL_ISECTCNT 1
+#if DEBUG_TOTAL_ISECTCNT
+#undef REMOVE_DUPLICATE_ANYHIT_BY_SHADER
+#define REMOVE_DUPLICATE_ANYHIT_BY_SHADER 0
+#endif
 
-#define WIDTH 2340
-#define HEIGHT 1080
+#define WIDTH 800
+#define HEIGHT 800
+
+//#define WIDTH 2340
+//#define HEIGHT 1080
 
 #define USE_TIME_BASED_FPS false
 
@@ -58,7 +64,7 @@
 #define LOAD_NERF_CAMERA true
 #define DYNAMIC_CAMERA false
 
-#define ASSET 4
+#define ASSET 11
 #define LOAD_GLTF 0
 
 
@@ -118,45 +124,49 @@
 #if ASSET == 0
 #define ASSET_PATH "3DGRTModels/hotdog/"
 #define PLY_FILE "hotdog2_3dgrt.ply"
-#define KDT_FILE "lego.kdt"
-#define GLBIN_FILE "lego.bin"
+#define ASSET_NAME "hotdog"
 #elif ASSET == 1
 #define ASSET_PATH "3DGRTModels/mic/"
 #define PLY_FILE "mic_3dgrt.ply"
-#define KDT_FILE "lego.kdt"
-#define GLBIN_FILE "lego.bin"
+#define ASSET_NAME "mic"
 
 #elif ASSET == 2
 #define ASSET_PATH "3DGRTModels/ship/"
 #define PLY_FILE "ship_3dgrt.ply"
+#define ASSET_NAME "ship"
 #define KDT_FILE "lego.kdt"
 #define GLBIN_FILE "lego.bin"
 
 #elif ASSET == 3
 #define ASSET_PATH "3DGRTModels/lego/"
 #define PLY_FILE "lego_3dgrt.ply"
+#define ASSET_NAME "lego"
 #define KDT_FILE "lego.kdt"
 #define GLBIN_FILE "lego.bin"
 
 #elif ASSET == 4
 #define ASSET_PATH "3DGRTModels/drums/"
 #define PLY_FILE "drums_3dgrt.ply"
+#define ASSET_NAME "drums"
 //#define NO_CAM_DATA
 
 #elif ASSET == 5
 #define ASSET_PATH "3DGRTModels/chair/"
 #define PLY_FILE "chair_3dgrt.ply"
+#define ASSET_NAME "chair"
 
 #elif ASSET == 6
 #define ASSET_PATH "3DGRTModels/room/"
 //#define PLY_FILE "hotdog_3dgrt2.ply"
 #define PLY_FILE "room_3dgrt.ply"
+#define ASSET_NAME "room"
 #define KDT_FILE "hotdog.kdtbin"
 #define GLBIN_FILE "hotdog.glbin"
 
 #elif ASSET == 7
 #define ASSET_PATH "3DGRTModels/counter/"
 #define PLY_FILE "counter_3dgrt.ply"
+#define ASSET_NAME "counter"
 //#define NO_CAM_DATA
 
 
@@ -164,6 +174,7 @@
 #define ASSET_PATH "3DGRTModels/kitchen/"
 //#define PLY_FILE "hotdog_3dgrt2.ply"
 #define PLY_FILE "kitchen_3dgrt.ply"
+#define ASSET_NAME "kitchen"
 #define KDT_FILE "hotdog.kdtbin"
 #define GLBIN_FILE "hotdog.glbin"
 
@@ -172,6 +183,7 @@
 #define ASSET_PATH "3DGRTModels/bonsai/"
 //#define PLY_FILE "hotdog_3dgrt2.ply"
 #define PLY_FILE "bonsai_3dgrt.ply"
+#define ASSET_NAME "bonsai"
 #define KDT_FILE "hotdog.kdtbin"
 #define GLBIN_FILE "hotdog.glbin"
 
@@ -180,12 +192,14 @@
 #define ASSET_PATH "3DGRTModels/bicycle/"
 //#define PLY_FILE "hotdog_3dgrt2.ply"
 #define PLY_FILE "bicycle_3dgrt.ply"
+#define ASSET_NAME "bicycle"
 #define KDT_FILE "hotdog.kdtbin"
 #define GLBIN_FILE "hotdog.glbin"
 #elif ASSET == 11
 #define ASSET_PATH "3DGRTModels/garden/"
 //#define PLY_FILE "hotdog_3dgrt2.ply"
 #define PLY_FILE "garden_3dgrt.ply"
+#define ASSET_NAME "garden"
 #endif
 
 #ifdef NO_CAM_DATA

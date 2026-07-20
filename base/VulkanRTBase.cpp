@@ -1907,6 +1907,11 @@ void VulkanRTBase::handleMessages(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lP
 				break;
 	#endif
 #endif
+#if DEBUG_TOTAL_ISECTCNT
+			case KEY_Y:
+				captureIsectCntFlag = true;
+				break;
+#endif
 			}
 		}
 

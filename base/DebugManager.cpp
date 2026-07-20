@@ -341,6 +341,159 @@ void DebugManager::captureSimilVarBuffers(vks::Buffer& particleIdBuffer, vks::Bu
 	captureSimilVarValidCnt(similVarValidCntBuffer);
 }
 
+glm::u8vec3 turboColormapHost(float x)
+{
+	const glm::vec4 kRedVec4 = glm::vec4(0.13572138f, 4.61539260f, -42.66032258f, 132.13108234f);
+	const glm::vec4 kGreenVec4 = glm::vec4(0.09140261f, 2.19418839f, 4.84296658f, -14.18503333f);
+	const glm::vec4 kBlueVec4 = glm::vec4(0.10667330f, 12.64194608f, -60.58204836f, 110.36276771f);
+	const glm::vec2 kRedVec2 = glm::vec2(-152.94239396f, 59.28637943f);
+	const glm::vec2 kGreenVec2 = glm::vec2(4.27729857f, 2.82956604f);
+	const glm::vec2 kBlueVec2 = glm::vec2(-89.90310912f, 27.34824973f);
+
+	x = glm::clamp(x, 0.0f, 1.0f);
+
+	glm::vec4 v4 = glm::vec4(1.0f, x, x * x, x * x * x);
+	glm::vec2 v2 = glm::vec2(v4.z * v4.z, v4.w * v4.z);
+
+	float r = glm::dot(v4, kRedVec4) + glm::dot(v2, kRedVec2);
+	float g = glm::dot(v4, kGreenVec4) + glm::dot(v2, kGreenVec2);
+	float b = glm::dot(v4, kBlueVec4) + glm::dot(v2, kBlueVec2);
+
+	return glm::u8vec3(
+		static_cast<uint8_t>(glm::clamp(r * 255.0f, 0.0f, 255.0f)),
+		static_cast<uint8_t>(glm::clamp(g * 255.0f, 0.0f, 255.0f)),
+		static_cast<uint8_t>(glm::clamp(b * 255.0f, 0.0f, 255.0f))
+	);
+}
+
+glm::u8vec3 blueToRedColormapHost(float x) {
+	x = glm::clamp(x, 0.0f, 1.0f);
+
+	// 파랑(낮음) -> 하늘색 -> 노랑(중간) -> 주황 -> 빨강(높음)
+	const int NUM_COLORS = 5;
+	const glm::vec3 colors[NUM_COLORS] = {
+		glm::vec3(0.0f, 0.0f, 1.0f), // 0.00: 파란색 (가장 낮음)
+		glm::vec3(0.0f, 0.8f, 1.0f), // 0.25: 밝은 하늘색
+		glm::vec3(1.0f, 1.0f, 0.0f), // 0.50: 밝은 노란색
+		glm::vec3(1.0f, 0.4f, 0.0f), // 0.75: 뚜렷한 주황색
+		glm::vec3(1.0f, 0.0f, 0.0f)  // 1.00: 빨간색 (가장 높음)
+	};
+
+	// 현재 x가 어느 두 색상 사이에 있는지 계산
+	x *= (NUM_COLORS - 1);
+	int idx1 = static_cast<int>(x);
+	int idx2 = std::min(idx1 + 1, NUM_COLORS - 1);
+	float t = x - static_cast<float>(idx1);
+
+	// 두 색상을 선형 보간(Linear Interpolation)
+	glm::vec3 color = glm::mix(colors[idx1], colors[idx2], t);
+
+	return glm::u8vec3(
+		static_cast<uint8_t>(glm::clamp(color.r * 255.0f, 0.0f, 255.0f)),
+		static_cast<uint8_t>(glm::clamp(color.g * 255.0f, 0.0f, 255.0f)),
+		static_cast<uint8_t>(glm::clamp(color.b * 255.0f, 0.0f, 255.0f))
+	);
+}
+
+void DebugManager::captureIsectCntBuffer(vks::Buffer& isectCntBuffer) {
+	float n = 5;
+
+	vector<uint32_t> isectCntVec(width * height);
+	vector<unsigned char> pixels(width * height * 3);
+
+	//particleId Buffer
+	vulkanDevice->copyDeviceBufferToHost(isectCntVec.data(), isectCntBuffer, *queue);
+
+	uint32_t maxVal = 0;
+	uint32_t minVal = std::numeric_limits<uint32_t>::max();
+	uint32_t colormapMax = 0;
+	uint64_t sumVal = 0; // 합계가 32비트를 넘을 수 있으므로 64비트 사용
+	uint32_t validCnt = 0;
+	for (uint32_t val : isectCntVec) {
+		if (val <= 0) continue;
+		if (val > maxVal) maxVal = val;
+		if (val < minVal) minVal = val;
+		sumVal += val;
+		validCnt++;
+	}
+	double avgVal = static_cast<double>(sumVal) / validCnt;
+	vector<uint32_t> tmp = isectCntVec;
+	float percentile = 1.0f - (n / 100.f);
+	size_t targetIndex = static_cast<size_t>(tmp.size() * percentile);
+	if (targetIndex >= tmp.size()) {
+		targetIndex = tmp.size() - 1;
+	}
+	nth_element(tmp.begin(), tmp.begin() + targetIndex, tmp.end());
+	colormapMax = tmp[targetIndex];
+
+	for (size_t i = 0; i < isectCntVec.size(); ++i) {
+		if (isectCntVec[i] <= 0) {
+			pixels[i * 3 + 0] = 0;
+			pixels[i * 3 + 1] = 0;
+			pixels[i * 3 + 2] = 0;
+			continue;
+		}
+		// 값을 0.0 ~ 1.0 범위로 정규화 (maxVal이 0일 경우의 0 나누기 방지)
+		float normalized = (maxVal > 0) ? static_cast<float>(isectCntVec[i]) / maxVal : 0.0f;
+
+		// 컬러맵을 통해 RGB 색상 추출
+		//glm::u8vec3 color = blueToRedColormapHost(normalized);
+		glm::u8vec3 color = turboColormapHost(normalized);
+
+		// pixels 배열에 R, G, B 순서로 쓰기
+		pixels[i * 3 + 0] = color.r;
+		pixels[i * 3 + 1] = color.g;
+		pixels[i * 3 + 2] = color.b;
+	}
+	string dirPath = DEBUG_FILE_PATH + string("isectCnt/") + string(ASSET_NAME) + "/";
+	string fileName = dirPath + "isectCnt.png";
+	if (!std::filesystem::exists(dirPath)) {
+		std::filesystem::create_directories(dirPath);
+	}
+	//png
+	stbi_write_png(fileName.c_str(), width, height, 3, pixels.data(), width * 3);
+
+	// E. 텍스트 파일에 통계 데이터(최대, 최소, 평균) 저장
+	std::string baseFilename(fileName);
+	std::string txtFilename = baseFilename;
+
+	//bin
+	string binFileName = dirPath + ASSET_NAME + "_isectCnt.bin";
+	std::ofstream outFile(binFileName, std::ios::binary);
+	if (!outFile) {
+		std::cerr << "Error: Cannot open file " << binFileName << std::endl;
+		return;
+	}
+	outFile.write(reinterpret_cast<const char*>(isectCntVec.data()),
+		isectCntVec.size() * sizeof(uint32_t));
+
+	outFile.close();
+	std::cout << "Successfully saved: " << fileName << std::endl;
+
+	//txt
+	size_t dotPos = baseFilename.find_last_of('.');
+	if (dotPos != std::string::npos) {
+		txtFilename = baseFilename.substr(0, dotPos) + ".txt";
+	}
+	else {
+		txtFilename += ".txt";
+	}
+	std::ofstream txtFile(txtFilename);
+	if (txtFile.is_open()) {
+		txtFile << "Intersection Count Statistics\n";
+		txtFile << "-----------------------------\n";
+		txtFile << "Min: " << minVal << "\n";
+		txtFile << "Max: " << maxVal << "\n";
+		txtFile << "Avg: " << avgVal << "\n";
+		txtFile << (100 - n) << "%: " << colormapMax << "\n";
+		txtFile.close();
+		std::cout << "Successfully saved stats to: " << txtFilename << "\n";
+	}
+	else {
+		std::cerr << "Failed to save stats file: " << txtFilename << "\n";
+	}
+}
+
 void DebugManager::dumpParticles() {
 	uint32_t densitiesCnt = gModel->densities.count;
 	vector<float> densities(densitiesCnt);

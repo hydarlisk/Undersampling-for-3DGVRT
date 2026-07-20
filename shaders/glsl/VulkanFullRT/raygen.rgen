@@ -96,6 +96,12 @@ layout(push_constant, std430) uniform pushConstant{
 };
 #endif
 
+#if DEBUG_TOTAL_ISECTCNT
+layout(std430, binding = 17, set = 0) buffer IsectCnt{
+	uint isectCnt[];
+};
+#endif
+
 #include "../base/gaussianfunctions.glsl"
 #if UNDERSAMPLING
 #include "../base/underSampling.glsl"
@@ -200,6 +206,9 @@ void main()
 
 	const uint iterations = ITERATIONS;
 	uint iter = 0;
+#if DEBUG_TOTAL_ISECTCNT
+	rayPayload.isectCnt = 0;
+#endif
 
 #if CHECK_BVH
 	trace(rayOrigin.xyz, rayDirection.xyz, rayLastHitDistance + epsT, minMaxT.y + epsT);
@@ -289,5 +298,9 @@ void main()
 	#if ENABLE_HIT_COUNTS
 	rayHitCounts.cnts[gl_LaunchIDEXT.y * gl_LaunchSizeEXT.x + gl_LaunchIDEXT.x] = hitCnts;
 	#endif
+#endif
+
+#if DEBUG_TOTAL_ISECTCNT
+	isectCnt[gl_LaunchIDEXT.y * gl_LaunchSizeEXT.x + gl_LaunchIDEXT.x] = rayPayload.isectCnt;
 #endif
 }

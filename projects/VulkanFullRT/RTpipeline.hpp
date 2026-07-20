@@ -44,6 +44,9 @@ class RTPipeline {
 	vector<vks::Buffer> similarityVarBuffers;
 	vector<vks::Buffer> accumDepthBuffers;
 #endif
+#if DEBUG_TOTAL_ISECTCNT
+	vector<vks::Buffer> isectCntBuffers;
+#endif
 	vector<vks::Buffer> finalTransmittanceBuffers;
 
 	vector<VkDescriptorSet> descriptorSets;
@@ -72,6 +75,8 @@ class RTPipeline {
 
 	inline string getShaderPath(string shaderName);
 	void createSimilarityVarBuffers();
+	void createIsectCntBuffer();
+
 	void createDescriptorSets();
 	void createPipelineLayout();
 	void createPipeline();
@@ -104,4 +109,5 @@ public:
 
 	void captureSimilVarBuffers(uint32_t idx);
 	void captureValidCntBuffer(uint32_t idx);
+	void captureIsectCntBuffer(uint32_t idx);
 };

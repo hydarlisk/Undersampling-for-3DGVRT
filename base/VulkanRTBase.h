@@ -305,6 +305,9 @@ public:
 	bool captureValidCntBufferFlag = false;
 	#endif
 #endif
+#if DEBUG_TOTAL_ISECTCNT
+	bool captureIsectCntFlag = false;
+#endif
 
 	/** @brief State of gamepad input (only used on Android) */
 	struct {
