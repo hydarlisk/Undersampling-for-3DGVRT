@@ -52,11 +52,11 @@ public:
         // 쿼터니언을 행렬로 변환하고, 역행렬 적용 (View matrix)
         glm::mat4 rotMat = glm::toMat4(glm::conjugate(rotation));
         glm::mat4 transMat = glm::translate(glm::mat4(1.0f), -position);
-#if LOAD_NERF_CAMERA
-        return viewMatrix;
-#else
+//#if LOAD_NERF_CAMERA
+//        return viewMatrix;
+//#else
         return rotMat * transMat;
-#endif
+//#endif
     }
 
     glm::mat4 getProjectionMatrix() const {
@@ -129,6 +129,12 @@ public:
     void setNerfCamera(uint32_t idx) {
         CameraFrame* frame = &cameraLoader.nerfCameras.frames[idx];
         viewMatrix = frame->transformMatrix;
+
+        glm::mat4 w2c = frame->transformMatrix;
+        glm::mat4 c2w = glm::inverse(w2c);
+        position = glm::vec3(c2w[3]);
+        rotation = glm::quat_cast(c2w);
+
         curIdx = idx;
         if (debugMsg) {
             cout << "perspective mat:\n";

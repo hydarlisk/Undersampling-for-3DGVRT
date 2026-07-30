@@ -30,10 +30,10 @@ private:
 
 	void updateViewMatrix()
 	{
-#if LOAD_NERF_CAMERA
-		updated = true;
-		return;
-#endif
+//#if LOAD_NERF_CAMERA
+//		updated = true;
+//		return;
+//#endif
 		glm::mat4 currentMatrix = matrices.view;
 
 #if defined(Y_IS_UP)
@@ -103,7 +103,22 @@ public:
 	void setNerfCamera(uint32_t idx) {
 		CameraFrame* frame = &cameraLoader.nerfCameras.frames[idx];
 		matrices.view = frame->transformMatrix;
-		//matrices.perspective = cameraLoader.nerfCameras.projectionMatrix;
+
+		glm::mat4 w2c = frame->transformMatrix;
+		glm::mat4 c2w = glm::inverse(w2c);
+		position = glm::vec3(c2w[3]);
+
+		//glm::quat rotQuat = glm::quat_cast(c2w);
+		//rotation = glm::degrees(glm::eulerAngles(rotQuat));
+
+		float pitch = glm::degrees(asin(glm::clamp(-c2w[2][1], -1.0f, 1.0f)));
+		float yaw = glm::degrees(atan2(c2w[2][0], c2w[2][2]));
+		float roll = glm::degrees(atan2(c2w[0][1], c2w[1][1]));
+
+		rotation.x = pitch;
+		rotation.y = yaw;
+		rotation.z = roll;
+		updateViewMatrix();
 	}
 
 	void setDatasetCamera(DatasetType type, uint32_t idx, float aspect) {
@@ -297,9 +312,9 @@ public:
 				}
 			}
 		}
-#if !LOAD_NERF_CAMERA
+//#if !LOAD_NERF_CAMERA
 		updateViewMatrix();
-#endif
+//#endif
 	};
 
 	// Update camera passing separate axis data (gamepad)
