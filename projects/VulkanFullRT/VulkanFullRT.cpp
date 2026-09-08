@@ -1301,10 +1301,99 @@ public:
 	}
 #endif
 
+#if DYNAMIC_CAMERA_JS
+	float eye_time = 0.0f;
+	float eye_speed = 1.0f;
+	float eye_radius = 1.0f;
+	float camRotSpeed = 0.1f;
+
+#if QUATERNION_CAMERA
+	void updateEyeRollCamera(QuaternionCamera& camera, float deltaTime) {
+		deltaTime = 0.01f;
+		eye_time += deltaTime * eye_speed;
+
+		float sim_delx = -eye_radius * sinf(eye_time) * deltaTime * 10.0f;
+		float sim_dely = eye_radius * cosf(eye_time) * deltaTime * 10.0f;
+
+		float yaw_angle = sim_delx * camRotSpeed;
+		float pitch_angle = sim_dely * camRotSpeed;
+
+		glm::quat yawQuat = glm::angleAxis(glm::radians(yaw_angle), glm::vec3(0.0f, 1.0f, 0.0f));
+		glm::quat pitchQuat = glm::angleAxis(glm::radians(-pitch_angle), glm::vec3(1.0f, 0.0f, 0.0f));
+
+		camera.rotation = yawQuat * camera.rotation * pitchQuat;
+		camera.rotation = glm::normalize(camera.rotation);
+		camera.updated = true;
+	}
+#else //QUATERNION_CAMERA == 0
+#if ASSET < 6
+	void updateEyeRollCamera(Camera& camera, float deltaTime) {
+		//deltaTime = 0.03f;
+		deltaTime = 1.f;
+		eye_time += deltaTime * eye_speed;
+
+		float sim_delx = -eye_radius * sinf(eye_time) * deltaTime * 10.0f;
+		float sim_dely = eye_radius * cosf(eye_time) * deltaTime * 10.0f;
+
+		float yaw_angle = sim_delx * camRotSpeed;
+		float pitch_angle = sim_dely * camRotSpeed;
+
+		// 1. 현재 오일러 각도로부터 회전 행렬 생성 (updateViewMatrix의 Y->X->Z 조립 순서와 동일하게)
+		glm::mat4 rotX = glm::rotate(glm::mat4(1.0f), glm::radians(camera.rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
+		glm::mat4 rotY = glm::rotate(glm::mat4(1.0f), glm::radians(camera.rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
+		glm::mat4 rotZ = glm::rotate(glm::mat4(1.0f), glm::radians(camera.rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
+		glm::mat4 currentRot = rotY * rotX * rotZ;
+
+		// 2. System 2 (OpenGL) 방식 완벽 재현:
+		// Yaw는 글로벌 Y축(0,1,0), Pitch는 카메라의 현재 로컬 X축(uaxis)을 뜯어와서 회전
+		glm::vec3 localX = glm::vec3(currentRot[0]); // 0번째 열이 카메라의 uaxis(Right)에 해당
+		glm::mat4 deltaYawMat = glm::rotate(glm::mat4(1.0f), glm::radians(yaw_angle), glm::vec3(0.0f, 1.0f, 0.0f));
+		glm::mat4 deltaPitchMat = glm::rotate(glm::mat4(1.0f), glm::radians(pitch_angle), localX); // 🚨 방향 맞추기 위해 -pitch
+
+		// 3. 회전 누적 (델타 * 현재)
+		glm::mat4 newRot = deltaYawMat * deltaPitchMat * currentRot;
+
+		// 4. 새로운 회전 행렬에서 오일러 각도로 다시 역추출 (setNerfCamera에서 쓴 완벽한 Y->X->Z 역공식)
+		camera.rotation.x = glm::degrees(asin(glm::clamp(-newRot[2][1], -1.0f, 1.0f)));
+		camera.rotation.y = glm::degrees(atan2(newRot[2][0], newRot[2][2]));
+		camera.rotation.z = glm::degrees(atan2(newRot[0][1], newRot[1][1]));
+
+		camera.updated = true;
+	}
+#else
+	void updateEyeRollCamera(Camera& camera, float deltaTime) {
+		deltaTime = 0.03f;
+		eye_time += deltaTime * eye_speed;
+
+		float sim_delx = -eye_radius * sinf(eye_time) * deltaTime * 10.0f;
+		float sim_dely = eye_radius * cosf(eye_time) * deltaTime * 10.0f;
+
+		float yaw_angle = sim_delx * camRotSpeed;
+		float pitch_angle = sim_dely * camRotSpeed;
+
+		camera.rotation.y += yaw_angle;
+		camera.rotation.x -= pitch_angle;
+
+		camera.updated = true;
+	}
+#endif
+#endif //QUATERNION_CAMERA
+#endif
+
 	virtual void render()
 	{
 		if (!prepared)
 			return;
+
+#if DYNAMIC_CAMERA_JS
+		if (dynamicCamFlag) {
+#if QUATERNION_CAMERA
+			updateEyeRollCamera(quaternionCamera, frameTimer);
+#else
+			updateEyeRollCamera(camera, frameTimer);
+#endif
+		}
+#endif
 
 		if (!renderFlag) return;
 		if (measureFPSMultipleViewFlag) {
@@ -1344,6 +1433,9 @@ public:
 		if (captureIsectCntFlag) {
 			captureIsectCntBuffer();
 			captureIsectCntFlag = false;
+			
+			FrameObject& prevFrame = frameObjects[getPrevFrameIndex()];
+			DebugManager::getInstance().captureRenderingImages(swapChain.images[prevFrame.imageIndex], quaternionCamera, 0, 0);
 		}
 #endif
 	}

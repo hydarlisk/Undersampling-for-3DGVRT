@@ -45,7 +45,7 @@
 
 #define REMOVE_DUPLICATE_ANYHIT_BY_SHADER 1 // Should be managed with 3dgs.glsl
 
-#define DEBUG_TOTAL_ISECTCNT 1
+#define DEBUG_TOTAL_ISECTCNT 1	// Should be managed with 3dgs.glsl
 #if DEBUG_TOTAL_ISECTCNT
 #undef REMOVE_DUPLICATE_ANYHIT_BY_SHADER
 #define REMOVE_DUPLICATE_ANYHIT_BY_SHADER 0
@@ -60,9 +60,15 @@
 #define USE_TIME_BASED_FPS false
 
 /* cameras */
-#define QUATERNION_CAMERA true
+#define QUATERNION_CAMERA false
 #define LOAD_NERF_CAMERA true
 #define DYNAMIC_CAMERA false
+#define DYNAMIC_CAMERA_JS 1
+
+#if DYNAMIC_CAMERA_JS
+#undef QUATERNION_CAMERA
+#define QUATERNION_CAMERA false
+#endif
 
 #define ASSET 11
 #define LOAD_GLTF 0
@@ -118,8 +124,8 @@
 #define RAY_QUERY 0
 #endif
 
-#define N_IS_UP		// Should be managed with 3DGRT Asset Num.
-//#define Y_IS_UP
+//#define N_IS_UP		// Should be managed with 3DGRT Asset Num.
+#define Y_IS_UP
 
 #if ASSET == 0
 #define ASSET_PATH "3DGRTModels/hotdog/"

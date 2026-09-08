@@ -345,7 +345,8 @@ void VulkanRTBase::nextFrame(std::vector<BaseFrameObject*>& frameObjects)
 	render();
 	frameCounter++;
 	auto tEnd = std::chrono::high_resolution_clock::now();
-	auto tDiff = std::chrono::duration<double, std::milli>(tEnd - tStart).count();
+	//auto tDiff = std::chrono::duration<double, std::milli>(tEnd - tStart).count();
+	auto tDiff = std::chrono::duration<double, std::milli>(tEnd - tPrevEnd).count();
 #if USE_TIME_BASED_FPS
 	if (fpsQuery)
 	{
@@ -353,12 +354,13 @@ void VulkanRTBase::nextFrame(std::vector<BaseFrameObject*>& frameObjects)
 		calculateFPS();
 	}
 #endif
-
+	
 #if QUATERNION_CAMERA
 	quaternionCamera.setDeltaTime(frameTimer);
 #endif
 	frameTimer = (float)tDiff / 1000.0f;
 	camera.update(frameTimer);
+
 	if (camera.moving())
 	{
 		viewUpdated = true;
@@ -375,7 +377,7 @@ void VulkanRTBase::nextFrame(std::vector<BaseFrameObject*>& frameObjects)
 	float fpsTimer = (float)(std::chrono::duration<double, std::milli>(tEnd - lastTimestamp).count());
 	if (fpsTimer > 1000.0f)
 	{
-		lastFPS = static_cast<uint32_t>((float)frameCounter * (1000.0f / fpsTimer));
+		lastFPS = static_cast<uint32_t>((float)(frameCounter) * (1000.0f / fpsTimer));
 #if defined(_WIN32)
 		if (!settings.overlay)	{
 			std::string windowTitle = getWindowTitle();
@@ -833,7 +835,11 @@ void VulkanRTBase::updateOverlay(std::vector<BaseFrameObject*>& frameObjects)
 
 #if LOAD_NERF_CAMERA
 	ImGui::Separator();
+#if QUATERNION_CAMERA
 	static vector<string> camNames = quaternionCamera.getCamNames();
+#else
+	static vector <string> camNames = camera.getCamNames();
+#endif
 	static const char* current_item = "0";
 	
 	ImGui::Text("loaded cameras");
@@ -863,6 +869,11 @@ void VulkanRTBase::updateOverlay(std::vector<BaseFrameObject*>& frameObjects)
 			measureFPSMultipleViewFlag = true;
 		}
 	}
+#if DYNAMIC_CAMERA_JS
+	if (ImGui::Button("demo")) {
+		dynamicCamFlag = true;
+	}
+#endif
 
 	//text input for fps calculation
 	if(!fpsQuery) {
@@ -1910,6 +1921,14 @@ void VulkanRTBase::handleMessages(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lP
 #if DEBUG_TOTAL_ISECTCNT
 			case KEY_Y:
 				captureIsectCntFlag = true;
+				break;
+#endif
+			case KEY_L:
+				renderFlag = !renderFlag;
+				break;
+#if DYNAMIC_CAMERA_JS
+			case KEY_K:
+				dynamicCamFlag = !dynamicCamFlag;
 				break;
 #endif
 			}

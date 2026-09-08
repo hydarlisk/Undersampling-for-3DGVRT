@@ -189,7 +189,11 @@ void DebugManager::captureRenderingImages(VkImage& image, QuaternionCamera& quat
 	currentImgBuffer.unmap();
 
 	int stride = width * 4;
-	string outputDir = "../results/evaluations/outputs/output" + to_string(evalQualityDirNum) + "/";
+#if DEBUG_TOTAL_ISECTCNT
+	string outputDir = "../results/debug/isectCnt/" + string(ASSET_NAME) + "/";
+#else
+	string outputDir = "../results/evaluations/outputs/output/" + string(ASSET_NAME) + to_string(evalQualityDirNum) + "/";
+#endif
 	if (!filesystem::exists(outputDir)) {
 		try {
 			filesystem::create_directories(outputDir);
@@ -417,14 +421,26 @@ void DebugManager::captureIsectCntBuffer(vks::Buffer& isectCntBuffer) {
 		validCnt++;
 	}
 	double avgVal = static_cast<double>(sumVal) / validCnt;
-	vector<uint32_t> tmp = isectCntVec;
-	float percentile = 1.0f - (n / 100.f);
-	size_t targetIndex = static_cast<size_t>(tmp.size() * percentile);
-	if (targetIndex >= tmp.size()) {
-		targetIndex = tmp.size() - 1;
+
+	vector<uint32_t> tmp;
+	tmp.reserve(isectCntVec.size());
+	for (uint32_t val : isectCntVec) {
+		if (val != 0) {
+			tmp.push_back(val);
+		}
 	}
-	nth_element(tmp.begin(), tmp.begin() + targetIndex, tmp.end());
-	colormapMax = tmp[targetIndex];
+	if (tmp.empty()) {
+		colormapMax = 0;
+	}
+	else{
+		float percentile = 1.0f - (n / 100.f);
+		size_t targetIndex = static_cast<size_t>(tmp.size() * percentile);
+		if (targetIndex >= tmp.size()) {
+			targetIndex = tmp.size() - 1;
+		}
+		nth_element(tmp.begin(), tmp.begin() + targetIndex, tmp.end());
+		colormapMax = tmp[targetIndex];
+	}
 
 	for (size_t i = 0; i < isectCntVec.size(); ++i) {
 		if (isectCntVec[i] <= 0) {

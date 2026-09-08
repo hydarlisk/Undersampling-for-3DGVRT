@@ -308,6 +308,9 @@ public:
 #if DEBUG_TOTAL_ISECTCNT
 	bool captureIsectCntFlag = false;
 #endif
+#if DYNAMIC_CAMERA_JS
+	bool dynamicCamFlag = false;
+#endif
 
 	/** @brief State of gamepad input (only used on Android) */
 	struct {
